@@ -13,7 +13,7 @@ export function useNavigation() {
     if (next === 'home') setActive('home');
     if (next === 'myPrayers' || next === 'discover' || next === 'detail' || next === 'prayerStopwatch') setActive('prayers');
     if (next === 'create' || next === 'createTestimony') setActive('create');
-    if (next === 'praise') setActive('praise');
+    if (next === 'praise' || next === 'praiseDetail') setActive('praise');
     if (next === 'myStats') setActive('stats');
     if (
       next === 'profile' ||

@@ -15,6 +15,7 @@ import {
 const root = process.cwd();
 const app = readFileSync(join(root, 'src', 'App.jsx'), 'utf8');
 const profile = readFileSync(join(root, 'src', 'components', 'screens', 'Profile.jsx'), 'utf8');
+const praise = readFileSync(join(root, 'src', 'components', 'screens', 'Praise.jsx'), 'utf8');
 const adminDashboard = readFileSync(join(root, 'src', 'components', 'screens', 'AdminDashboard.jsx'), 'utf8');
 const reportDetails = readFileSync(join(root, 'src', 'components', 'screens', 'ReportDetails.jsx'), 'utf8');
 const navigation = readFileSync(join(root, 'src', 'hooks', 'useNavigation.js'), 'utf8');
@@ -32,7 +33,7 @@ for (const [navKey, screen] of Object.entries(NAV_TO_SCREEN)) {
   assert(APP_SCREENS.includes(screen), `Bottom nav key "${navKey}" points to missing screen "${screen}".`);
 }
 
-for (const required of ['adminDashboard', 'reportDetails', 'notifications']) {
+for (const required of ['adminDashboard', 'reportDetails', 'notifications', 'praiseDetail']) {
   assert(APP_SCREENS.includes(required), `APP_SCREENS is missing required route "${required}".`);
 }
 
@@ -41,6 +42,8 @@ for (const protectedScreen of ['adminDashboard', 'reportDetails', 'create', 'set
 }
 
 assert(profile.includes('Stewardship Console'), 'Profile does not expose the Stewardship Console entry.');
+assert(praise.includes("'praiseDetail'"), 'Praise feed does not navigate to the full testimony detail screen.');
+assert(praise.includes('line-clamp-3'), 'Praise feed cards should show compact previews before opening detail.');
 assert(adminDashboard.includes('Stewardship Console'), 'Admin console title is missing.');
 assert(navigation.includes("next === 'adminDashboard'"), 'Navigation does not keep adminDashboard under the profile tab.');
 assert(navigation.includes("next === 'reportDetails'"), 'Navigation does not keep reportDetails under the profile tab.');

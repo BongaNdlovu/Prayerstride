@@ -19,6 +19,7 @@ import EditRequest from './components/screens/EditRequest';
 import EditProfile from './components/screens/EditProfile';
 import QuickActions from './components/screens/QuickActions';
 import Praise from './components/screens/Praise';
+import PraiseDetail from './components/screens/PraiseDetail';
 import Profile from './components/screens/Profile';
 import Notifications from './components/screens/Notifications';
 import Groups from './components/screens/Groups';
@@ -58,7 +59,7 @@ const PROTECTED_SCREENS = new Set([
   "following", "announcements", "devotions", "guideDetail", "lessonReader", "calendar", "myStats",
   "answeredPrayers", "myPrayers", "achievements", "reminderSettings", "profile", "settings",
   "notificationSettings", "support", "helpCenter", "privacyPolicy", "termsOfService", "praise", "adminDashboard",
-  "reportDetails", "notifications",
+  "praiseDetail", "reportDetails", "notifications",
 ]);
 
 function runSmokeTests() {
@@ -179,6 +180,7 @@ export default function App() {
     if (screen === "achievements") return <Achievements onBack={() => go("profile")} activeTab={active} onNavigate={setNav} />;
     if (screen === "reminderSettings") return <Reminders onBack={() => go("profile")} activeTab={active} onNavigate={setNav} />;
     if (screen === "praise") return <Praise activeTab={active} onNavigate={setNav} onGo={go} user={authUser} />;
+    if (screen === "praiseDetail") return <PraiseDetail testimony={params.testimony} onBack={() => back("praise")} activeTab={active} onNavigate={setNav} onGo={go} user={authUser} />;
     if (screen === "profile") return <Profile activeTab={active} onNavigate={setNav} onGo={go} user={authUser} />;
     if (screen === "settings") return <Settings onBack={() => back("profile")} activeTab={active} onNavigate={setNav} onSection={(key) => {
       const sectionRoutes = { editProfile: 'editProfile', notifications: 'notificationSettings', help: 'helpCenter', feedback: 'support', privacy: 'privacyPolicy', about: 'termsOfService', prayerPreferences: 'reminderSettings' };

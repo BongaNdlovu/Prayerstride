@@ -5,7 +5,6 @@ import Card from '../ui/Card';
 import { mockTestimonies } from '../../data/mockData';
 import { usePersistentState } from '../../hooks/usePersistentState';
 import { usePrayerData } from '../../hooks/usePrayerData';
-import EncouragementThread from '../ui/EncouragementThread';
 import ImageHero from '../ui/ImageHero';
 
 function ReactionButton({ active, count, label, onClick }) {
@@ -21,7 +20,7 @@ function ReactionButton({ active, count, label, onClick }) {
   );
 }
 
-function TestimonyCard({ testimony, prayers, reactions, currentUser, onReact, onPrayer }) {
+function TestimonyCard({ testimony, prayers, reactions, onReact, onPrayer, onOpen }) {
   const relatedPrayer = prayers.find((prayer) => prayer.id === testimony.prayerId);
   const reacted = reactions[testimony.id] || {};
   const praiseGodCount = (testimony.praiseGod || 0) + (reacted.praiseGod ? 1 : 0);
@@ -29,6 +28,7 @@ function TestimonyCard({ testimony, prayers, reactions, currentUser, onReact, on
 
   return (
     <Card className="p-4">
+      <button onClick={() => onOpen?.(testimony)} className="w-full text-left">
       <div className="flex items-center justify-between gap-3">
         <div>
           <div className="text-xs font-semibold uppercase tracking-wider text-gold">Praise Report</div>
@@ -39,7 +39,12 @@ function TestimonyCard({ testimony, prayers, reactions, currentUser, onReact, on
         </div>
       </div>
       <p className="mt-2 text-xs text-slate-500">{testimony.name} - {testimony.time}</p>
-      <p className="mt-3 text-sm leading-6 text-slate-600">{testimony.text}</p>
+      <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-600">{testimony.text}</p>
+      <div className="mt-3 flex items-center gap-1 text-xs font-semibold text-navy">
+        Read full testimony
+        <ChevronRight size={14} />
+      </div>
+      </button>
 
       {relatedPrayer && (
         <button
@@ -71,7 +76,6 @@ function TestimonyCard({ testimony, prayers, reactions, currentUser, onReact, on
           onClick={() => onReact(testimony.id, 'amen')}
         />
       </div>
-      <EncouragementThread threadId={`testimony:${testimony.id}`} currentUser={currentUser} />
     </Card>
   );
 }
@@ -101,6 +105,10 @@ export default function Praise({ activeTab, onNavigate, onGo, user }) {
 
   const openPrayer = (prayer) => {
     onGo?.('detail', { request: { ...prayer, answered: true } });
+  };
+
+  const openTestimony = (testimony) => {
+    onGo?.('praiseDetail', { testimony });
   };
 
   return (
@@ -164,9 +172,9 @@ export default function Praise({ activeTab, onNavigate, onGo, user }) {
               testimony={testimony}
               prayers={prayers}
               reactions={reactions}
-              currentUser={user}
               onReact={react}
               onPrayer={openPrayer}
+              onOpen={openTestimony}
             />
           ))}
         </div>
