@@ -1,8 +1,10 @@
 /** @type {import('tailwindcss').Config} */
-export default {
+module.exports = {
+  presets: [require('nativewind/preset')],
   content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
+    './index.html',
+    './app/**/*.{js,ts,jsx,tsx}',
+    './src/**/*.{js,ts,jsx,tsx}',
   ],
   theme: {
     extend: {
@@ -27,20 +29,7 @@ export default {
         glow: '0 18px 60px rgba(215, 165, 82, 0.24)',
         cinematic: '0 22px 80px rgba(2, 7, 18, 0.42)',
       },
-      animation: {
-        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        'ping-slow': 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite',
-      },
-      keyframes: {
-        pulse: {
-          '0%, 100%': { opacity: '1' },
-          '50%': { opacity: '0.7' },
-        },
-        ping: {
-          '75%, 100%': { transform: 'scale(2)', opacity: '0' },
-        },
-      },
     },
   },
   plugins: [],
-}
+};

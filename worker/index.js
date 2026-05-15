@@ -14,7 +14,7 @@ export default {
         return withCors(await handleApi(request, env, url), env);
       }
 
-      return env.ASSETS.fetch(request);
+      return json({ ok: true, service: 'prayerstride-api' });
     } catch (error) {
       return withCors(json({ error: error.message || 'Unexpected server error' }, 500), env);
     }
