@@ -4,22 +4,38 @@
     "slug": "prayerstride",
     "scheme": "prayerstride",
     "version": "1.0.0",
-    "platforms": ["ios", "android"],
+    "platforms": [
+      "ios",
+      "android"
+    ],
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.prayerstride.app"
     },
     "android": {
-      "package": "com.prayerstride.app",
+      "package": "Prayerstride.com",
       "googleServicesFile": "./google-services.json",
-      "permissions": ["POST_NOTIFICATIONS"]
+      "permissions": [
+        "POST_NOTIFICATIONS"
+      ]
     },
-    "plugins": ["expo-router", "expo-notifications"],
+    "plugins": [
+      "expo-router",
+      "expo-notifications"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "4b845a6a-494d-4868-adaa-fcbd80519edd"
+      }
+    },
     "experiments": {
       "typedRoutes": false
-    }
+    },
+    "owner": "shakhi"
   }
 }
