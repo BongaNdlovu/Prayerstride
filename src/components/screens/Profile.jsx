@@ -1,4 +1,4 @@
-import { Settings, ChevronRight, Heart, Bell, BookOpen, Calendar, BarChart3, Award, Clock, Users, Camera } from 'lucide-react';
+import { Settings, ChevronRight, Heart, Bell, BookOpen, Calendar, BarChart3, Award, Clock, Users, Camera, ShieldCheck } from 'lucide-react';
 import PrayingHandsIcon from '../PrayingHandsIcon';
 import BottomNav from '../BottomNav';
 import { usePersistentState } from '../../hooks/usePersistentState';
@@ -25,6 +25,7 @@ export default function Profile({ activeTab, onNavigate, onGo, user }) {
     { icon: Clock, label: 'Prayer Stopwatch', key: 'prayerStopwatch' },
     { icon: Clock, label: 'Reminders', key: 'reminderSettings' },
     { icon: Bell, label: 'Notifications', key: 'notifications' },
+    { icon: ShieldCheck, label: 'Stewardship Console', key: 'adminDashboard' },
     { icon: Settings, label: 'Settings', key: 'settings' },
   ];
 

@@ -23,11 +23,14 @@ export function useNavigation() {
       next === 'reminderSettings' ||
       next === 'settings' ||
       next === 'notificationSettings' ||
+      next === 'notifications' ||
       next === 'groups' ||
       next === 'groupDetail' ||
       next === 'devotions' ||
       next === 'guideDetail' ||
-      next === 'following'
+      next === 'following' ||
+      next === 'adminDashboard' ||
+      next === 'reportDetails'
     ) setActive('profile');
   }, []);
 

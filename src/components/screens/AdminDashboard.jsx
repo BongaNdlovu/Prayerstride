@@ -1,42 +1,74 @@
 import { useState } from 'react';
-import { ArrowLeft, Users, FileText, AlertTriangle, Ban, BarChart3, CheckCircle2, Heart, MessageSquare, Settings, Flag, Pin, Bell, Eye, Clock, MoreHorizontal } from 'lucide-react';
+import { Users, FileText, AlertTriangle, Ban, ShieldCheck, HeartHandshake, MessageSquare, Settings, Flag, Pin, Bell, Eye, Clock, Megaphone, Lock, UserCheck, Radio, CheckCircle2, Archive, Search } from 'lucide-react';
 import AppScreen from '../ui/AppScreen';
 import AppHeader from '../ui/AppHeader';
 import StatCard from '../ui/StatCard';
 import Card from '../ui/Card';
 import MiniLineChart from '../ui/MiniLineChart';
-import { mockAdminStats, mockReports } from '../../data/mockData';
+import { mockAdminStats, mockReports, mockUsers, mockAnnouncements } from '../../data/mockData';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
 export default function AdminDashboard({ onBack, activeTab, onNavigate, onGo }) {
   const [reports, setReports] = usePersistentState('admin:reports', mockReports);
+  const [ownerSettings, setOwnerSettings] = usePersistentState('admin:owner-settings', {
+    prayerReview: true,
+    testimonyReview: false,
+    publicGroups: true,
+    newSignups: true,
+  });
   const [activeTabFilter, setActiveTabFilter] = useState('overview');
   const [showMenu, setShowMenu] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const openReports = reports.filter((r) => r.status === 'open');
   const resolvedReports = reports.filter((r) => r.status === 'resolved');
   const dismissedReports = reports.filter((r) => r.status === 'dismissed');
+  const filteredUsers = mockUsers.filter((user) => `${user.name} ${user.handle} ${user.role}`.toLowerCase().includes(searchTerm.toLowerCase()));
 
   const handleViewReport = (reportId) => {
     onGo?.('reportDetails', { reportId });
   };
 
+  const updateReportStatus = (reportId, status) => {
+    setReports((current) => current.map((report) => report.id === reportId ? { ...report, status } : report));
+  };
+
   const handleQuickAction = (action) => {
     if (action === 'reviewReports') {
       setActiveTabFilter('reports');
+    } else if (action === 'manageUsers') {
+      setActiveTabFilter('members');
+    } else if (action === 'announcements') {
+      setActiveTabFilter('broadcasts');
+    } else if (action === 'settings') {
+      setActiveTabFilter('stewardship');
     }
   };
 
   return (
     <AppScreen activeTab={activeTab} onNavigate={onNavigate}>
-      <AppHeader title="Admin Dashboard" onBack={onBack} />
+      <AppHeader title="Stewardship Console" onBack={onBack} />
       <div className="mt-4 px-5 space-y-4">
+        <Card className="bg-navy p-4 text-white">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-candle text-ink">
+              <ShieldCheck size={20} />
+            </div>
+            <div>
+              <h2 className="font-serif text-xl">Owner tools</h2>
+              <p className="mt-1 text-xs leading-5 text-white/72">Care for members, moderate sensitive content, publish updates, and keep the PrayerStride community trustworthy.</p>
+            </div>
+          </div>
+        </Card>
+
         <div className="flex gap-2 overflow-x-auto pb-2">
           {[
             { key: 'overview', label: 'Overview' },
             { key: 'reports', label: `Reports (${openReports.length})` },
-            { key: 'users', label: 'Users' },
+            { key: 'members', label: 'Members' },
             { key: 'content', label: 'Content' },
+            { key: 'broadcasts', label: 'Broadcasts' },
+            { key: 'stewardship', label: 'Settings' },
           ].map((tab) => (
             <button
               key={tab.key}
@@ -69,10 +101,10 @@ export default function AdminDashboard({ onBack, activeTab, onNavigate, onGo }) 
             <div className="grid grid-cols-2 gap-2">
               {[
                 { icon: Flag, label: 'Review Reports', action: 'reviewReports' },
-                { icon: Users, label: 'Manage Users', action: 'manageUsers' },
-                { icon: Pin, label: 'Pinned Requests', action: 'pinned' },
+                { icon: Users, label: 'Manage Members', action: 'manageUsers' },
+                { icon: Pin, label: 'Featured Prayers', action: 'pinned' },
                 { icon: Bell, label: 'Announcements', action: 'announcements' },
-                { icon: Settings, label: 'System Settings', action: 'settings' },
+                { icon: Settings, label: 'App Settings', action: 'settings' },
               ].map((qa) => (
                 <button
                   key={qa.label}
@@ -155,9 +187,59 @@ export default function AdminDashboard({ onBack, activeTab, onNavigate, onGo }) 
                     <button
                       onClick={() => handleViewReport(report.id)}
                       className="ml-3 flex h-8 w-8 items-center justify-center rounded-full hover:bg-slate-100 transition"
+                      aria-label="View report details"
                     >
                       <Eye size={16} className="text-slate-600" />
                     </button>
+                  </div>
+                  {report.status === 'open' && (
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <button onClick={() => updateReportStatus(report.id, 'resolved')} className="flex items-center justify-center gap-1.5 rounded-xl bg-navy px-3 py-2 text-xs font-semibold text-white transition active:scale-95">
+                        <CheckCircle2 size={14} />
+                        Resolve
+                      </button>
+                      <button onClick={() => updateReportStatus(report.id, 'dismissed')} className="flex items-center justify-center gap-1.5 rounded-xl border border-[#e6ddcf] bg-sand px-3 py-2 text-xs font-semibold text-slate-700 transition active:scale-95">
+                        <Archive size={14} />
+                        Dismiss
+                      </button>
+                    </div>
+                  )}
+                </Card>
+              ))}
+            </div>
+          </>
+        )}
+
+        {activeTabFilter === 'members' && (
+          <>
+            <div className="flex items-center gap-2 rounded-2xl border border-[#e6ddcf] bg-white/80 px-3 py-2.5">
+              <Search size={17} className="text-slate-400" />
+              <input
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Search members"
+                className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400"
+              />
+            </div>
+            <div className="space-y-3">
+              {filteredUsers.map((user) => (
+                <Card key={user.id} className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-navy" style={{ background: user.avatarColor }}>
+                      {user.name.split(' ').map((part) => part[0]).join('').slice(0, 2)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="truncate text-sm font-semibold text-slate-900">{user.name}</h3>
+                        <span className="shrink-0 rounded-full bg-[#f2e7d6] px-2 py-0.5 text-[10px] font-medium text-navy">{user.role}</span>
+                      </div>
+                      <p className="truncate text-xs text-slate-500">{user.handle} · {user.bio}</p>
+                    </div>
+                  </div>
+                  <div className="mt-3 grid grid-cols-3 gap-2">
+                    <button className="rounded-xl bg-navy px-2 py-2 text-xs font-semibold text-white">Message</button>
+                    <button className="rounded-xl border border-[#e6ddcf] bg-sand px-2 py-2 text-xs font-semibold text-slate-700">Role</button>
+                    <button className="rounded-xl border border-red-200 bg-red-50 px-2 py-2 text-xs font-semibold text-red-700">Suspend</button>
                   </div>
                 </Card>
               ))}
@@ -165,20 +247,91 @@ export default function AdminDashboard({ onBack, activeTab, onNavigate, onGo }) 
           </>
         )}
 
-        {activeTabFilter === 'users' && (
-          <Card className="p-6 text-center">
-            <Users size={32} className="mx-auto text-navy" />
-            <h3 className="mt-3 font-serif text-lg text-navy">User Management</h3>
-            <p className="mt-2 text-sm text-slate-600">View and manage user accounts, suspensions, and blocks.</p>
-          </Card>
+        {activeTabFilter === 'content' && (
+          <div className="space-y-3">
+            {[
+              { icon: FileText, title: 'Prayer requests awaiting review', count: 12, detail: 'Sensitive or urgent requests that need a human decision.' },
+              { icon: HeartHandshake, title: 'Testimonies awaiting approval', count: 5, detail: 'Answered-prayer stories before they appear in Praise.' },
+              { icon: Pin, title: 'Featured community prayers', count: 8, detail: 'Requests promoted to the home and discover sections.' },
+              { icon: MessageSquare, title: 'Encouragement comments', count: 19, detail: 'Replies that may need pastoral or moderation care.' },
+            ].map((item) => (
+              <Card key={item.title} className="p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#f2e7d6] text-navy">
+                      <item.icon size={18} />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-900">{item.title}</h3>
+                      <p className="mt-1 text-xs leading-5 text-slate-500">{item.detail}</p>
+                    </div>
+                  </div>
+                  <span className="rounded-full bg-navy px-2 py-1 text-xs font-semibold text-white">{item.count}</span>
+                </div>
+              </Card>
+            ))}
+          </div>
         )}
 
-        {activeTabFilter === 'content' && (
-          <Card className="p-6 text-center">
-            <FileText size={32} className="mx-auto text-navy" />
-            <h3 className="mt-3 font-serif text-lg text-navy">Content Moderation</h3>
-            <p className="mt-2 text-sm text-slate-600">Review flagged content and take moderation actions.</p>
-          </Card>
+        {activeTabFilter === 'broadcasts' && (
+          <div className="space-y-3">
+            <button className="cinematic-button flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold text-ink transition active:scale-[0.98]">
+              <Megaphone size={17} />
+              Create Announcement
+            </button>
+            {mockAnnouncements.slice(0, 4).map((announcement) => (
+              <Card key={announcement.id} className="p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-900">{announcement.title}</h3>
+                    <p className="mt-1 text-xs text-slate-500">{announcement.type} · {announcement.date} {announcement.time}</p>
+                  </div>
+                  <span className="rounded-full bg-[#e8f0f6] px-2 py-1 text-[10px] font-semibold text-navy">Scheduled</span>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {activeTabFilter === 'stewardship' && (
+          <div className="space-y-3">
+            {[
+              { key: 'prayerReview', icon: ShieldCheck, title: 'Review public prayer requests', detail: 'Owner team approves sensitive public requests before they trend.' },
+              { key: 'testimonyReview', icon: HeartHandshake, title: 'Review testimonies before publishing', detail: 'Adds a care step for stories shared in Praise.' },
+              { key: 'publicGroups', icon: Users, title: 'Allow public group discovery', detail: 'Members can find and join public prayer groups.' },
+              { key: 'newSignups', icon: UserCheck, title: 'Allow new account creation', detail: 'Temporarily close signups during maintenance or abuse spikes.' },
+            ].map((setting) => (
+              <Card key={setting.key} className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#f2e7d6] text-navy">
+                    <setting.icon size={18} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-sm font-semibold text-slate-900">{setting.title}</h3>
+                    <p className="mt-1 text-xs leading-5 text-slate-500">{setting.detail}</p>
+                  </div>
+                  <button
+                    onClick={() => setOwnerSettings((current) => ({ ...current, [setting.key]: !current[setting.key] }))}
+                    className={`flex h-7 w-12 shrink-0 items-center rounded-full p-1 transition ${ownerSettings[setting.key] ? 'bg-navy' : 'bg-slate-300'}`}
+                    aria-label={`Toggle ${setting.title}`}
+                  >
+                    <span className={`h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${ownerSettings[setting.key] ? 'translate-x-5' : 'translate-x-0'}`} />
+                  </button>
+                </div>
+              </Card>
+            ))}
+            <Card className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-red-50 text-red-700">
+                  <Lock size={18} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900">Owner access</h3>
+                  <p className="mt-1 text-xs leading-5 text-slate-500">Only app owners, trusted admins, and assigned moderators should see this console.</p>
+                </div>
+              </div>
+            </Card>
+          </div>
         )}
       </div>
     </AppScreen>

@@ -12,6 +12,6 @@ export const APP_SCREENS = [
   "home", "discover", "detail", "prayerStopwatch", "create", "createTestimony", "editRequest", "quickActions", "praise",
   "groups", "groupDetail", "groupMembers", "following", "announcements", "devotions", "guideDetail", "lessonReader",
   "calendar", "myStats", "answeredPrayers", "myPrayers", "achievements", "reminderSettings",
-  "profile", "settings", "notificationSettings", "support", "helpCenter", "privacyPolicy", "termsOfService",
+  "profile", "settings", "notifications", "notificationSettings", "support", "helpCenter", "privacyPolicy", "termsOfService",
   "adminDashboard", "reportDetails", "accountSuspended",
 ];
