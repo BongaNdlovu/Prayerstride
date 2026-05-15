@@ -9,6 +9,7 @@ import {
 } from 'firebase/auth';
 import { deleteDoc, doc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
+import { isOwnerEmail, OWNER_DISPLAY_NAME } from '../data/owner';
 
 const AuthContext = createContext(null);
 
@@ -31,15 +32,19 @@ export function AuthProvider({ children }) {
     },
     async register(email, password, displayName) {
       const credential = await createUserWithEmailAndPassword(auth, email, password);
-      if (displayName) {
-        await updateProfile(credential.user, { displayName });
+      const isOwner = isOwnerEmail(email);
+      const nextDisplayName = isOwner ? OWNER_DISPLAY_NAME : displayName;
+
+      if (nextDisplayName) {
+        await updateProfile(credential.user, { displayName: nextDisplayName });
       }
 
       await setDoc(doc(db, 'users', credential.user.uid), {
         uid: credential.user.uid,
         email: credential.user.email,
-        displayName: displayName || credential.user.displayName || '',
-        role: 'user',
+        displayName: nextDisplayName || credential.user.displayName || '',
+        role: isOwner ? 'admin' : 'user',
+        owner: isOwner,
         createdAt: serverTimestamp(),
         photoURL: null,
       }, { merge: true });

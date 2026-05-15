@@ -1,5 +1,8 @@
 {
-  "appId": "com.lift.prayer",
+  "appId": "Prayerstride.com",
   "appName": "PrayerStride",
-  "webDir": "dist"
+  "webDir": "dist",
+  "android": {
+    "path": "android-capacitor-legacy"
+  }
 }

@@ -8,6 +8,7 @@ import {
 } from 'firebase/auth';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { auth, db } from './firebase';
+import { isOwnerEmail, OWNER_DISPLAY_NAME } from '../data/owner';
 
 const AuthContext = createContext(null);
 
@@ -28,12 +29,16 @@ export function AuthProvider({ children }) {
     },
     async register(email, password, name) {
       const credential = await createUserWithEmailAndPassword(auth, email, password);
-      await updateProfile(credential.user, { displayName: name });
+      const isOwner = isOwnerEmail(email);
+      const displayName = isOwner ? OWNER_DISPLAY_NAME : name;
+      await updateProfile(credential.user, { displayName });
       await setDoc(doc(db, 'users', credential.user.uid), {
-        displayName: name,
+        uid: credential.user.uid,
+        displayName,
         email,
         createdAt: serverTimestamp(),
-        role: 'user',
+        role: isOwner ? 'admin' : 'user',
+        owner: isOwner,
       });
       return credential;
     },

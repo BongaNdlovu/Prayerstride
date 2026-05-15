@@ -4,10 +4,12 @@ import BottomNav from '../BottomNav';
 import SceneImage from '../ui/SceneImage';
 import { usePersistentState } from '../../hooks/usePersistentState';
 import { usePrayerData } from '../../hooks/usePrayerData';
+import { useIsAdmin } from '../../hooks/useIsAdmin';
 
 export default function Profile({ activeTab, onNavigate, onGo, user }) {
   const [avatar, setAvatar] = usePersistentState(`profile:${user?.id || 'guest'}:avatar`, '');
   const { prayers } = usePrayerData(user);
+  const { isAdmin } = useIsAdmin();
   const [profile] = usePersistentState(`profile:${user?.id || 'guest'}`, {
     name: user?.name || 'Guest',
     handle: user?.handle || '',
@@ -25,7 +27,7 @@ export default function Profile({ activeTab, onNavigate, onGo, user }) {
     { icon: Clock, label: 'Prayer Stopwatch', key: 'prayerStopwatch' },
     { icon: Clock, label: 'Reminders', key: 'reminderSettings' },
     { icon: Bell, label: 'Notifications', key: 'notifications' },
-    { icon: ShieldCheck, label: 'Stewardship Console', key: 'adminDashboard' },
+    ...(isAdmin ? [{ icon: ShieldCheck, label: 'Stewardship Console', key: 'adminDashboard' }] : []),
     { icon: Settings, label: 'Settings', key: 'settings' },
   ];
 

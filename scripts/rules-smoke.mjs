@@ -19,6 +19,7 @@ async function seedFixtures() {
       email: 'admin@test.com',
       displayName: 'Admin',
       role: 'admin',
+      owner: true,
     });
 
     await db.doc('users/user-a').set({
@@ -26,6 +27,7 @@ async function seedFixtures() {
       email: 'a@test.com',
       displayName: 'User A',
       role: 'user',
+      owner: false,
     });
 
     await db.doc('users/user-b').set({
@@ -33,6 +35,7 @@ async function seedFixtures() {
       email: 'b@test.com',
       displayName: 'User B',
       role: 'user',
+      owner: false,
     });
 
     await db.doc('notifications/notification-a').set({

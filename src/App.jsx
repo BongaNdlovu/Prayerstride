@@ -46,6 +46,7 @@ import { useNavigation } from './hooks/useNavigation';
 import { APP_SCREENS } from './data/constants';
 import { useAuth } from './contexts/AuthContext.jsx';
 import { registerNativePushNotifications } from './lib/pushNotifications';
+import { useIsAdmin } from './hooks/useIsAdmin';
 
 const NAVY = "#082A4A";
 const GOLD = "#C8892B";
@@ -69,6 +70,7 @@ runSmokeTests();
 
 export default function App() {
   const { user, loading, signIn, register, signOut, updateUserProfile, deleteAccount: deleteFirebaseAccount } = useAuth();
+  const { isAdmin } = useIsAdmin();
   const { onboarded, setOnboarded, screen, active, params, go, back, resetTo, handleNav } = useNavigation();
 
   const authUser = user ? {
@@ -86,6 +88,19 @@ export default function App() {
       console.error('Native push registration failed', error);
     });
   }, [user]);
+
+  useEffect(() => {
+    if (loading) return;
+
+    if (user && (screen === 'signIn' || screen === 'createAccount' || screen === 'resetPassword' || screen === 'splash')) {
+      resetTo('home');
+      return;
+    }
+
+    if (!user && !['signIn', 'createAccount', 'resetPassword'].includes(screen)) {
+      resetTo('signIn');
+    }
+  }, [loading, resetTo, screen, user]);
 
   const content = useMemo(() => {
     const setNav = handleNav;
@@ -164,15 +179,16 @@ export default function App() {
       );
     }
     if (!authUser && PROTECTED_SCREENS.has(screen)) {
-      return <SignIn onBack={() => resetTo("home")} onSignIn={handleSignIn} onForgot={() => go("resetPassword")} onGoSignUp={() => go("createAccount")} />;
+      return <SignIn onBack={() => resetTo("signIn")} onSignIn={handleSignIn} onForgot={() => go("resetPassword")} onGoSignUp={() => go("createAccount")} />;
     }
+    if (authUser && (screen === "adminDashboard" || screen === "reportDetails") && !isAdmin) return <Profile activeTab={active} onNavigate={setNav} onGo={go} user={authUser} />;
     if (authUser && (screen === "signIn" || screen === "createAccount")) {
       return <HomeScreen onNavigate={setNav} onGo={go} activeTab="home" />;
     }
     if (screen === "welcome") return <Welcome onContinue={() => go("reminderSetup")} />;
     if (screen === "reminderSetup") return <ReminderSetup onBack={() => go("welcome")} onContinue={() => go("stayConnected")} />;
     if (screen === "stayConnected") return <StayConnected onBack={() => go("reminderSetup")} onContinue={() => go("home")} onSkip={() => go("home")} />;
-    if (screen === "signIn") return <SignIn onBack={() => go("home")} onSignIn={handleSignIn} onForgot={() => go("resetPassword")} onGoSignUp={() => go("createAccount")} />;
+    if (screen === "signIn") return <SignIn onBack={() => go("signIn")} onSignIn={handleSignIn} onForgot={() => go("resetPassword")} onGoSignUp={() => go("createAccount")} />;
     if (screen === "createAccount") return <CreateAccount onBack={() => go("signIn")} onCreate={handleCreateAccount} />;
     if (screen === "resetPassword") return <ResetPassword onBack={() => go("signIn")} onSend={() => {}} />;
     if (screen === "home") return <HomeScreen onNavigate={setNav} onGo={go} activeTab={active} />;
@@ -212,7 +228,7 @@ export default function App() {
     if (screen === "accountSuspended") return <AccountSuspended onAppeal={() => {}} onSignIn={() => go("signIn")} />;
     if (screen === "notifications") return <Notifications onBack={() => go("home")} activeTab={active} onNavigate={setNav} />;
     return <HomeScreen onNavigate={setNav} onGo={go} activeTab={active} />;
-  }, [authUser, loading, onboarded, setOnboarded, screen, active, params, go, back, resetTo, handleNav, signIn, register, signOut, updateUserProfile, deleteFirebaseAccount, user]);
+  }, [authUser, loading, onboarded, setOnboarded, screen, active, params, go, back, resetTo, handleNav, signIn, register, signOut, updateUserProfile, deleteFirebaseAccount, user, isAdmin]);
 
   return (
     <>

@@ -15,13 +15,36 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
     }
 
+    function isOwnerEmail() {
+      return signedIn()
+        && request.auth.token.email == "fanelesibonge50@gmail.com";
+    }
+
+    function validSelfUserCreate(uid) {
+      return isSelf(uid)
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.email == request.auth.token.email
+        && (
+          (isOwnerEmail() && request.resource.data.role == "admin" && request.resource.data.owner == true)
+          || (!isOwnerEmail() && request.resource.data.role == "user" && request.resource.data.owner == false)
+        );
+    }
+
+    function validSelfUserUpdate() {
+      return request.resource.data.uid == resource.data.uid
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.owner == resource.data.owner;
+    }
+
     function isAuthor() {
       return signedIn() && resource.data.authorUid == request.auth.uid;
     }
 
     match /users/{uid} {
       allow read: if isSelf(uid) || isAdmin();
-      allow create, update: if isSelf(uid);
+      allow create: if validSelfUserCreate(uid);
+      allow update: if isSelf(uid) && validSelfUserUpdate();
       allow delete: if isSelf(uid) || isAdmin();
     }
 
