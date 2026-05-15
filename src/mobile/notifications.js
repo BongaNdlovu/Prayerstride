@@ -4,13 +4,17 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { registerDeviceToken } from './api';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+try {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    }),
+  });
+} catch (e) {
+  console.warn('Failed to set notification handler', e);
+}
 
 export async function registerForPushNotifications() {
   if (!Device.isDevice) return;

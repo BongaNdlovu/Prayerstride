@@ -20,10 +20,16 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    return onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser);
-      setLoading(false);
-    });
+    return onAuthStateChanged(auth,
+      (firebaseUser) => {
+        setUser(firebaseUser);
+        setLoading(false);
+      },
+      (error) => {
+        console.error('Auth state change error', error);
+        setLoading(false);
+      },
+    );
   }, []);
 
   const value = useMemo(() => ({

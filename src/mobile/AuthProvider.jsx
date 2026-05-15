@@ -18,10 +18,16 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => onAuthStateChanged(auth, (nextUser) => {
-    setUser(nextUser);
-    setLoading(false);
-  }), []);
+  useEffect(() => onAuthStateChanged(auth,
+    (nextUser) => {
+      setUser(nextUser);
+      setLoading(false);
+    },
+    (error) => {
+      console.error('Auth state change error', error);
+      setLoading(false);
+    },
+  ), []);
 
   const value = useMemo(() => ({
     user,
