@@ -3,37 +3,34 @@ import { ArrowLeft, MoreHorizontal, Users, Send, CheckCircle2, Bookmark, Timer, 
 import BottomNav from '../BottomNav';
 import { usePersistentState } from '../../hooks/usePersistentState';
 import { usePrayerData } from '../../hooks/usePrayerData';
-import { prayers } from '../../data/mockData';
 import EncouragementThread from '../ui/EncouragementThread';
 import SceneImage from '../ui/SceneImage';
 import GlassCard from '../ui/GlassCard';
 import { prayForRequest } from '../../lib/api';
+import { submitReport as submitFirestoreReport } from '../../hooks/useReports';
 
 export default function Detail({ request, user, onBack, onGo, activeTab, onNavigate }) {
-  const prayer = request || prayers[0];
-  const [prayed, setPrayed] = usePersistentState(`prayer:${prayer.id || prayer.title}:prayed`, false);
-  const [bookmarked, setBookmarked] = usePersistentState(`prayer:${prayer.id || prayer.title}:bookmarked`, false);
-  const [answered, setAnswered] = usePersistentState(`prayer:${prayer.id || prayer.title}:answered`, prayer.answered || false);
-  const [reports, setReports] = usePersistentState('admin:reports', []);
-  const [, setNotifications] = usePersistentState('notifications:items', []);
-  const [notificationActivity] = usePersistentState('notifications:prayerActivity', { prayerAnswered: true, prayerUpdates: true });
-  const [notificationChannels] = usePersistentState('notifications:channels', { inApp: true });
+  const prayer = request;
+  const prayerKey = prayer?.id || prayer?.title || 'missing';
+  const [prayed, setPrayed] = usePersistentState(`prayer:${prayerKey}:prayed`, false);
+  const [bookmarked, setBookmarked] = usePersistentState(`prayer:${prayerKey}:bookmarked`, false);
+  const [answered, setAnswered] = usePersistentState(`prayer:${prayerKey}:answered`, prayer?.answered || false);
   const { markAnswered } = usePrayerData(user);
   const [showAnswerMenu, setShowAnswerMenu] = useState(false);
   const [showReportMenu, setShowReportMenu] = useState(false);
   const [reported, setReported] = useState(false);
-  const prayedCount = (prayer.count || 0) + (prayed ? 1 : 0);
-  const isOwnPrayer = prayer.authorUid === user?.uid || prayer.userId === user?.id || prayer.userId === 'me';
+  const [error, setError] = useState(null);
+  const prayedCount = (prayer?.count || 0) + (prayed ? 1 : 0);
+  const isOwnPrayer = prayer?.authorUid === user?.uid || prayer?.userId === user?.id || prayer?.userId === 'me';
 
-  const handleMarkAnswered = () => {
+  const handleMarkAnswered = async () => {
     if (!isOwnPrayer) return;
-    setAnswered(true);
-    markAnswered(prayer.id || prayer.title);
-    if (notificationChannels.inApp && notificationActivity.prayerAnswered) {
-      setNotifications((current) => [
-        { id: `n-${Date.now()}`, text: `You marked "${prayer.title}" as answered.`, type: 'new', time: 'just now', read: false },
-        ...current,
-      ]);
+    setError(null);
+    try {
+      await markAnswered(prayer.id || prayer.title);
+      setAnswered(true);
+    } catch (err) {
+      setError(err);
     }
     setShowAnswerMenu(false);
   };
@@ -45,38 +42,38 @@ export default function Detail({ request, user, onBack, onGo, activeTab, onNavig
   };
 
   const handlePray = async () => {
+    setError(null);
     setPrayed(true);
     if (!prayer.id) return;
 
     try {
       await prayForRequest(prayer.id);
     } catch (error) {
-      console.error('Prayer notification failed', error);
+      setPrayed(false);
+      setError(error);
     }
   };
 
-  const submitReport = () => {
-    const report = {
-      id: `rep-${Date.now()}`,
-      reportedBy: user?.name || 'Guest',
-      reportedUser: prayer.name || 'Unknown user',
-      content: prayer.title,
-      reason: 'User report',
-      status: 'open',
-      contentType: 'prayer',
-      contentId: prayer.id || prayer.title,
-      createdAt: new Date().toISOString(),
-    };
-    setReports((current) => [report, ...current]);
-    if (notificationChannels.inApp && notificationActivity.prayerUpdates) {
-      setNotifications((current) => [
-        { id: `n-${Date.now()}`, text: 'Your report was submitted for review.', type: 'new', time: 'just now', read: false },
-        ...current,
-      ]);
+  const submitReport = async () => {
+    setError(null);
+    try {
+      await submitFirestoreReport(prayer.id, 'prayer', 'User report', { uid: user?.uid || user?.id });
+      setReported(true);
+    } catch (err) {
+      setError(err);
     }
-    setReported(true);
     setShowReportMenu(false);
   };
+
+  if (!prayer) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center bg-sand px-6 text-center text-navy">
+        <p className="font-serif text-2xl">Prayer not found</p>
+        <p className="mt-2 text-sm text-slate-600">This request may have been removed or is still loading.</p>
+        <button onClick={onBack} className="mt-5 rounded-2xl bg-navy px-5 py-3 text-sm font-semibold text-white">Go back</button>
+      </div>
+    );
+  }
 
   return (
     <div className="cinematic-bg cinematic-texture relative flex h-full flex-col overflow-hidden text-ivory">
@@ -141,6 +138,12 @@ export default function Detail({ request, user, onBack, onGo, activeTab, onNavig
                 <CheckCircle2 size={22} /> You prayed for this request
               </div>
               <p className="mt-1 text-xs">Thank you for standing with Sarah today.</p>
+            </div>
+          )}
+          {error && (
+            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-900">
+              <div className="font-semibold">That did not save yet</div>
+              <p className="mt-1 text-xs">{error.message || 'Please check your connection and try again.'}</p>
             </div>
           )}
           {answered && (

@@ -1,14 +1,16 @@
 import { useState } from 'react';
-import { Users, FileText, AlertTriangle, Ban, ShieldCheck, HeartHandshake, MessageSquare, Settings, Flag, Pin, Bell, Eye, Clock, Megaphone, Lock, UserCheck, Radio, CheckCircle2, Archive, Search } from 'lucide-react';
+import { Users, FileText, AlertTriangle, ShieldCheck, HeartHandshake, MessageSquare, Settings, Flag, Pin, Bell, Eye, Megaphone, UserCheck, CheckCircle2, Archive, Search } from 'lucide-react';
 import AppScreen from '../ui/AppScreen';
 import AppHeader from '../ui/AppHeader';
 import StatCard from '../ui/StatCard';
 import Card from '../ui/Card';
-import MiniLineChart from '../ui/MiniLineChart';
-import { mockAdminStats, mockUsers, mockAnnouncements } from '../../data/mockData';
 import { useReports, resolveReport, dismissReport } from '../../hooks/useReports';
 import { useIsAdmin } from '../../hooks/useIsAdmin';
 import { usePersistentState } from '../../hooks/usePersistentState';
+import { useUsers } from '../../hooks/useUsers';
+import { usePrayers } from '../../hooks/usePrayers';
+import { useTestimonies } from '../../hooks/useTestimonies';
+import EmptyState from '../ui/EmptyState';
 
 const ownerSettingsRoute = 'admin:owner-settings';
 const reportsRoute = 'admin:reports';
@@ -16,6 +18,9 @@ const reportsRoute = 'admin:reports';
 export default function AdminDashboard({ onBack, activeTab, onNavigate, onGo }) {
   const { isAdmin } = useIsAdmin();
   const { reports: firebaseReports } = useReports();
+  const { users } = useUsers();
+  const { prayers } = usePrayers();
+  const { testimonies } = useTestimonies();
   const [activeTabFilter, setActiveTabFilter] = useState('overview');
   const [showMenu, setShowMenu] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -37,7 +42,7 @@ export default function AdminDashboard({ onBack, activeTab, onNavigate, onGo }) 
   const openReports = reports.filter((r) => r.status === 'pending');
   const resolvedReports = reports.filter((r) => r.status === 'resolved');
   const dismissedReports = reports.filter((r) => r.status === 'dismissed');
-  const filteredUsers = mockUsers.filter((user) => `${user.name} ${user.handle} ${user.role}`.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredUsers = users.filter((user) => `${user.displayName || ''} ${user.email || ''} ${user.role || ''}`.toLowerCase().includes(searchTerm.toLowerCase()));
 
   const handleViewReport = (reportId) => {
     onGo?.('reportDetails', { reportId });
@@ -105,10 +110,10 @@ export default function AdminDashboard({ onBack, activeTab, onNavigate, onGo }) 
         {activeTabFilter === 'overview' && (
           <>
             <div className="grid grid-cols-2 gap-3">
-              <StatCard icon={Users} value={mockAdminStats.activeUsers.toLocaleString()} label="Active Users" />
-              <StatCard icon={FileText} value={mockAdminStats.newPrayerRequests.toLocaleString()} label="New Requests" />
+              <StatCard icon={Users} value={users.length.toLocaleString()} label="Members" />
+              <StatCard icon={FileText} value={prayers.length.toLocaleString()} label="Prayer Requests" />
               <StatCard icon={AlertTriangle} value={openReports.length.toLocaleString()} label="Open Reports" />
-              <StatCard icon={Ban} value={mockAdminStats.usersSuspended.toLocaleString()} label="Suspended" />
+              <StatCard icon={HeartHandshake} value={testimonies.length.toLocaleString()} label="Testimonies" />
             </div>
             <h3 className="font-serif text-lg text-navy">Quick Actions</h3>
             <div className="grid grid-cols-2 gap-2">
@@ -215,18 +220,21 @@ export default function AdminDashboard({ onBack, activeTab, onNavigate, onGo }) 
               />
             </div>
             <div className="space-y-3">
+              {filteredUsers.length === 0 && (
+                <EmptyState icon={Users} title="No members found" subtitle="Real users will appear here after account creation." />
+              )}
               {filteredUsers.map((user) => (
                 <Card key={user.id} className="p-4">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-navy" style={{ background: user.avatarColor }}>
-                      {user.name.split(' ').map((part) => part[0]).join('').slice(0, 2)}
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#ded3c4] text-sm font-semibold text-navy">
+                      {(user.displayName || user.email || 'U').split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <h3 className="truncate text-sm font-semibold text-slate-900">{user.name}</h3>
+                        <h3 className="truncate text-sm font-semibold text-slate-900">{user.displayName || 'PrayerStride member'}</h3>
                         <span className="shrink-0 rounded-full bg-[#f2e7d6] px-2 py-0.5 text-[10px] font-medium text-navy">{user.role}</span>
                       </div>
-                      <p className="truncate text-xs text-slate-500">{user.handle} · {user.bio}</p>
+                      <p className="truncate text-xs text-slate-500">{user.email || 'No email'}</p>
                     </div>
                   </div>
                 </Card>
@@ -238,10 +246,9 @@ export default function AdminDashboard({ onBack, activeTab, onNavigate, onGo }) 
         {activeTabFilter === 'content' && (
           <div className="space-y-3">
             {[
-              { icon: FileText, title: 'Prayer requests awaiting review', count: 12, detail: 'Sensitive or urgent requests that need a human decision.' },
-              { icon: HeartHandshake, title: 'Testimonies awaiting approval', count: 5, detail: 'Answered-prayer stories before they appear in Praise.' },
-              { icon: Pin, title: 'Featured community prayers', count: 8, detail: 'Requests promoted to the home and discover sections.' },
-              { icon: MessageSquare, title: 'Encouragement comments', count: 19, detail: 'Replies that may need pastoral or moderation care.' },
+              { icon: FileText, title: 'Live prayer requests', count: prayers.length, detail: 'Prayer requests currently stored in Firestore.' },
+              { icon: HeartHandshake, title: 'Live testimonies', count: testimonies.length, detail: 'Answered-prayer stories currently shared in Praise.' },
+              { icon: AlertTriangle, title: 'Open reports', count: openReports.length, detail: 'Reports waiting for an owner decision.' },
             ].map((item) => (
               <Card key={item.title} className="p-4">
                 <div className="flex items-center justify-between gap-3">
@@ -267,17 +274,7 @@ export default function AdminDashboard({ onBack, activeTab, onNavigate, onGo }) 
               <Megaphone size={17} />
               Create Announcement
             </button>
-            {mockAnnouncements.slice(0, 4).map((announcement) => (
-              <Card key={announcement.id} className="p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="text-sm font-semibold text-slate-900">{announcement.title}</h3>
-                    <p className="mt-1 text-xs text-slate-500">{announcement.type} · {announcement.date} {announcement.time}</p>
-                  </div>
-                  <span className="rounded-full bg-[#e8f0f6] px-2 py-1 text-[10px] font-semibold text-navy">Scheduled</span>
-                </div>
-              </Card>
-            ))}
+            <EmptyState icon={Megaphone} title="No broadcasts yet" subtitle="Broadcast publishing needs a backend endpoint before it can send real announcements." />
           </div>
         )}
 

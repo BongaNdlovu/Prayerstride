@@ -1,4 +1,4 @@
-import { Settings, ChevronRight, Heart, Bell, BookOpen, Calendar, BarChart3, Award, Clock, Camera, ShieldCheck } from 'lucide-react';
+import { Settings, ChevronRight, Heart, Bell, BarChart3, Clock, Camera, ShieldCheck } from 'lucide-react';
 import PrayingHandsIcon from '../PrayingHandsIcon';
 import BottomNav from '../BottomNav';
 import SceneImage from '../ui/SceneImage';
@@ -21,11 +21,7 @@ export default function Profile({ activeTab, onNavigate, onGo, user }) {
     { icon: PrayingHandsIcon, label: 'My Prayers', key: 'myPrayers' },
     { icon: Heart, label: 'Answered Prayers', key: 'answeredPrayers' },
     { icon: BarChart3, label: 'My Stats', key: 'myStats' },
-    { icon: Calendar, label: 'Calendar', key: 'calendar' },
-    { icon: BookOpen, label: 'Devotions', key: 'devotions' },
-    { icon: Award, label: 'Achievements', key: 'achievements' },
     { icon: Clock, label: 'Prayer Stopwatch', key: 'prayerStopwatch' },
-    { icon: Clock, label: 'Reminders', key: 'reminderSettings' },
     { icon: Bell, label: 'Notifications', key: 'notifications' },
     ...(isAdmin ? [{ icon: ShieldCheck, label: 'Stewardship Console', key: 'adminDashboard' }] : []),
     { icon: Settings, label: 'Settings', key: 'settings' },

@@ -87,6 +87,24 @@ service cloud.firestore {
         && request.resource.data.status in ["pending", "resolved", "dismissed"];
     }
 
+    match /prayerSessions/{sessionId} {
+      allow read: if signedIn() && resource.data.authorUid == request.auth.uid;
+      allow create: if signedIn()
+        && request.resource.data.authorUid == request.auth.uid;
+      allow update, delete: if signedIn()
+        && resource.data.authorUid == request.auth.uid
+        && request.resource.data.authorUid == resource.data.authorUid;
+    }
+
+    match /encouragements/{encouragementId} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.authorUid == request.auth.uid;
+      allow update, delete: if signedIn()
+        && resource.data.authorUid == request.auth.uid
+        && request.resource.data.authorUid == resource.data.authorUid;
+    }
+
     match /notifications/{notificationId} {
       allow read: if signedIn()
         && resource.data.recipientUid == request.auth.uid;

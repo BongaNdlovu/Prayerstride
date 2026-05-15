@@ -1,37 +1,38 @@
 import { MessageCircle, Send, MoreHorizontal, Edit2, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
-import { mockEncouragements } from '../../data/mockData';
-import { usePersistentState } from '../../hooks/usePersistentState';
+import AsyncState from './AsyncState';
+import {
+  addEncouragement,
+  deleteEncouragement,
+  updateEncouragement,
+  useEncouragements,
+} from '../../hooks/useEncouragements';
 
 export default function EncouragementThread({ threadId, currentUser }) {
   const [draft, setDraft] = useState('');
-  const [localComments, setLocalComments] = usePersistentState(`encouragements:${threadId}`, []);
-  const [editedComments, setEditedComments] = usePersistentState(`encouragements:${threadId}:edits`, {});
-  const [deletedComments, setDeletedComments] = usePersistentState(`encouragements:${threadId}:deleted`, []);
+  const { comments, loading, error, retry } = useEncouragements(threadId);
+  const [submitError, setSubmitError] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [editText, setEditText] = useState('');
   const [showMenu, setShowMenu] = useState(null);
-  const comments = [...localComments, ...mockEncouragements]
-    .filter((comment) => !deletedComments.includes(comment.id))
-    .map((comment) => editedComments[comment.id] ? { ...comment, text: editedComments[comment.id] } : comment);
 
-  const post = () => {
+  const post = async () => {
     if (!draft.trim()) return;
-    setLocalComments((current) => [
-      {
-        id: `enc-${Date.now()}`,
-        name: currentUser?.name || 'You',
-        userId: currentUser?.id || 'guest',
-        text: draft.trim(),
-        time: 'just now',
-      },
-      ...current,
-    ]);
-    setDraft('');
+    setSubmitError(null);
+    try {
+      await addEncouragement(threadId, draft, {
+        uid: currentUser?.uid || currentUser?.id,
+        displayName: currentUser?.name,
+        email: currentUser?.email,
+      });
+      setDraft('');
+    } catch (err) {
+      setSubmitError(err);
+    }
   };
 
   const isOwnComment = (comment) => {
-    return comment.userId === currentUser?.id || comment.name === currentUser?.name;
+    return comment.authorUid === currentUser?.uid || comment.authorUid === currentUser?.id;
   };
 
   const startEdit = (comment) => {
@@ -40,16 +41,16 @@ export default function EncouragementThread({ threadId, currentUser }) {
     setShowMenu(null);
   };
 
-  const saveEdit = () => {
+  const saveEdit = async () => {
     if (!editText.trim()) return;
-    setLocalComments((current) =>
-      current.map((c) =>
-        c.id === editingId ? { ...c, text: editText.trim() } : c
-      )
-    );
-    setEditedComments((current) => ({ ...current, [editingId]: editText.trim() }));
-    setEditingId(null);
-    setEditText('');
+    setSubmitError(null);
+    try {
+      await updateEncouragement(editingId, editText);
+      setEditingId(null);
+      setEditText('');
+    } catch (err) {
+      setSubmitError(err);
+    }
   };
 
   const cancelEdit = () => {
@@ -57,10 +58,14 @@ export default function EncouragementThread({ threadId, currentUser }) {
     setEditText('');
   };
 
-  const deleteComment = (commentId) => {
-    setLocalComments((current) => current.filter((c) => c.id !== commentId));
-    setDeletedComments((current) => current.includes(commentId) ? current : [...current, commentId]);
-    setShowMenu(null);
+  const deleteComment = async (commentId) => {
+    setSubmitError(null);
+    try {
+      await deleteEncouragement(commentId);
+      setShowMenu(null);
+    } catch (err) {
+      setSubmitError(err);
+    }
   };
 
   return (
@@ -87,13 +92,19 @@ export default function EncouragementThread({ threadId, currentUser }) {
           <Send size={18} />
         </button>
       </div>
+      {submitError && (
+        <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
+          {submitError.message || 'Could not save that encouragement. Please try again.'}
+        </p>
+      )}
 
+      <AsyncState loading={loading} error={error} empty={comments.length === 0} emptyTitle="No encouragements yet" emptySubtitle="Be the first to leave a kind word." onRetry={retry}>
       <div className="mt-3 space-y-3">
         {comments.map((comment) => (
           <div key={comment.id} className="rounded-2xl bg-sand p-3 relative">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <div className="text-xs font-semibold text-slate-700">{comment.name} - {comment.time}</div>
+                <div className="text-xs font-semibold text-slate-700">{comment.authorName || 'PrayerStride member'}</div>
                 {editingId === comment.id ? (
                   <div className="mt-2">
                     <input
@@ -157,6 +168,7 @@ export default function EncouragementThread({ threadId, currentUser }) {
           </div>
         ))}
       </div>
+      </AsyncState>
     </section>
   );
 }

@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { ArrowLeft, Search, Plus, Filter, X } from 'lucide-react';
+import { ArrowLeft, Search, Filter, X } from 'lucide-react';
 import BottomNav from '../BottomNav';
 import PrayerCard from '../ui/PrayerCard';
-import { mockUsers } from '../../data/mockData';
 import { usePrayerData } from '../../hooks/usePrayerData';
+import { useTestimonies } from '../../hooks/useTestimonies';
 import ImageHero from '../ui/ImageHero';
 
 export default function Discover({ onGo, activeTab, onNavigate }) {
@@ -12,7 +12,7 @@ export default function Discover({ onGo, activeTab, onNavigate }) {
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [selectedFilters, setSelectedFilters] = useState({ tag: 'All', urgency: 'All' });
   const { prayers } = usePrayerData();
-  const [localTestimonies] = useState([]);
+  const { testimonies } = useTestimonies();
 
   const filteredPrayers = prayers.filter((p) => {
     const matchesSearch = searchQuery === '' || p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -21,14 +21,7 @@ export default function Discover({ onGo, activeTab, onNavigate }) {
     return matchesSearch;
   });
 
-  const filteredUsers = mockUsers.filter((u) => {
-    return searchQuery === '' || u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-           u.handle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-           u.bio.toLowerCase().includes(searchQuery.toLowerCase());
-  });
-
-  const allTestimonies = localTestimonies;
-  const filteredTestimonies = allTestimonies.filter((t) => {
+  const filteredTestimonies = testimonies.filter((t) => {
     return searchQuery === '' || t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
            (t.text && t.text.toLowerCase().includes(searchQuery.toLowerCase())) ||
            (t.name && t.name.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -96,7 +89,7 @@ export default function Discover({ onGo, activeTab, onNavigate }) {
       )}
 
       <div className="mt-4 flex gap-2">
-        {["Prayers", "People", "Testimonies"].map((t) => (
+        {["Prayers", "Testimonies"].map((t) => (
           <button
             key={t}
             onClick={() => setActiveTabFilter(t)}
@@ -118,34 +111,6 @@ export default function Discover({ onGo, activeTab, onNavigate }) {
             ) : (
               filteredPrayers.map((p) => (
                 <PrayerCard key={p.id} prayer={p} onPress={() => onGo("detail", { request: p })} />
-              ))
-            )}
-          </div>
-        </>
-      )}
-
-      {activeTabFilter === 'People' && (
-        <>
-          <h2 className="mt-6 font-serif text-xl text-ivory">People</h2>
-          <div className="mt-3 space-y-2">
-            {filteredUsers.length === 0 ? (
-              <div className="rounded-2xl border border-[#e6ddcf] bg-white/75 p-6 text-center">
-                <p className="text-sm text-slate-500">No people found matching your search.</p>
-              </div>
-            ) : (
-              filteredUsers.map((user) => (
-                <div key={user.id} className="flex items-center justify-between rounded-2xl border bg-white/75 p-3">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full" style={{ backgroundColor: user.avatarColor }} />
-                    <div>
-                      <div className="font-semibold text-slate-800">{user.name}</div>
-                      <div className="text-xs text-slate-500">{user.handle}</div>
-                    </div>
-                  </div>
-                  <button className="flex h-9 w-9 items-center justify-center rounded-full bg-navy text-white transition hover:bg-[#0a3358]">
-                    <Plus size={18} />
-                  </button>
-                </div>
               ))
             )}
           </div>
