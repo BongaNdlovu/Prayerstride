@@ -68,20 +68,24 @@ describe('Praise', () => {
   };
 
   it('should render praise screen', () => {
-    // Skipping this test due to rendering issues with mock data
-    // Other tests cover the component structure
+    render(<Praise {...defaultProps} />);
+
+    expect(screen.getByText('Praise Reports')).toBeInTheDocument();
+    expect(screen.getByText('Test Testimony')).toBeInTheDocument();
   });
 
   it('should display featured testimony', () => {
     render(<Praise {...defaultProps} />);
     
     expect(screen.getByText('Featured Testimony')).toBeInTheDocument();
-    // Skipping the specific text check due to multiple matching elements
+    expect(screen.getAllByText('Test Testimony').length).toBeGreaterThan(0);
   });
 
   it('should render testimony cards', () => {
-    // Skipping this test due to multiple matching elements
-    // Other tests cover testimony rendering
+    render(<Praise {...defaultProps} />);
+
+    expect(screen.getAllByText('Test Testimony').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('This is a testimony').length).toBeGreaterThan(0);
   });
 
   it('should display search input', () => {

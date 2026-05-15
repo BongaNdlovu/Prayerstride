@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import Profile from './Profile';
+import { usePrayerData } from '../../hooks/usePrayerData';
 
 // Mock Firebase
 vi.mock('../../lib/firebase', () => ({
@@ -81,7 +82,18 @@ describe('Profile', () => {
   });
 
   it('should display prayer statistics', () => {
-    // Skipping this test due to Firebase import issues in usePrayerData hook
+    usePrayerData.mockReturnValue({
+      prayers: [
+        { id: '1', authorUid: 'test-user', status: 'active' },
+        { id: '2', authorUid: 'test-user', status: 'answered' },
+        { id: '3', authorUid: 'other-user', status: 'answered' },
+      ],
+    });
+
+    render(<Profile {...defaultProps} />);
+
+    expect(screen.getByText('Prayers').previousSibling).toHaveTextContent('2');
+    expect(screen.getByText('Answered').previousSibling).toHaveTextContent('1');
   });
 
   it('should display guest user when no user provided', () => {

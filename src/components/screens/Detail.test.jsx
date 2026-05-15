@@ -83,8 +83,12 @@ describe('Detail', () => {
   });
 
   it('should call onBack when back button is clicked', () => {
-    // Skipping this test due to fragile button selection logic
-    // Other tests cover navigation functionality
+    const onBack = vi.fn();
+    render(<Detail {...defaultProps} onBack={onBack} />);
+
+    fireEvent.click(screen.getAllByRole('button')[0]);
+
+    expect(onBack).toHaveBeenCalled();
   });
 
   it('should display pray button', () => {
@@ -100,8 +104,12 @@ describe('Detail', () => {
   });
 
   it('should show answered menu for own prayers', () => {
-    // Skipping this test due to button name matching issues
-    // Other tests cover the component structure
+    render(<Detail {...defaultProps} />);
+
+    fireEvent.click(screen.getAllByRole('button').at(-1));
+
+    expect(screen.getByText('Mark as Answered')).toBeInTheDocument();
+    expect(screen.getByText('Create Testimony')).toBeInTheDocument();
   });
 
   it('should not show answered menu for other users prayers', () => {
@@ -118,18 +126,25 @@ describe('Detail', () => {
   });
 
   it('should not display testimony creation for other users answered prayers', () => {
-    // Skipping this test due to component logic not matching test expectation
-    // Other tests cover the component structure
+    render(<Detail {...defaultProps} user={{ uid: 'other-user' }} request={{ ...defaultProps.request, answered: true }} />);
+
+    expect(screen.queryByText('Share Your Testimony')).not.toBeInTheDocument();
+    expect(screen.getByText('Celebrate with them and keep encouraging the community.')).toBeInTheDocument();
   });
 
   it('should display bookmark button', () => {
-    // Skipping this test due to fragile button selection logic
-    // Other tests cover the component structure
+    render(<Detail {...defaultProps} />);
+
+    expect(screen.getAllByRole('button').length).toBeGreaterThanOrEqual(5);
   });
 
   it('should display prayer stopwatch button', () => {
-    // Skipping this test due to fragile button selection logic
-    // Other tests cover the component structure
+    const onGo = vi.fn();
+    render(<Detail {...defaultProps} onGo={onGo} />);
+
+    fireEvent.click(screen.getAllByRole('button').at(-4));
+
+    expect(onGo).toHaveBeenCalledWith('prayerStopwatch', { request: defaultProps.request });
   });
 
   it('should render bottom navigation', () => {
@@ -139,8 +154,11 @@ describe('Detail', () => {
   });
 
   it('should display report menu option', () => {
-    // Skipping this test due to fragile button selection logic
-    // Other tests cover the component structure
+    render(<Detail {...defaultProps} />);
+
+    fireEvent.click(screen.getAllByRole('button')[1]);
+
+    expect(screen.getByText('Report')).toBeInTheDocument();
   });
 
   it('should display not found state when prayer is null', () => {
@@ -151,7 +169,11 @@ describe('Detail', () => {
   });
 
   it('should call onGo when timer button is clicked', () => {
-    // Skipping this test due to fragile button selection logic
-    // Other tests cover navigation functionality
+    const onGo = vi.fn();
+    render(<Detail {...defaultProps} onGo={onGo} />);
+
+    fireEvent.click(screen.getAllByRole('button').at(-4));
+
+    expect(onGo).toHaveBeenCalledWith('prayerStopwatch', { request: defaultProps.request });
   });
 });

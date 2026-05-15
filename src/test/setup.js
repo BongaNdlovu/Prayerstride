@@ -2,6 +2,10 @@ import '@testing-library/jest-dom';
 import { cleanup } from '@testing-library/react';
 import { afterEach, vi } from 'vitest';
 
+const mockAuthState = vi.hoisted(() => ({
+  user: { uid: 'test-user', displayName: 'Test User', email: 'test@example.com' },
+}));
+
 afterEach(() => {
   cleanup();
 });
@@ -31,7 +35,5 @@ vi.mock('../lib/firebase', () => ({
 }));
 
 vi.mock('../contexts/AuthContext.jsx', () => ({
-  useAuth: () => ({
-    user: { uid: 'test-user', displayName: 'Test User', email: 'test@example.com' },
-  }),
+  useAuth: () => mockAuthState,
 }));

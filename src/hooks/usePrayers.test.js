@@ -1,11 +1,13 @@
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, waitFor } from '@testing-library/react';
 import { usePrayers, addPrayer, markAnswered, updatePrayer, deletePrayer } from './usePrayers';
-import { addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { addDoc, deleteDoc, onSnapshot, updateDoc } from 'firebase/firestore';
+
+const mockAuthState = vi.hoisted(() => ({
+  user: { uid: 'test-user', displayName: 'Test User', email: 'test@example.com' },
+}));
 
 vi.mock('../contexts/AuthContext.jsx', () => ({
-  useAuth: () => ({
-    user: { uid: 'test-user', displayName: 'Test User', email: 'test@example.com' },
-  }),
+  useAuth: () => mockAuthState,
 }));
 
 vi.mock('../lib/firebase', () => ({
@@ -15,6 +17,8 @@ vi.mock('../lib/firebase', () => ({
 describe('usePrayers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    onSnapshot.mockReset();
+    onSnapshot.mockReturnValue(vi.fn());
   });
 
   it('should set loading to true when user exists', () => {
@@ -24,18 +28,103 @@ describe('usePrayers', () => {
   });
 
   it('should map prayer document correctly', () => {
-    // Skipping this test due to Firebase import issues
-    // Function tests for addPrayer, markAnswered, updatePrayer, deletePrayer cover the core functionality
+    onSnapshot.mockImplementation((queryRef, next) => {
+      next({
+        docs: [
+          {
+            id: 'prayer-1',
+            data: () => ({
+              title: 'Healing',
+              body: 'Please pray for healing.',
+              authorUid: 'test-user',
+              authorName: 'Test User',
+              isAnonymous: false,
+              prayedCount: 4,
+              status: 'active',
+              privacy: 'community',
+              urgent: true,
+              allowShare: true,
+            }),
+          },
+        ],
+      });
+      return vi.fn();
+    });
+
+    const { result } = renderHook(() => usePrayers());
+
+    expect(result.current.prayers).toEqual([
+      expect.objectContaining({
+        id: 'prayer-1',
+        title: 'Healing',
+        text: 'Please pray for healing.',
+        body: 'Please pray for healing.',
+        userId: 'test-user',
+        name: 'Test User',
+        count: 4,
+        urgent: true,
+        urgency: true,
+        answered: false,
+      }),
+    ]);
+    expect(result.current.loading).toBe(false);
   });
 
-  it('should set answered status based on status field', () => {
-    // Skipping this test due to Firebase import issues
-    // Function tests for addPrayer, markAnswered, updatePrayer, deletePrayer cover the core functionality
+  it('should set answered status based on status field', async () => {
+    onSnapshot.mockImplementation((queryRef, next) => {
+      next({
+        docs: [
+          {
+            id: 'answered-prayer',
+            data: () => ({
+              title: 'Answered',
+              body: 'God provided.',
+              authorUid: 'test-user',
+              authorName: 'Test User',
+              status: 'answered',
+            }),
+          },
+        ],
+      });
+      return vi.fn();
+    });
+
+    const { result } = renderHook(() => usePrayers());
+
+    await waitFor(() => {
+      expect(result.current.prayers[0].answered).toBe(true);
+    });
   });
 
   it('should handle anonymous prayers', () => {
-    // Skipping this test due to Firebase import issues
-    // Function tests for addPrayer, markAnswered, updatePrayer, deletePrayer cover the core functionality
+    onSnapshot.mockImplementation((queryRef, next) => {
+      next({
+        docs: [
+          {
+            id: 'anonymous-prayer',
+            data: () => ({
+              title: 'Private request',
+              body: 'Unspoken',
+              authorUid: 'test-user',
+              authorName: 'Test User',
+              isAnonymous: true,
+              status: 'active',
+            }),
+          },
+        ],
+      });
+      return vi.fn();
+    });
+
+    const { result } = renderHook(() => usePrayers());
+
+    expect(result.current.prayers[0]).toEqual(
+      expect.objectContaining({
+        name: 'Anonymous',
+        anonymous: true,
+        isAnonymous: true,
+      }),
+    );
   });
 });
 

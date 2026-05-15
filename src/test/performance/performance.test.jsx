@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import Profile from '../../components/screens/Profile';
 import Praise from '../../components/screens/Praise';
 import Detail from '../../components/screens/Detail';
+import { usePrayerData } from '../../hooks/usePrayerData';
 
 // Mock hooks for performance testing
 vi.mock('../../hooks/usePersistentState', () => ({
@@ -191,8 +192,29 @@ describe('Performance Tests', () => {
 
   describe('Large Dataset Performance', () => {
     it('should handle large prayer lists without significant slowdown', () => {
-      // Skipping this test due to Firebase import issues in usePrayers hook
-      // Other performance tests cover the core functionality
+      usePrayerData.mockReturnValue({
+        prayers: Array.from({ length: 500 }, (_, index) => ({
+          id: `prayer-${index}`,
+          authorUid: index % 2 === 0 ? 'test' : 'other',
+          status: index % 5 === 0 ? 'answered' : 'active',
+        })),
+      });
+
+      const start = performance.now();
+
+      render(
+        <Profile
+          activeTab="profile"
+          onNavigate={vi.fn()}
+          onGo={vi.fn()}
+          user={{ uid: 'test', name: 'Test User', email: 'test@example.com' }}
+        />
+      );
+
+      const end = performance.now();
+
+      expect(end - start).toBeLessThan(200);
+      expect(screen.getByText('250')).toBeInTheDocument();
     });
   });
 });
