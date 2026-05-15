@@ -22,8 +22,10 @@ export default function Detail({ request, user, onBack, onGo, activeTab, onNavig
   const [showReportMenu, setShowReportMenu] = useState(false);
   const [reported, setReported] = useState(false);
   const prayedCount = (prayer.count || 0) + (prayed ? 1 : 0);
+  const isOwnPrayer = prayer.userId === user?.id || prayer.userId === 'me';
 
   const handleMarkAnswered = () => {
+    if (!isOwnPrayer) return;
     setAnswered(true);
     markAnswered(prayer.id || prayer.title);
     if (notificationChannels.inApp && notificationActivity.prayerAnswered) {
@@ -36,6 +38,7 @@ export default function Detail({ request, user, onBack, onGo, activeTab, onNavig
   };
 
   const handleCreateTestimony = () => {
+    if (!isOwnPrayer) return;
     onGo?.('createTestimony', { prayerId: prayer.id, prayerTitle: prayer.title });
     setShowAnswerMenu(false);
   };
@@ -133,12 +136,16 @@ export default function Detail({ request, user, onBack, onGo, activeTab, onNavig
               <div className="flex items-center gap-2 font-semibold">
                 <Sparkles size={22} className="text-candle" /> This prayer has been answered!
               </div>
-              <button
-                onClick={() => onGo?.('createTestimony', { prayerId: prayer.id, prayerTitle: prayer.title })}
-                className="cinematic-button mt-2 rounded-xl px-4 py-2 text-xs font-semibold text-ink transition active:scale-95"
-              >
-                Share Your Testimony
-              </button>
+              {isOwnPrayer ? (
+                <button
+                  onClick={handleCreateTestimony}
+                  className="cinematic-button mt-2 rounded-xl px-4 py-2 text-xs font-semibold text-ink transition active:scale-95"
+                >
+                  Share Your Testimony
+                </button>
+              ) : (
+                <p className="mt-1 text-xs text-ivory/68">Celebrate with them and keep encouraging the community.</p>
+              )}
             </div>
           )}
           <EncouragementThread threadId={prayer.id || prayer.title} currentUser={user} />
@@ -156,7 +163,7 @@ export default function Detail({ request, user, onBack, onGo, activeTab, onNavig
         <button onClick={() => setBookmarked((current) => !current)} className={`w-14 rounded-2xl border border-ivory/12 transition active:scale-95 ${bookmarked ? 'bg-candle/18 text-candle' : 'bg-ivory/10 text-ivory'}`}>
           <Bookmark className="mx-auto" size={20} fill={bookmarked ? 'currentColor' : 'none'} />
         </button>
-        {!answered && (
+        {!answered && isOwnPrayer && (
           <button
             onClick={() => setShowAnswerMenu(!showAnswerMenu)}
             className="flex h-14 w-14 items-center justify-center rounded-2xl border border-ivory/12 bg-ivory/10 text-ivory transition active:scale-95"

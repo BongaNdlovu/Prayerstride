@@ -16,20 +16,23 @@ export default function CreateTestimony({ onBack, onDone, activeTab, onNavigate,
   const [, setNotifications] = usePersistentState('notifications:items', []);
   const [notificationActivity] = usePersistentState('notifications:prayerActivity', { prayerAnswered: true });
   const [notificationChannels] = usePersistentState('notifications:channels', { inApp: true });
-  const selectedPrayer = prayers.find((prayer) => prayer.id === selectedPrayerId);
+  const ownPrayers = prayers.filter((prayer) => prayer.userId === user?.id || prayer.userId === 'me');
+  const selectedPrayer = ownPrayers.find((prayer) => prayer.id === selectedPrayerId);
   const answeredOptions = [
     ...(selectedPrayer ? [selectedPrayer] : []),
-    ...prayers.filter((prayer) => prayer.answered && prayer.id !== selectedPrayerId),
-    ...prayers.filter((prayer) => !prayer.answered && prayer.id !== selectedPrayerId).slice(0, 2),
+    ...ownPrayers.filter((prayer) => prayer.answered && prayer.id !== selectedPrayerId),
+    ...ownPrayers.filter((prayer) => !prayer.answered && prayer.id !== selectedPrayerId).slice(0, 2),
   ];
+  const activePrayerId = selectedPrayer ? selectedPrayerId : answeredOptions[0]?.id;
 
   const post = () => {
     if (!text.trim()) return;
-    const linkedPrayer = prayers.find((prayer) => prayer.id === selectedPrayerId);
-    if (selectedPrayerId) markAnswered(selectedPrayerId);
+    const linkedPrayer = ownPrayers.find((prayer) => prayer.id === activePrayerId);
+    if (!linkedPrayer) return;
+    if (activePrayerId) markAnswered(activePrayerId);
     const testimony = {
       id: `local-testimony-${Date.now()}`,
-      prayerId: selectedPrayerId,
+      prayerId: activePrayerId,
       userId: user?.id || 'me',
       name: user?.name || 'You',
       title: title.trim() || prayerTitle || linkedPrayer?.title || 'Answered prayer',
@@ -75,6 +78,16 @@ export default function CreateTestimony({ onBack, onDone, activeTab, onNavigate,
         </div>
         <h2 className="mt-10 font-serif text-3xl leading-tight text-navy">Share how God answered your prayer</h2>
         <p className="mt-3 text-sm leading-6 text-slate-500">Tell how God answered your prayer and what He taught you.</p>
+        {!answeredOptions.length ? (
+          <div className="mt-7 rounded-2xl border border-[#e6ddcf] bg-white/80 p-5 text-center">
+            <p className="font-semibold text-slate-900">No prayer to link yet</p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">Create your own prayer request first. Once it is answered, you can share the testimony here.</p>
+            <button onClick={onDone} className="mt-4 rounded-2xl bg-navy px-5 py-3 text-sm font-semibold text-white">
+              Back to Praise
+            </button>
+          </div>
+        ) : (
+        <>
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -102,14 +115,14 @@ export default function CreateTestimony({ onBack, onDone, activeTab, onNavigate,
                   key={prayer.id}
                   onClick={() => setSelectedPrayerId(prayer.id)}
                   className={`flex w-full items-center justify-between rounded-2xl border px-3 py-3 text-left transition active:scale-[0.98] ${
-                    selectedPrayerId === prayer.id ? 'border-navy bg-[#e8f0f6]' : 'border-[#e6ddcf] bg-sand'
+                    activePrayerId === prayer.id ? 'border-navy bg-[#e8f0f6]' : 'border-[#e6ddcf] bg-sand'
                   }`}
                 >
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-semibold text-slate-900">{prayer.title}</span>
                     <span className="text-xs text-slate-500">{prayer.answered ? 'Answered' : 'Marking as answered'}</span>
                   </span>
-                  <span className={`h-4 w-4 shrink-0 rounded-full border ${selectedPrayerId === prayer.id ? 'border-navy bg-navy' : 'border-slate-300'}`} />
+                  <span className={`h-4 w-4 shrink-0 rounded-full border ${activePrayerId === prayer.id ? 'border-navy bg-navy' : 'border-slate-300'}`} />
                 </button>
               ))}
             </div>
@@ -117,6 +130,8 @@ export default function CreateTestimony({ onBack, onDone, activeTab, onNavigate,
           <ToggleRow title="Allow others to share" subtitle="Yes, others can share this testimony." initial={shared} onChange={setShared} />
         </div>
         <p className="mt-6 text-center text-xs text-slate-400">By posting, you agree to our community guidelines.</p>
+        </>
+        )}
       </div>
     </AppScreen>
   );

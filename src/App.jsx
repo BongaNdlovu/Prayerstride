@@ -176,7 +176,7 @@ export default function App() {
     if (screen === "calendar") return <CalendarScreen onBack={() => go("profile")} activeTab={active} onNavigate={setNav} />;
     if (screen === "myStats") return <MyStats onBack={() => go("home")} activeTab={active} onNavigate={setNav} onGo={go} />;
     if (screen === "answeredPrayers") return <AnsweredPrayers onBack={() => go("profile")} activeTab={active} onNavigate={setNav} />;
-    if (screen === "myPrayers") return <MyPrayers onBack={() => go("home")} activeTab={active} onNavigate={setNav} onGo={go} />;
+    if (screen === "myPrayers") return <MyPrayers onBack={() => go("home")} activeTab={active} onNavigate={setNav} onGo={go} user={authUser} />;
     if (screen === "achievements") return <Achievements onBack={() => go("profile")} activeTab={active} onNavigate={setNav} />;
     if (screen === "reminderSettings") return <Reminders onBack={() => go("profile")} activeTab={active} onNavigate={setNav} />;
     if (screen === "praise") return <Praise activeTab={active} onNavigate={setNav} onGo={go} user={authUser} />;

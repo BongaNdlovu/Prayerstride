@@ -6,12 +6,13 @@ import Card from '../ui/Card';
 import EmptyState from '../ui/EmptyState';
 import { usePrayerData } from '../../hooks/usePrayerData';
 
-export default function MyPrayers({ onBack, activeTab, onNavigate, onGo }) {
+export default function MyPrayers({ onBack, activeTab, onNavigate, onGo, user }) {
   const [tab, setTab] = useState('All');
-  const { prayers } = usePrayerData();
+  const { prayers } = usePrayerData(user);
+  const myPrayers = prayers.filter((prayer) => prayer.userId === user?.id || prayer.userId === 'me');
   const tabs = ['All', 'Requests', 'Praise', 'Archived'];
 
-  const filtered = tab === 'All' ? prayers : prayers.filter((p) => {
+  const filtered = tab === 'All' ? myPrayers : myPrayers.filter((p) => {
     if (tab === 'Requests') return p.status === 'active';
     if (tab === 'Praise') return p.status === 'answered';
     if (tab === 'Archived') return p.status === 'archived';
@@ -19,9 +20,9 @@ export default function MyPrayers({ onBack, activeTab, onNavigate, onGo }) {
   });
 
   const stats = {
-    Active: prayers.filter((p) => p.status === 'active').length,
-    Answered: prayers.filter((p) => p.status === 'answered').length,
-    Archived: prayers.filter((p) => p.status === 'archived').length,
+    Active: myPrayers.filter((p) => p.status === 'active').length,
+    Answered: myPrayers.filter((p) => p.status === 'answered').length,
+    Archived: myPrayers.filter((p) => p.status === 'archived').length,
   };
 
   return (
