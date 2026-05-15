@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { BookOpen, Leaf, ShieldCheck } from 'lucide-react';
 import PrayingHandsIcon from './components/PrayingHandsIcon';
 import PhoneFrame from './components/PhoneFrame';
@@ -45,6 +45,7 @@ import AccountSuspended from './components/screens/AccountSuspended';
 import { useNavigation } from './hooks/useNavigation';
 import { APP_SCREENS } from './data/constants';
 import { useAuth } from './contexts/AuthContext.jsx';
+import { registerNativePushNotifications } from './lib/pushNotifications';
 
 const NAVY = "#082A4A";
 const GOLD = "#C8892B";
@@ -77,6 +78,14 @@ export default function App() {
     email: user.email,
     photoURL: user.photoURL,
   } : null;
+
+  useEffect(() => {
+    if (!user) return;
+
+    registerNativePushNotifications().catch((error) => {
+      console.error('Native push registration failed', error);
+    });
+  }, [user]);
 
   const content = useMemo(() => {
     const setNav = handleNav;

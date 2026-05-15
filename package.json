@@ -19,8 +19,8 @@
     "test": "npm run test:flow && npm run test:logic && npm run test:ui"
   },
   "dependencies": {
+    "@capacitor/push-notifications": "^8.0.0",
     "firebase": "^12.13.0",
-    "firebase-admin": "^13.10.0",
     "lucide-react": "^0.460.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
@@ -36,6 +36,6 @@
     "autoprefixer": "^10.4.19",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.4",
-    "vite": "^5.3.1"
+    "vite": "^6.0.0"
   }
 }

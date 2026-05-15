@@ -6,6 +6,7 @@ import SceneImage from '../ui/SceneImage';
 import { useTestimonies } from '../../hooks/useTestimonies';
 import { usePrayerData } from '../../hooks/usePrayerData';
 import { usePersistentState } from '../../hooks/usePersistentState';
+import { reactToTestimony } from '../../lib/api';
 
 function ReactionButton({ active, count, label, onClick }) {
   return (
@@ -30,7 +31,9 @@ export default function PraiseDetail({ testimony, onBack, onGo, activeTab, onNav
   const praiseGodCount = (selected.praiseGod || 0) + (reacted.praiseGod ? 1 : 0);
   const amenCount = (selected.amen || 0) + (reacted.amen ? 1 : 0);
 
-  const react = (key) => {
+  const react = async (key) => {
+    const alreadyReacted = Boolean(reactions[selected.id]?.[key]);
+
     setReactions((current) => ({
       ...current,
       [selected.id]: {
@@ -38,6 +41,14 @@ export default function PraiseDetail({ testimony, onBack, onGo, activeTab, onNav
         [key]: !current[selected.id]?.[key],
       },
     }));
+
+    if (alreadyReacted) return;
+
+    try {
+      await reactToTestimony(selected.id, key);
+    } catch (error) {
+      console.error('Testimony reaction notification failed', error);
+    }
   };
 
   const openPrayer = () => {

@@ -6,6 +6,7 @@ import { useTestimonies } from '../../hooks/useTestimonies';
 import { usePrayerData } from '../../hooks/usePrayerData';
 import { usePersistentState } from '../../hooks/usePersistentState';
 import ImageHero from '../ui/ImageHero';
+import { reactToTestimony } from '../../lib/api';
 
 function ReactionButton({ active, count, label, onClick }) {
   return (
@@ -92,7 +93,9 @@ export default function Praise({ activeTab, onNavigate, onGo, user }) {
   );
   const featured = filteredTestimonies[0] || testimonies[0];
 
-  const react = (id, key) => {
+  const react = async (id, key) => {
+    const alreadyReacted = Boolean(reactions[id]?.[key]);
+
     setReactions((current) => ({
       ...current,
       [id]: {
@@ -100,6 +103,14 @@ export default function Praise({ activeTab, onNavigate, onGo, user }) {
         [key]: !current[id]?.[key],
       },
     }));
+
+    if (alreadyReacted) return;
+
+    try {
+      await reactToTestimony(id, key);
+    } catch (error) {
+      console.error('Testimony reaction notification failed', error);
+    }
   };
 
   const openPrayer = (prayer) => {

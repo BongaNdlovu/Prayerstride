@@ -7,6 +7,7 @@ import { prayers } from '../../data/mockData';
 import EncouragementThread from '../ui/EncouragementThread';
 import SceneImage from '../ui/SceneImage';
 import GlassCard from '../ui/GlassCard';
+import { prayForRequest } from '../../lib/api';
 
 export default function Detail({ request, user, onBack, onGo, activeTab, onNavigate }) {
   const prayer = request || prayers[0];
@@ -41,6 +42,17 @@ export default function Detail({ request, user, onBack, onGo, activeTab, onNavig
     if (!isOwnPrayer) return;
     onGo?.('createTestimony', { prayerId: prayer.id, prayerTitle: prayer.title });
     setShowAnswerMenu(false);
+  };
+
+  const handlePray = async () => {
+    setPrayed(true);
+    if (!prayer.id) return;
+
+    try {
+      await prayForRequest(prayer.id);
+    } catch (error) {
+      console.error('Prayer notification failed', error);
+    }
   };
 
   const submitReport = () => {
@@ -157,7 +169,7 @@ export default function Detail({ request, user, onBack, onGo, activeTab, onNavig
         <button onClick={() => onGo?.('prayerStopwatch', { request: prayer })} className="flex h-14 w-14 items-center justify-center rounded-2xl border border-ivory/12 bg-ivory/10 text-ivory transition active:scale-95">
           <Timer size={20} />
         </button>
-        <button onClick={() => setPrayed(true)} className="cinematic-button flex-1 rounded-2xl px-5 py-4 font-semibold text-ink transition active:scale-[0.98]">
+        <button onClick={handlePray} className="cinematic-button flex-1 rounded-2xl px-5 py-4 font-semibold text-ink transition active:scale-[0.98]">
           {prayed ? "Pray Again" : "I'll Pray"}
         </button>
         <button onClick={() => setBookmarked((current) => !current)} className={`w-14 rounded-2xl border border-ivory/12 transition active:scale-95 ${bookmarked ? 'bg-candle/18 text-candle' : 'bg-ivory/10 text-ivory'}`}>
