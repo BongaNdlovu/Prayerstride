@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ArrowLeft, Clock } from 'lucide-react';
+import SceneImage from '../ui/SceneImage';
 
 export default function ReminderSetup({ onBack, onContinue }) {
   const [reminders, setReminders] = useState([
@@ -14,39 +15,41 @@ export default function ReminderSetup({ onBack, onContinue }) {
   };
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto bg-sand px-6 pb-8">
-      <button onClick={onBack} className="mt-3 w-fit text-navy">
+    <div className="cinematic-bg relative flex h-full flex-col overflow-y-auto px-6 pb-8 text-ivory">
+      <SceneImage scene="chapel" className="absolute inset-0 opacity-75" />
+      <div className="absolute inset-0 bg-ink/62" />
+      <button onClick={onBack} className="relative z-10 mt-3 w-fit text-ivory">
         <ArrowLeft size={22} />
       </button>
-      <div className="mt-6 rounded-[30px] border border-[#e6ddcf] bg-white/75 p-8 text-center shadow-sm">
-        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#f1dfc8] text-gold">
+      <div className="glass-panel relative z-10 mt-6 rounded-[30px] p-8 text-center">
+        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-candle text-ink">
           <Clock size={28} />
         </div>
       </div>
-      <h1 className="mt-7 font-serif text-3xl leading-tight text-navy">
+      <h1 className="relative z-10 mt-7 font-serif text-3xl leading-tight text-ivory">
         When would you like
         <br />
         to be reminded?
       </h1>
-      <p className="mt-2 text-sm leading-6 text-slate-600">We'll send a gentle nudge so you never miss a moment to pray.</p>
-      <div className="mt-6 space-y-3">
+      <p className="relative z-10 mt-2 text-sm leading-6 text-ivory/70">We'll send a gentle nudge so you never miss a moment to pray.</p>
+      <div className="relative z-10 mt-6 space-y-3">
         {reminders.map((r, i) => (
-          <button key={r.title} onClick={() => toggle(i)} className="flex w-full items-center justify-between rounded-2xl border border-[#e6ddcf] bg-white/70 p-4 text-left transition active:scale-[0.98]">
+          <button key={r.title} onClick={() => toggle(i)} className="flex w-full items-center justify-between rounded-2xl border border-ivory/15 bg-ivory/10 p-4 text-left backdrop-blur transition active:scale-[0.98]">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f3e6d2] text-gold">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-candle/18 text-candle">
                 <Clock size={20} />
               </div>
               <div>
-                <div className="font-semibold text-slate-900">{r.title}</div>
-                <div className="text-xs text-slate-500">{r.text}</div>
-                <span className="mt-1 inline-block rounded-full border px-2 py-0.5 text-xs">{r.time}</span>
+                <div className="font-semibold text-ivory">{r.title}</div>
+                <div className="text-xs text-ivory/58">{r.text}</div>
+                <span className="mt-1 inline-block rounded-full border border-ivory/15 px-2 py-0.5 text-xs text-ivory/70">{r.time}</span>
               </div>
             </div>
-            <div className={`h-5 w-5 rounded-full border ${r.selected ? "border-navy bg-navy ring-4 ring-[#d8e4ee]" : "border-slate-300"}`} />
+            <div className={`h-5 w-5 rounded-full border ${r.selected ? "border-candle bg-candle ring-4 ring-candle/20" : "border-ivory/30"}`} />
           </button>
         ))}
       </div>
-      <button onClick={onContinue} className="mt-auto rounded-2xl bg-navy py-4 font-semibold text-white transition hover:bg-[#0a3358]">
+      <button onClick={onContinue} className="cinematic-button relative z-10 mt-auto rounded-2xl py-4 font-semibold text-ink transition active:scale-[0.98]">
         Continue
       </button>
     </div>

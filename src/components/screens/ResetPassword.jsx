@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ArrowLeft, Mail, Send } from 'lucide-react';
 import TopLogo from '../TopLogo';
+import SceneImage from '../ui/SceneImage';
 
 export default function ResetPassword({ onBack, onSend }) {
   const [email, setEmail] = useState('');
@@ -18,38 +19,40 @@ export default function ResetPassword({ onBack, onSend }) {
   };
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto bg-sand px-6 pb-8">
-      <button onClick={onBack} className="mt-3 w-fit text-navy">
+    <div className="cinematic-bg relative flex h-full flex-col overflow-y-auto px-6 pb-8 text-ivory">
+      <SceneImage scene="bible" className="absolute inset-0 opacity-75" />
+      <div className="absolute inset-0 bg-ink/64" />
+      <button onClick={onBack} className="relative z-10 mt-3 w-fit text-ivory">
         <ArrowLeft size={22} />
       </button>
-      <div className="mt-6 text-center">
+      <div className="relative z-10 mt-6 text-center">
         <TopLogo small />
       </div>
-      <h1 className="mt-8 font-serif text-3xl leading-tight text-navy">Reset Password</h1>
-      <p className="mt-2 text-sm leading-6 text-slate-600">Enter your email and we will send you a link to reset your password.</p>
+      <h1 className="relative z-10 mt-8 font-serif text-3xl leading-tight text-ivory">Reset Password</h1>
+      <p className="relative z-10 mt-2 text-sm leading-6 text-ivory/70">Enter your email and we will send you a link to reset your password.</p>
       {sent ? (
-        <div className="mt-8 rounded-2xl border border-[#e6ddcf] bg-white/80 p-6 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#e8f0f6] text-navy">
+        <div className="glass-panel relative z-10 mt-8 rounded-2xl p-6 text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-candle text-ink">
             <Send size={24} />
           </div>
-          <p className="mt-4 font-semibold text-navy">Check your inbox</p>
-          <p className="mt-1 text-sm text-slate-600">If an account exists, you will receive a reset link shortly.</p>
+          <p className="mt-4 font-semibold text-ivory">Check your inbox</p>
+          <p className="mt-1 text-sm text-ivory/65">If an account exists, you will receive a reset link shortly.</p>
         </div>
       ) : (
         <>
-          {error && <p className="mt-3 text-sm text-red-700">{error}</p>}
-          <div className="mt-6">
-            <div className="flex items-center gap-3 rounded-2xl border border-[#e6ddcf] bg-white/80 px-4 py-3">
-              <Mail size={18} className="text-slate-400" />
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className="w-full bg-transparent text-sm outline-none" />
+          {error && <p className="relative z-10 mt-3 rounded-2xl border border-red-300/30 bg-red-950/35 px-4 py-3 text-sm text-red-100">{error}</p>}
+          <div className="relative z-10 mt-6">
+            <div className="flex items-center gap-3 rounded-2xl border border-ivory/15 bg-ivory/10 px-4 py-3 backdrop-blur">
+              <Mail size={18} className="text-candle" />
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className="w-full bg-transparent text-sm text-ivory outline-none placeholder:text-ivory/45" />
             </div>
           </div>
-          <button onClick={submit} className="mt-6 w-full rounded-2xl bg-navy py-4 font-semibold text-white transition hover:bg-[#0a3358]">
+          <button onClick={submit} className="cinematic-button relative z-10 mt-6 w-full rounded-2xl py-4 font-semibold text-ink transition active:scale-[0.98]">
             Send reset link
           </button>
         </>
       )}
-      <button onClick={onBack} className="mt-4 text-center text-sm font-semibold text-slate-500">
+      <button onClick={onBack} className="relative z-10 mt-4 text-center text-sm font-semibold text-ivory/58">
         Back to sign in
       </button>
     </div>

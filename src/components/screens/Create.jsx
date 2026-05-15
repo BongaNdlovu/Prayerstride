@@ -1,5 +1,6 @@
 import { Eye, Flame, Globe2, Send, ShieldCheck, UserRound } from 'lucide-react';
 import BottomNav from '../BottomNav';
+import SceneImage from '../ui/SceneImage';
 import { usePersistentState } from '../../hooks/usePersistentState';
 import { usePrayerData } from '../../hooks/usePrayerData';
 
@@ -49,23 +50,25 @@ export default function Create({ onGo, activeTab, onNavigate, user }) {
   };
 
   return (
-    <div className="relative flex h-full flex-col overflow-hidden bg-sand">
-      <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-5 pb-4">
+    <div className="cinematic-bg relative flex h-full flex-col overflow-hidden text-ivory">
+      <SceneImage scene="dawn" className="absolute inset-0 opacity-70" />
+      <div className="absolute inset-0 bg-ink/62" />
+      <div className="no-scrollbar relative z-10 min-h-0 flex-1 overflow-y-auto px-5 pb-4">
       <div className="mt-4 flex items-center justify-between">
-        <button onClick={() => onGo("home")} className="text-sm text-slate-700">
+        <button onClick={() => onGo("home")} className="text-sm text-ivory/70">
           Cancel
         </button>
-        <h1 className="font-semibold text-slate-900">Create Request</h1>
-        <button onClick={post} className="text-sm font-semibold text-navy">Post</button>
+        <h1 className="font-semibold text-ivory">Create Request</h1>
+        <button onClick={post} className="text-sm font-semibold text-candle">Post</button>
       </div>
-      <h2 className="mt-10 font-serif text-3xl leading-tight text-navy">
+      <h2 className="mt-10 font-serif text-3xl leading-tight text-ivory">
         What do you need
         <br />
         prayer for?
       </h2>
-      <p className="mt-3 text-sm leading-6 text-slate-500">Share as much or as little as you're comfortable with.</p>
-      <textarea value={text} onChange={(e) => setText(e.target.value)} className="mt-7 h-40 w-full resize-none rounded-2xl border border-[#e6ddcf] bg-white/80 p-4 text-sm outline-none focus:border-navy" placeholder="Write your request..." />
-      <div className="mt-3 flex items-center justify-between text-xs text-slate-400">
+      <p className="mt-3 text-sm leading-6 text-ivory/68">Share as much or as little as you're comfortable with.</p>
+      <textarea value={text} onChange={(e) => setText(e.target.value)} className="mt-7 h-40 w-full resize-none rounded-2xl border border-ivory/15 bg-ivory/10 p-4 text-sm text-ivory outline-none placeholder:text-ivory/45 focus:border-candle" placeholder="Write your request..." />
+      <div className="mt-3 flex items-center justify-between text-xs text-ivory/45">
         <div className="flex gap-4">
           <Eye size={18} />
           <Flame size={18} />
@@ -77,24 +80,24 @@ export default function Create({ onGo, activeTab, onNavigate, user }) {
         {options.map(({ key, icon: Icon, title, text }) => {
           const on = settings[key];
           return (
-            <button key={key} onClick={() => toggle(key)} className="flex w-full items-center justify-between rounded-2xl border border-[#e6ddcf] bg-white/75 p-4 text-left transition active:scale-[0.98]">
+            <button key={key} onClick={() => toggle(key)} className="flex w-full items-center justify-between rounded-2xl border border-ivory/15 bg-ivory/10 p-4 text-left backdrop-blur transition active:scale-[0.98]">
               <div className="flex items-center gap-3">
-                <div className={`flex h-10 w-10 items-center justify-center rounded-full ${on ? 'bg-[#e8f0f6] text-navy' : 'bg-slate-100 text-slate-500'}`}>
+                <div className={`flex h-10 w-10 items-center justify-center rounded-full ${on ? 'bg-candle text-ink' : 'bg-ivory/10 text-ivory/55'}`}>
                   <Icon size={18} />
                 </div>
                 <div>
-                  <div className="font-semibold text-slate-900">{title}</div>
-                  <div className="text-xs text-slate-500">{text}</div>
+                  <div className="font-semibold text-ivory">{title}</div>
+                  <div className="text-xs text-ivory/58">{text}</div>
                 </div>
               </div>
-              <div className={`h-8 w-14 shrink-0 rounded-full p-1 transition ${on ? "bg-navy" : "bg-slate-200"}`}>
+              <div className={`h-8 w-14 shrink-0 rounded-full p-1 transition ${on ? "bg-candle" : "bg-ivory/20"}`}>
                 <div className={`h-6 w-6 rounded-full bg-white shadow-sm transition-transform ${on ? "translate-x-6" : "translate-x-0"}`} />
               </div>
             </button>
           );
         })}
       </div>
-      <p className="mt-6 text-center text-xs text-slate-400">By posting, you agree to our community guidelines.</p>
+      <p className="mt-6 text-center text-xs text-ivory/45">By posting, you agree to our community guidelines.</p>
       </div>
       <BottomNav active={activeTab} onNavigate={onNavigate} />
     </div>

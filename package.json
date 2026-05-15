@@ -11,6 +11,7 @@
     "test:flow": "node scripts/flow-smoke.mjs",
     "test:logic": "node scripts/logic-smoke.mjs",
     "test:ui": "node scripts/ui-source-smoke.mjs",
+    "audit:screens": "node scripts/screen-audit.mjs",
     "test": "npm run test:flow && npm run test:logic && npm run test:ui"
   },
   "dependencies": {
