@@ -66,10 +66,10 @@ export default function Detail({ request, user, onBack, onGo, activeTab, onNavig
   return (
     <div className="cinematic-bg cinematic-texture relative flex h-full flex-col overflow-hidden text-ivory">
       <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto pb-4">
-      <div className="relative min-h-[210px] overflow-hidden rounded-b-[34px]">
+      <div className="relative min-h-[260px] overflow-hidden rounded-b-[34px]">
         <SceneImage scene={answered ? 'answered' : 'chapel'} className="absolute inset-0" />
         <div className="absolute inset-0 bg-gradient-to-b from-ink/20 via-ink/30 to-ink/90" />
-      <div className="relative z-10 px-5 pb-3 pt-4">
+      <div className="relative z-10 px-5 pb-8 pt-4">
         <div className="flex items-center justify-between">
           <button onClick={onBack} className="text-ivory">
             <ArrowLeft size={22} />
