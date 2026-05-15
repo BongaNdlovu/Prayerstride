@@ -137,7 +137,7 @@ export default function Detail({ request, user, onBack, onGo, activeTab, onNavig
               <div className="flex items-center gap-2 font-semibold">
                 <CheckCircle2 size={22} /> You prayed for this request
               </div>
-              <p className="mt-1 text-xs">Thank you for standing with Sarah today.</p>
+              <p className="mt-1 text-xs">Thank you for standing with {prayer.name || 'them'} today.</p>
             </div>
           )}
           {error && (

@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { AlertTriangle, CheckCircle2, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, X, Trash2, Ban } from 'lucide-react';
 import AppScreen from '../ui/AppScreen';
 import AppHeader from '../ui/AppHeader';
 import Card from '../ui/Card';
 import { useReports, resolveReport, dismissReport } from '../../hooks/useReports';
 import { useIsAdmin } from '../../hooks/useIsAdmin';
+import { adminDeleteContent, adminSuspendUser } from '../../lib/api';
 
 export default function ReportDetails({ onBack, activeTab, onNavigate, reportId, type = 'report' }) {
   const { isAdmin } = useIsAdmin();
@@ -45,14 +46,27 @@ export default function ReportDetails({ onBack, activeTab, onNavigate, reportId,
     try {
       if (actionTaken === 'dismissed') {
         await dismissReport(reportId);
-      } else {
+      } else if (actionTaken === 'resolved') {
+        await resolveReport(reportId);
+      } else if (actionTaken === 'delete') {
+        await adminDeleteContent(report.targetId, report.targetType);
+        await resolveReport(reportId);
+      } else if (actionTaken === 'suspend') {
+        await adminSuspendUser(report.targetId, report.reason || 'Community guidelines violation');
         await resolveReport(reportId);
       }
     } catch (err) {
-      console.error('Failed to update report:', err);
+      console.error('Failed to execute action:', err);
     }
     setShowConfirm(false);
     onBack();
+  };
+
+  const actionLabels = {
+    dismissed: 'dismiss',
+    resolved: 'resolve',
+    delete: 'delete the reported content',
+    suspend: 'suspend the reported user',
   };
 
   return (
@@ -99,7 +113,7 @@ export default function ReportDetails({ onBack, activeTab, onNavigate, reportId,
               <AlertTriangle size={20} className="text-amber-600 shrink-0 mt-0.5" />
               <div>
                 <h4 className="font-semibold text-amber-900">Confirm Action</h4>
-                <p className="mt-1 text-xs text-amber-700">You are about to {actionTaken === 'dismissed' ? 'dismiss' : 'resolve'} this report.</p>
+                <p className="mt-1 text-xs text-amber-700">You are about to {actionLabels[actionTaken] || actionTaken} this report.</p>
                 <div className="mt-3 flex gap-2">
                   <button
                     onClick={confirmAction}
@@ -133,9 +147,22 @@ export default function ReportDetails({ onBack, activeTab, onNavigate, reportId,
             >
               <X size={18} /> Dismiss Report
             </button>
-            <p className="rounded-2xl border border-slate-200 bg-white/70 p-3 text-xs leading-5 text-slate-500">
-              Content deletion, warnings, blocking, and suspension are disabled until the moderation backend is implemented.
-            </p>
+            {(report.targetType === 'prayer' || report.targetType === 'testimony') && (
+              <button
+                onClick={() => handleAction('delete')}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-red-600 py-3.5 font-semibold text-white transition active:scale-[0.98]"
+              >
+                <Trash2 size={18} /> Delete Content
+              </button>
+            )}
+            {report.targetType === 'user' && (
+              <button
+                onClick={() => handleAction('suspend')}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-red-600 py-3.5 font-semibold text-white transition active:scale-[0.98]"
+              >
+                <Ban size={18} /> Suspend User
+              </button>
+            )}
           </div>
         )}
 

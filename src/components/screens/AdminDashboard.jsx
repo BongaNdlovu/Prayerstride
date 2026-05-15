@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Users, FileText, AlertTriangle, ShieldCheck, HeartHandshake, Flag, Eye, CheckCircle2, Archive, Search } from 'lucide-react';
+import { Users, FileText, AlertTriangle, ShieldCheck, HeartHandshake, Flag, Eye, CheckCircle2, Archive, Search, Trash2, Ban } from 'lucide-react';
 import AppScreen from '../ui/AppScreen';
 import AppHeader from '../ui/AppHeader';
 import StatCard from '../ui/StatCard';
@@ -9,6 +9,7 @@ import { useIsAdmin } from '../../hooks/useIsAdmin';
 import { useUsers } from '../../hooks/useUsers';
 import { usePrayers } from '../../hooks/usePrayers';
 import { useTestimonies } from '../../hooks/useTestimonies';
+import { adminDeleteContent, adminSuspendUser } from '../../lib/api';
 import EmptyState from '../ui/EmptyState';
 
 const reportsRoute = 'admin:reports';
@@ -220,9 +221,21 @@ export default function AdminDashboard({ onBack, activeTab, onNavigate, onGo }) 
                       <div className="flex items-center gap-2">
                         <h3 className="truncate text-sm font-semibold text-slate-900">{user.displayName || 'PrayerStride member'}</h3>
                         <span className="shrink-0 rounded-full bg-[#f2e7d6] px-2 py-0.5 text-[10px] font-medium text-navy">{user.role}</span>
+                        {user.suspended && <span className="shrink-0 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-700">Suspended</span>}
                       </div>
                       <p className="truncate text-xs text-slate-500">{user.email || 'No email'}</p>
                     </div>
+                    {user.role !== 'admin' && (
+                      <button
+                        onClick={async () => {
+                          try { await adminSuspendUser(user.id, 'Suspended by admin'); } catch (err) { console.error(err); }
+                        }}
+                        className="ml-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full hover:bg-red-50 transition"
+                        aria-label="Suspend user"
+                      >
+                        <Ban size={16} className="text-red-500" />
+                      </button>
+                    )}
                   </div>
                 </Card>
               ))}
@@ -232,23 +245,42 @@ export default function AdminDashboard({ onBack, activeTab, onNavigate, onGo }) 
 
         {activeTabFilter === 'content' && (
           <div className="space-y-3">
-            {[
-              { icon: FileText, title: 'Live prayer requests', count: prayers.length, detail: 'Prayer requests currently stored in Firestore.' },
-              { icon: HeartHandshake, title: 'Live testimonies', count: testimonies.length, detail: 'Answered-prayer stories currently shared in Praise.' },
-              { icon: AlertTriangle, title: 'Open reports', count: openReports.length, detail: 'Reports waiting for an owner decision.' },
-            ].map((item) => (
-              <Card key={item.title} className="p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#f2e7d6] text-navy">
-                      <item.icon size={18} />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-semibold text-slate-900">{item.title}</h3>
-                      <p className="mt-1 text-xs leading-5 text-slate-500">{item.detail}</p>
-                    </div>
+            <h3 className="font-serif text-lg text-navy">Live Content ({prayers.length + testimonies.length})</h3>
+            {prayers.map((prayer) => (
+              <Card key={prayer.id} className="p-4">
+                <div className="flex items-start justify-between">
+                  <div className="min-w-0 flex-1">
+                    <h4 className="truncate text-sm font-semibold text-slate-900">{prayer.title}</h4>
+                    <p className="mt-1 text-xs text-slate-500 truncate">{prayer.authorName || 'Unknown'}</p>
                   </div>
-                  <span className="rounded-full bg-navy px-2 py-1 text-xs font-semibold text-white">{item.count}</span>
+                  <button
+                    onClick={async () => {
+                      try { await adminDeleteContent(prayer.id, 'prayer'); } catch (err) { console.error(err); }
+                    }}
+                    className="ml-3 flex h-8 w-8 shrink-0 items-center justify-center rounded-full hover:bg-red-50 transition"
+                    aria-label="Delete prayer"
+                  >
+                    <Trash2 size={16} className="text-red-500" />
+                  </button>
+                </div>
+              </Card>
+            ))}
+            {testimonies.map((testimony) => (
+              <Card key={testimony.id} className="p-4">
+                <div className="flex items-start justify-between">
+                  <div className="min-w-0 flex-1">
+                    <h4 className="truncate text-sm font-semibold text-slate-900">{testimony.title}</h4>
+                    <p className="mt-1 text-xs text-slate-500 truncate">{testimony.authorName || 'Unknown'}</p>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      try { await adminDeleteContent(testimony.id, 'testimony'); } catch (err) { console.error(err); }
+                    }}
+                    className="ml-3 flex h-8 w-8 shrink-0 items-center justify-center rounded-full hover:bg-red-50 transition"
+                    aria-label="Delete testimony"
+                  >
+                    <Trash2 size={16} className="text-red-500" />
+                  </button>
                 </div>
               </Card>
             ))}
@@ -256,7 +288,7 @@ export default function AdminDashboard({ onBack, activeTab, onNavigate, onGo }) 
         )}
 
         <div className="rounded-2xl border border-slate-200 bg-white/70 p-4 text-xs leading-5 text-slate-500">
-          Broadcasts, owner settings, account blocking, and content deletion are disabled until server-enforced admin endpoints exist.
+          Admin moderation actions (content deletion, user suspension) are now available via the server-enforced Worker endpoints.
         </div>
       </div>
     </AppScreen>

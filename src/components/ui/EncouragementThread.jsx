@@ -22,7 +22,7 @@ export default function EncouragementThread({ threadId, currentUser }) {
     try {
       await addEncouragement(threadId, draft, {
         uid: currentUser?.uid || currentUser?.id,
-        displayName: currentUser?.name,
+        displayName: currentUser?.displayName || currentUser?.name,
         email: currentUser?.email,
       });
       setDraft('');

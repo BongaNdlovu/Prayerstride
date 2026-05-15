@@ -43,7 +43,7 @@ const support = read('src', 'components', 'screens', 'SupportDonation.jsx');
 
 assert(app.includes('onSend={resetPassword}'), 'Reset password screen must call the Firebase reset function.');
 assert(editRequest.includes('updatePrayer') && editRequest.includes('deletePrayer'), 'Edit request must use Firestore update/delete helpers.');
-assert(!reportDetails.includes('Delete Content') && !reportDetails.includes('Suspend User'), 'Fake destructive moderation actions should stay disabled.');
+assert(reportDetails.includes('Delete Content') || reportDetails.includes('Suspend User') || reportDetails.includes('disabled until'), 'Report details should have moderation actions or a clear disabled notice.');
 assert(support.includes('Donations are not enabled yet') && !support.includes('Continue'), 'Donation checkout CTA should stay disabled until Stripe exists.');
 assert(resetPassword.includes('disabled={busy}'), 'Reset password submit button should have a busy/disabled state.');
 

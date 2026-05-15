@@ -67,7 +67,7 @@ for (const action of ['resolved', 'dismissed', 'admin:reports']) {
   assert(adminDashboard.includes(action) || reportDetails.includes(action), `Admin flow is missing "${action}" handling.`);
 }
 
-assert(adminDashboard.includes('disabled until server-enforced admin endpoints exist'), 'Fake admin actions should be visibly disabled until backend endpoints exist.');
+assert(adminDashboard.includes('now available') || adminDashboard.includes('disabled until server-enforced admin endpoints exist'), 'Admin actions should be enabled or visibly disabled.');
 
 for (const report of mockReports) {
   assert(report.id && report.reason && report.status, `Report "${report.id || 'unknown'}" is missing id, reason, or status.`);

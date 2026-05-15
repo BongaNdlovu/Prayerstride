@@ -4,27 +4,34 @@ const FIREBASE_SCOPE = 'https://www.googleapis.com/auth/datastore https://www.go
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    const requestId = crypto.randomUUID().slice(0, 8);
+    const startTime = Date.now();
+    log(env, 'info', { requestId, method: request.method, path: url.pathname }, 'request');
 
     if (request.method === 'OPTIONS') {
-      return withCors(new Response(null, { status: 204 }), env);
+      return withCors(new Response(null, { status: 204 }), env, request);
     }
 
     try {
+      await enforceGlobalRateLimit(env, request, requestId);
+
       if (url.pathname.startsWith('/api/')) {
-        return withCors(await handleApi(request, env, url), env);
+        const response = await handleApi(request, env, url, requestId);
+        log(env, 'info', { requestId, status: response.status, durationMs: Date.now() - startTime }, 'response');
+        return withCors(response, env, request);
       }
 
-      return json({ ok: true, service: 'prayerstride-api' });
+      return withCors(json({ ok: true, service: 'prayerstride-api' }), env, request);
     } catch (error) {
-      console.error('Worker request failed', error);
       const status = Number(error.status || 500);
       const message = status >= 500 ? 'Unexpected server error' : (error.publicMessage || error.message || 'Request failed');
-      return withCors(json({ error: message }, status), env);
+      log(env, status >= 500 ? 'error' : 'warn', { requestId, status, message: error.message, stack: error.stack }, 'error');
+      return withCors(json({ error: message }, status), env, request);
     }
   },
 };
 
-async function handleApi(request, env, url) {
+async function handleApi(request, env, url, requestId) {
   const user = await verifyFirebaseUser(request, env);
   const body = request.method === 'GET' ? {} : await request.json().catch(() => ({}));
 
@@ -41,6 +48,26 @@ async function handleApi(request, env, url) {
   match = url.pathname.match(/^\/api\/testimonies\/([^/]+)\/react$/);
   if (match && request.method === 'POST') {
     return reactToTestimony(env, user, decodeURIComponent(match[1]), body.reaction);
+  }
+
+  match = url.pathname.match(/^\/api\/admin\/delete-content$/);
+  if (match && request.method === 'POST') {
+    return adminDeleteContent(env, user, body);
+  }
+
+  match = url.pathname.match(/^\/api\/admin\/suspend-user$/);
+  if (match && request.method === 'POST') {
+    return adminSuspendUser(env, user, body);
+  }
+
+  match = url.pathname.match(/^\/api\/admin\/delete-account$/);
+  if (match && request.method === 'POST') {
+    return adminDeleteAccount(env, user, body);
+  }
+
+  match = url.pathname.match(/^\/api\/account$/);
+  if (match && request.method === 'DELETE') {
+    return deleteOwnAccount(env, user);
   }
 
   return json({ error: 'Not found' }, 404);
@@ -187,6 +214,96 @@ async function reactToTestimony(env, user, testimonyId, reaction) {
   return json({ ok: true });
 }
 
+async function adminDeleteContent(env, user, body) {
+  await requireAdmin(env, user);
+  if (!body.targetId || !body.targetType) {
+    return json({ error: 'Missing targetId or targetType' }, 400);
+  }
+  if (!['prayer', 'testimony'].includes(body.targetType)) {
+    return json({ error: 'targetType must be prayer or testimony' }, 400);
+  }
+  const collection = body.targetType === 'prayer' ? 'prayers' : 'testimonies';
+  const targetDoc = await getDocument(env, docName(env, collection, body.targetId));
+  if (!targetDoc.exists) return json({ error: 'Content not found' }, 404);
+
+  await firestoreCommit(env, [{ delete: targetDoc.name }]);
+  return json({ ok: true });
+}
+
+async function adminSuspendUser(env, user, body) {
+  await requireAdmin(env, user);
+  if (!body.targetUid) return json({ error: 'Missing targetUid' }, 400);
+
+  const targetUser = await getDocument(env, docName(env, 'users', body.targetUid));
+  if (!targetUser.exists) return json({ error: 'User not found' }, 404);
+
+  const reason = body.reason || 'Violation of community guidelines';
+  const writes = [
+    {
+      update: {
+        name: targetUser.name,
+        fields: toFirestoreFields({
+          suspended: true,
+          suspendedReason: reason,
+          suspendedAt: new Date().toISOString(),
+          suspendedBy: user.uid,
+        }),
+      },
+    },
+    notificationWrite(env, body.targetUid, {
+      type: 'account_suspended',
+      message: `Your account has been suspended: ${reason}`,
+      actorUid: user.uid,
+    }),
+  ];
+
+  await firestoreCommit(env, writes);
+  return json({ ok: true });
+}
+
+async function adminDeleteAccount(env, user, body) {
+  await requireAdmin(env, user);
+  if (!body.targetUid) return json({ error: 'Missing targetUid' }, 400);
+  return deleteUserData(env, body.targetUid);
+}
+
+async function deleteOwnAccount(env, user) {
+  return deleteUserData(env, user.uid);
+}
+
+async function deleteUserData(env, uid) {
+  const userDoc = await getDocument(env, docName(env, 'users', uid));
+  if (!userDoc.exists) return json({ error: 'User not found' }, 404);
+
+  const collectionsToClear = ['prayers', 'testimonies', 'encouragements', 'prayerSessions', 'notifications', 'apiRateLimits'];
+  const writes = [{ delete: userDoc.name }];
+
+  for (const collection of collectionsToClear) {
+    try {
+      const docs = await listDocuments(env, docName(env, collection));
+      for (const doc of docs) {
+        const data = fromFirestoreFields(doc.fields || {});
+        if (data.authorUid === uid || data.recipientUid === uid || data.uid === uid || data.reportedByUid === uid) {
+          writes.push({ delete: doc.name });
+        }
+      }
+    } catch (err) {
+      log(env, 'warn', { uid, collection, error: err.message }, 'deleteUserData:collection-list-failed');
+    }
+  }
+
+  const deviceDocs = await listDocuments(env, docName(env, 'users', uid, 'devices'));
+  for (const doc of deviceDocs) {
+    writes.push({ delete: doc.name });
+  }
+
+  const settingsDoc = docName(env, 'notificationSettings', uid);
+  writes.push({ delete: settingsDoc });
+
+  await firestoreCommit(env, writes);
+  return json({ ok: true });
+}
+
 function notificationWrite(env, recipientUid, notification) {
   return {
     update: {
@@ -212,9 +329,10 @@ async function sendPushToUser(env, uid, payload) {
     try {
       await sendFcm(env, device.token, payload);
     } catch (error) {
-      console.error('FCM send failed', error);
+      log(env, 'error', { uid, tokenPrefix: device.token.slice(0, 10), error: error.message }, 'fcm-send-failed');
       if (error.invalidToken) {
         await firestoreCommit(env, [{ delete: device.name }]);
+        log(env, 'info', { uid, deviceName: device.name }, 'invalid-token-cleaned');
       }
     }
   }));
@@ -259,6 +377,13 @@ async function verifyFirebaseUser(request, env) {
   const result = await response.json();
   if (!response.ok || !result.users?.[0]) throw new Error('Invalid Firebase ID token');
   return { uid: result.users[0].localId, email: result.users[0].email };
+}
+
+async function requireAdmin(env, user) {
+  const userDoc = await getDocument(env, docName(env, 'users', user.uid));
+  if (!userDoc.exists) throw Object.assign(new Error('User profile not found'), { status: 403 });
+  const data = fromFirestoreFields(userDoc.fields);
+  if (data.role !== 'admin') throw Object.assign(new Error('Admin access required'), { status: 403 });
 }
 
 async function getDocument(env, name) {
@@ -325,6 +450,37 @@ async function enforceCooldown(env, uid, action, seconds) {
     update: {
       name,
       fields: toFirestoreFields({ uid, action, updatedAt: now.toISOString() }),
+    },
+  }]);
+}
+
+async function enforceGlobalRateLimit(env, request, requestId) {
+  const maxPerMinute = Number(env.RATE_LIMIT_PER_MINUTE || 120);
+  const clientIp = request.headers.get('CF-Connecting-IP') || 'unknown';
+  const ipKey = await hashToken(`rate:ip:${clientIp}`);
+  const rateDoc = docName(env, 'apiRateLimits', ipKey);
+  const now = Date.now();
+  const minuteWindow = Math.floor(now / 60000).toString();
+
+  const current = await getDocument(env, rateDoc);
+  if (current.exists) {
+    const data = fromFirestoreFields(current.fields);
+    if (data.window === minuteWindow && data.count >= maxPerMinute) {
+      log(env, 'warn', { requestId, clientIp, count: data.count }, 'rate-limited');
+      throw Object.assign(new Error('Too many requests. Please slow down.'), { status: 429, publicMessage: 'Rate limit exceeded' });
+    }
+  }
+
+  const count = (current.exists ? fromFirestoreFields(current.fields).count || 0 : 0) + 1;
+  await firestoreCommit(env, [{
+    update: {
+      name: rateDoc,
+      fields: toFirestoreFields({
+        clientIp,
+        window: minuteWindow,
+        count: current.exists && fromFirestoreFields(current.fields).window !== minuteWindow ? 1 : count,
+        updatedAt: new Date().toISOString(),
+      }),
     },
   }]);
 }
@@ -412,12 +568,33 @@ function json(body, status = 200) {
   });
 }
 
-function withCors(response, env) {
+function withCors(response, env, request) {
   const next = new Response(response.body, response);
-  next.headers.set('Access-Control-Allow-Origin', env.CORS_ORIGIN || 'https://prayerstride.app');
-  next.headers.set('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  const origin = request?.headers.get('Origin') || '';
+  const allowedOrigins = [
+    env.CORS_ORIGIN || 'https://prayerstride.fanelesibonge50.workers.dev',
+    'https://prayerstride.app',
+  ];
+  const isLocalhost = origin.startsWith('http://localhost:') || origin.startsWith('http://10.') || origin.startsWith('http://192.168.');
+  const resolvedOrigin = isLocalhost ? origin : (allowedOrigins.includes(origin) ? origin : allowedOrigins[0]);
+  next.headers.set('Access-Control-Allow-Origin', resolvedOrigin);
+  next.headers.set('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
   next.headers.set('Access-Control-Allow-Headers', 'Authorization,Content-Type');
   return next;
+}
+
+function log(env, level, data, context) {
+  const entry = {
+    timestamp: new Date().toISOString(),
+    level,
+    context,
+    ...data,
+  };
+  if (level === 'error') {
+    console.error(JSON.stringify(entry));
+  } else if (env.LOG_LEVEL === 'debug' || level === 'warn') {
+    console.warn(JSON.stringify(entry));
+  }
 }
 
 function base64Url(value) {

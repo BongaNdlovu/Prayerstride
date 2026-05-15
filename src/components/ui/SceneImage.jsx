@@ -1,4 +1,4 @@
-import scenes from '../../assets/cinematic-prayer-scenes.png';
+import scenes from '../../assets/cinematic-prayer-scenes.jpg';
 
 export default function SceneImage({ scene = 'dawn', className = '', imgClassName = '' }) {
   const scenePosition = {

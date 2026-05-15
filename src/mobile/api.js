@@ -40,3 +40,30 @@ export function reactToTestimony(testimonyId, reaction) {
     body: JSON.stringify({ reaction }),
   });
 }
+
+export function adminDeleteContent(targetId, targetType) {
+  return apiFetch('/api/admin/delete-content', {
+    method: 'POST',
+    body: JSON.stringify({ targetId, targetType }),
+  });
+}
+
+export function adminSuspendUser(targetUid, reason) {
+  return apiFetch('/api/admin/suspend-user', {
+    method: 'POST',
+    body: JSON.stringify({ targetUid, reason }),
+  });
+}
+
+export function adminDeleteAccount(targetUid) {
+  return apiFetch('/api/admin/delete-account', {
+    method: 'POST',
+    body: JSON.stringify({ targetUid }),
+  });
+}
+
+export function deleteOwnAccount() {
+  return apiFetch('/api/account', {
+    method: 'DELETE',
+  });
+}
