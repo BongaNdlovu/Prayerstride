@@ -15,9 +15,12 @@
     "android:add": "cap add android",
     "android:sync": "cap sync android",
     "android:open": "cap open android",
+    "test:rules": "firebase emulators:exec --only firestore \"node scripts/rules-smoke.mjs\"",
     "test": "npm run test:flow && npm run test:logic && npm run test:ui"
   },
   "dependencies": {
+    "firebase": "^12.13.0",
+    "firebase-admin": "^13.10.0",
     "lucide-react": "^0.460.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
@@ -26,6 +29,7 @@
     "@capacitor/android": "^8.3.4",
     "@capacitor/cli": "^8.3.4",
     "@capacitor/core": "^8.3.4",
+    "@firebase/rules-unit-testing": "^5.0.1",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",

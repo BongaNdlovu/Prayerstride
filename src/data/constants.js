@@ -10,7 +10,7 @@ export const NAV_TO_SCREEN = {
 export const APP_SCREENS = [
   "splash", "welcome", "reminderSetup", "stayConnected", "signIn", "createAccount", "resetPassword",
   "home", "discover", "detail", "prayerStopwatch", "create", "createTestimony", "editRequest", "quickActions", "praise", "praiseDetail",
-  "groups", "groupDetail", "groupMembers", "following", "announcements", "devotions", "guideDetail", "lessonReader",
+  "following", "announcements", "devotions", "guideDetail", "lessonReader",
   "calendar", "myStats", "answeredPrayers", "myPrayers", "achievements", "reminderSettings",
   "profile", "settings", "notifications", "notificationSettings", "support", "helpCenter", "privacyPolicy", "termsOfService",
   "adminDashboard", "reportDetails", "accountSuspended",

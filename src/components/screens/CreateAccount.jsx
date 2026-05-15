@@ -11,7 +11,7 @@ export default function CreateAccount({ onBack, onCreate }) {
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
 
-  const submit = () => {
+  const submit = async () => {
     if (!name.trim() || !email.trim() || !password.trim()) {
       setError('Please fill in all fields.');
       return;
@@ -24,11 +24,13 @@ export default function CreateAccount({ onBack, onCreate }) {
       setError('Password must be at least 6 characters.');
       return;
     }
-    const result = onCreate?.({ name: name.trim(), email: email.trim(), password });
+
+    const result = await onCreate?.({ name: name.trim(), email: email.trim(), password });
     if (result?.error) {
       setError(result.error);
       return;
     }
+
     setError('');
   };
 

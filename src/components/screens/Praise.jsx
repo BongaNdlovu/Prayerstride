@@ -2,9 +2,9 @@ import { CheckCircle2, ChevronRight, Heart, MessageCircle, Plus, Sparkles } from
 import { useState } from 'react';
 import BottomNav from '../BottomNav';
 import Card from '../ui/Card';
-import { mockTestimonies } from '../../data/mockData';
-import { usePersistentState } from '../../hooks/usePersistentState';
+import { useTestimonies } from '../../hooks/useTestimonies';
 import { usePrayerData } from '../../hooks/usePrayerData';
+import { usePersistentState } from '../../hooks/usePersistentState';
 import ImageHero from '../ui/ImageHero';
 
 function ReactionButton({ active, count, label, onClick }) {
@@ -82,10 +82,9 @@ function TestimonyCard({ testimony, prayers, reactions, onReact, onPrayer, onOpe
 
 export default function Praise({ activeTab, onNavigate, onGo, user }) {
   const [reactions, setReactions] = usePersistentState('praise:reactions', {});
-  const [localTestimonies] = usePersistentState('user:testimonies', []);
-  const { prayers } = usePrayerData(user);
+  const { testimonies } = useTestimonies();
+  const { prayers } = usePrayerData();
   const [searchQuery, setSearchQuery] = useState('');
-  const testimonies = [...localTestimonies, ...mockTestimonies];
   const filteredTestimonies = testimonies.filter((testimony) =>
     [testimony.title, testimony.text, testimony.name].some((value) =>
       value?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -126,30 +125,19 @@ export default function Praise({ activeTab, onNavigate, onGo, user }) {
             <Plus size={21} />
           </button>
         </div>
-        <div className="hidden">
-          <div>
-            <h1 className="font-serif text-3xl text-navy">Praise</h1>
-            <p className="mt-1 text-sm text-slate-600">Celebrate answered prayers together.</p>
-          </div>
-          <button
-            onClick={() => onGo?.('createTestimony')}
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-navy text-white shadow-sm transition active:scale-95"
-            aria-label="Create testimony"
-          >
-            <Plus size={21} />
-          </button>
-        </div>
 
-        <div className="glass-panel mt-5 rounded-[28px] p-5">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-candle">Featured Testimony</p>
-              <h2 className="mt-2 font-serif text-2xl leading-tight text-ivory">{featured.title}</h2>
-              <p className="mt-2 text-sm leading-6 text-ivory/68">{featured.text}</p>
+        {featured && (
+          <div className="glass-panel mt-5 rounded-[28px] p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-candle">Featured Testimony</p>
+                <h2 className="mt-2 font-serif text-2xl leading-tight text-ivory">{featured.title}</h2>
+                <p className="mt-2 text-sm leading-6 text-ivory/68">{featured.text}</p>
+              </div>
+              <Heart size={24} className="shrink-0 text-candle" />
             </div>
-            <Heart size={24} className="shrink-0 text-candle" />
           </div>
-        </div>
+        )}
 
         <input
           value={searchQuery}

@@ -5,32 +5,42 @@ import AppHeader from '../ui/AppHeader';
 import StatCard from '../ui/StatCard';
 import Card from '../ui/Card';
 import MiniLineChart from '../ui/MiniLineChart';
-import { mockAdminStats, mockReports, mockUsers, mockAnnouncements } from '../../data/mockData';
+import { mockAdminStats, mockUsers, mockAnnouncements } from '../../data/mockData';
+import { useReports, resolveReport, dismissReport } from '../../hooks/useReports';
+import { useIsAdmin } from '../../hooks/useIsAdmin';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
+const ownerSettingsRoute = 'admin:owner-settings';
+const reportsRoute = 'admin:reports';
+
 export default function AdminDashboard({ onBack, activeTab, onNavigate, onGo }) {
-  const [reports, setReports] = usePersistentState('admin:reports', mockReports);
-  const [ownerSettings, setOwnerSettings] = usePersistentState('admin:owner-settings', {
-    prayerReview: true,
-    testimonyReview: false,
-    publicGroups: true,
-    newSignups: true,
-  });
+  const { isAdmin } = useIsAdmin();
+  const { reports: firebaseReports } = useReports();
   const [activeTabFilter, setActiveTabFilter] = useState('overview');
   const [showMenu, setShowMenu] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [ownerSettings, setOwnerSettings] = usePersistentState('admin:owner-settings', {
+    prayerReview: true,
+    testimonyReview: false,
+    newSignups: true,
+  });
 
-  const openReports = reports.filter((r) => r.status === 'open');
+  const reports = firebaseReports.length > 0 ? firebaseReports.map((r) => ({
+    id: r.id,
+    reportedBy: r.reportedByUid,
+    reportedUser: r.targetId,
+    content: r.reason,
+    reason: r.targetType,
+    status: r.status,
+  })) : [];
+
+  const openReports = reports.filter((r) => r.status === 'pending');
   const resolvedReports = reports.filter((r) => r.status === 'resolved');
   const dismissedReports = reports.filter((r) => r.status === 'dismissed');
   const filteredUsers = mockUsers.filter((user) => `${user.name} ${user.handle} ${user.role}`.toLowerCase().includes(searchTerm.toLowerCase()));
 
   const handleViewReport = (reportId) => {
     onGo?.('reportDetails', { reportId });
-  };
-
-  const updateReportStatus = (reportId, status) => {
-    setReports((current) => current.map((report) => report.id === reportId ? { ...report, status } : report));
   };
 
   const handleQuickAction = (action) => {
@@ -44,6 +54,18 @@ export default function AdminDashboard({ onBack, activeTab, onNavigate, onGo }) 
       setActiveTabFilter('stewardship');
     }
   };
+
+  if (!isAdmin) {
+    return (
+      <AppScreen activeTab={activeTab} onNavigate={onNavigate}>
+        <AppHeader title="Access Denied" onBack={onBack} />
+        <div className="mt-10 px-5 text-center">
+          <ShieldCheck size={48} className="mx-auto text-slate-300" />
+          <p className="mt-4 text-sm text-slate-600">You do not have permission to access this area.</p>
+        </div>
+      </AppScreen>
+    );
+  }
 
   return (
     <AppScreen activeTab={activeTab} onNavigate={onNavigate}>
@@ -88,15 +110,6 @@ export default function AdminDashboard({ onBack, activeTab, onNavigate, onGo }) 
               <StatCard icon={AlertTriangle} value={openReports.length.toLocaleString()} label="Open Reports" />
               <StatCard icon={Ban} value={mockAdminStats.usersSuspended.toLocaleString()} label="Suspended" />
             </div>
-            <h3 className="font-serif text-lg text-navy">Recent Activity</h3>
-            <div className="space-y-2">
-              {mockAdminStats.recentActivity.map((a) => (
-                <Card key={a.id} className="flex items-center justify-between p-3">
-                  <span className="text-sm text-slate-700">{a.text}</span>
-                  <span className="text-[10px] text-slate-400">{a.time}</span>
-                </Card>
-              ))}
-            </div>
             <h3 className="font-serif text-lg text-navy">Quick Actions</h3>
             <div className="grid grid-cols-2 gap-2">
               {[
@@ -116,26 +129,6 @@ export default function AdminDashboard({ onBack, activeTab, onNavigate, onGo }) 
                 </button>
               ))}
             </div>
-            <h3 className="font-serif text-lg text-navy">Community Health</h3>
-            <Card className="p-5">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="text-center">
-                  <div className="text-2xl font-serif text-navy">{mockAdminStats.positiveContent}%</div>
-                  <div className="text-[10px] text-slate-500">Positive Content</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-serif text-navy">{(mockAdminStats.thanksShared / 1000).toFixed(1)}k</div>
-                  <div className="text-[10px] text-slate-500">Thanks Shared</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-serif text-navy">{mockAdminStats.prayersAnswered}</div>
-                  <div className="text-[10px] text-slate-500">Prayers Answered</div>
-                </div>
-              </div>
-              <div className="mt-4 flex justify-center">
-                <MiniLineChart data={mockAdminStats.adminChart} width={260} height={100} />
-              </div>
-            </Card>
           </>
         )}
 
@@ -171,7 +164,7 @@ export default function AdminDashboard({ onBack, activeTab, onNavigate, onGo }) 
                       <div className="flex items-center gap-2">
                         <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">{report.reason}</span>
                         <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                          report.status === 'open' ? 'bg-amber-100 text-amber-700' :
+                          report.status === 'pending' ? 'bg-amber-100 text-amber-700' :
                           report.status === 'resolved' ? 'bg-green-100 text-green-700' :
                           'bg-slate-100 text-slate-700'
                         }`}>
@@ -181,7 +174,7 @@ export default function AdminDashboard({ onBack, activeTab, onNavigate, onGo }) 
                       <p className="mt-2 text-sm text-slate-700">{report.content}</p>
                       <div className="mt-2 flex items-center gap-4 text-xs text-slate-500">
                         <span>By: {report.reportedBy}</span>
-                        <span>User: {report.reportedUser}</span>
+                        <span>Target: {report.reportedUser}</span>
                       </div>
                     </div>
                     <button
@@ -192,13 +185,13 @@ export default function AdminDashboard({ onBack, activeTab, onNavigate, onGo }) 
                       <Eye size={16} className="text-slate-600" />
                     </button>
                   </div>
-                  {report.status === 'open' && (
+                  {(report.status === 'pending') && (
                     <div className="mt-3 grid grid-cols-2 gap-2">
-                      <button onClick={() => updateReportStatus(report.id, 'resolved')} className="flex items-center justify-center gap-1.5 rounded-xl bg-navy px-3 py-2 text-xs font-semibold text-white transition active:scale-95">
+                      <button onClick={() => resolveReport(report.id)} className="flex items-center justify-center gap-1.5 rounded-xl bg-navy px-3 py-2 text-xs font-semibold text-white transition active:scale-95">
                         <CheckCircle2 size={14} />
                         Resolve
                       </button>
-                      <button onClick={() => updateReportStatus(report.id, 'dismissed')} className="flex items-center justify-center gap-1.5 rounded-xl border border-[#e6ddcf] bg-sand px-3 py-2 text-xs font-semibold text-slate-700 transition active:scale-95">
+                      <button onClick={() => dismissReport(report.id)} className="flex items-center justify-center gap-1.5 rounded-xl border border-[#e6ddcf] bg-sand px-3 py-2 text-xs font-semibold text-slate-700 transition active:scale-95">
                         <Archive size={14} />
                         Dismiss
                       </button>
@@ -235,11 +228,6 @@ export default function AdminDashboard({ onBack, activeTab, onNavigate, onGo }) 
                       </div>
                       <p className="truncate text-xs text-slate-500">{user.handle} · {user.bio}</p>
                     </div>
-                  </div>
-                  <div className="mt-3 grid grid-cols-3 gap-2">
-                    <button className="rounded-xl bg-navy px-2 py-2 text-xs font-semibold text-white">Message</button>
-                    <button className="rounded-xl border border-[#e6ddcf] bg-sand px-2 py-2 text-xs font-semibold text-slate-700">Role</button>
-                    <button className="rounded-xl border border-red-200 bg-red-50 px-2 py-2 text-xs font-semibold text-red-700">Suspend</button>
                   </div>
                 </Card>
               ))}
@@ -298,7 +286,6 @@ export default function AdminDashboard({ onBack, activeTab, onNavigate, onGo }) 
             {[
               { key: 'prayerReview', icon: ShieldCheck, title: 'Review public prayer requests', detail: 'Owner team approves sensitive public requests before they trend.' },
               { key: 'testimonyReview', icon: HeartHandshake, title: 'Review testimonies before publishing', detail: 'Adds a care step for stories shared in Praise.' },
-              { key: 'publicGroups', icon: Users, title: 'Allow public group discovery', detail: 'Members can find and join public prayer groups.' },
               { key: 'newSignups', icon: UserCheck, title: 'Allow new account creation', detail: 'Temporarily close signups during maintenance or abuse spikes.' },
             ].map((setting) => (
               <Card key={setting.key} className="p-4">
@@ -320,17 +307,6 @@ export default function AdminDashboard({ onBack, activeTab, onNavigate, onGo }) 
                 </div>
               </Card>
             ))}
-            <Card className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-red-50 text-red-700">
-                  <Lock size={18} />
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-slate-900">Owner access</h3>
-                  <p className="mt-1 text-xs leading-5 text-slate-500">Only app owners, trusted admins, and assigned moderators should see this console.</p>
-                </div>
-              </div>
-            </Card>
           </div>
         )}
       </div>

@@ -22,9 +22,6 @@ import Praise from './components/screens/Praise';
 import PraiseDetail from './components/screens/PraiseDetail';
 import Profile from './components/screens/Profile';
 import Notifications from './components/screens/Notifications';
-import Groups from './components/screens/Groups';
-import GroupDetail from './components/screens/GroupDetail';
-import GroupMembers from './components/screens/GroupMembers';
 import Following from './components/screens/Following';
 import Announcements from './components/screens/Announcements';
 import Devotions from './components/screens/Devotions';
@@ -46,8 +43,8 @@ import AdminDashboard from './components/screens/AdminDashboard';
 import ReportDetails from './components/screens/ReportDetails';
 import AccountSuspended from './components/screens/AccountSuspended';
 import { useNavigation } from './hooks/useNavigation';
-import { usePersistentState } from './hooks/usePersistentState';
 import { APP_SCREENS } from './data/constants';
+import { useAuth } from './contexts/AuthContext.jsx';
 
 const NAVY = "#082A4A";
 const GOLD = "#C8892B";
@@ -55,7 +52,7 @@ const IVORY = "#F8F3EA";
 const STONE = "#E7DFD2";
 const INK = "#101820";
 const PROTECTED_SCREENS = new Set([
-  "create", "createTestimony", "editRequest", "editProfile", "quickActions", "prayerStopwatch", "groups", "groupDetail", "groupMembers",
+  "create", "createTestimony", "editRequest", "editProfile", "quickActions", "prayerStopwatch",
   "following", "announcements", "devotions", "guideDetail", "lessonReader", "calendar", "myStats",
   "answeredPrayers", "myPrayers", "achievements", "reminderSettings", "profile", "settings",
   "notificationSettings", "support", "helpCenter", "privacyPolicy", "termsOfService", "praise", "adminDashboard",
@@ -70,51 +67,54 @@ function runSmokeTests() {
 runSmokeTests();
 
 export default function App() {
+  const { user, loading, signIn, register, signOut, updateUserProfile, deleteAccount: deleteFirebaseAccount } = useAuth();
   const { onboarded, setOnboarded, screen, active, params, go, back, resetTo, handleNav } = useNavigation();
-  const [accounts, setAccounts] = usePersistentState('auth:accounts', []);
-  const [authUser, setAuthUser] = usePersistentState('auth:user', null);
+
+  const authUser = user ? {
+    id: user.uid,
+    uid: user.uid,
+    name: user.displayName || user.email,
+    email: user.email,
+    photoURL: user.photoURL,
+  } : null;
 
   const content = useMemo(() => {
     const setNav = handleNav;
-    const signIn = ({ email, password }) => {
-      const account = accounts.find((item) => item.email.toLowerCase() === email.toLowerCase());
-      if (!account || account.password !== password) {
+
+    const handleSignIn = async ({ email, password }) => {
+      try {
+        await signIn(email, password);
+        resetTo('home');
+        return { ok: true };
+      } catch {
         return { error: 'Email or password is incorrect.' };
       }
-
-      setAuthUser({ id: account.id, name: account.name, email: account.email });
-      resetTo("home");
-      return { ok: true };
     };
 
-    const createAccount = ({ name, email, password }) => {
-      const exists = accounts.some((item) => item.email.toLowerCase() === email.toLowerCase());
-      if (exists) {
-        return { error: 'An account with this email already exists.' };
+    const handleCreateAccount = async ({ name, email, password }) => {
+      try {
+        await register(email, password, name);
+        resetTo('home');
+        return { ok: true };
+      } catch (error) {
+        return { error: error.message || 'Could not create account.' };
       }
-
-      const account = { id: `user-${Date.now()}`, name, email, password };
-      setAccounts((current) => [account, ...current]);
-      setAuthUser({ id: account.id, name: account.name, email: account.email });
-      resetTo("home");
-      return { ok: true };
     };
 
-    const signOut = () => {
-      setAuthUser(null);
-      resetTo("signIn");
+    const handleSignOut = async () => {
+      await signOut();
+      resetTo('signIn');
     };
 
-    const exitApp = () => {
-      setAuthUser(null);
+    const exitApp = async () => {
+      await signOut();
       setOnboarded(false);
-      resetTo("splash");
+      resetTo('splash');
     };
 
-    const deleteAccount = () => {
-      if (authUser) {
-        setAccounts((current) => current.filter((account) => account.id !== authUser.id));
-      }
+    const deleteAccount = async () => {
+      await deleteFirebaseAccount();
+
       if (typeof window !== 'undefined') {
         [
           'auth:user',
@@ -129,23 +129,33 @@ export default function App() {
           `profile:${authUser?.id || 'guest'}:avatar`,
         ].forEach((key) => window.localStorage.removeItem(key));
       }
-      setAuthUser(null);
+
       setOnboarded(false);
-      resetTo("splash");
+      resetTo('splash');
     };
 
-    if (!onboarded || screen === "splash") {
+    if (loading || screen === "splash") {
+      if (loading && screen !== "splash") {
+        return (
+          <Splash
+            onEnter={() => {
+              setOnboarded(true);
+              go("welcome");
+            }}
+          />
+        );
+      }
       return (
         <Splash
           onEnter={() => {
             setOnboarded(true);
-            go("welcome");
+            go(user ? "home" : "welcome");
           }}
         />
       );
     }
     if (!authUser && PROTECTED_SCREENS.has(screen)) {
-      return <SignIn onBack={() => resetTo("home")} onSignIn={signIn} onForgot={() => go("resetPassword")} onGoSignUp={() => go("createAccount")} />;
+      return <SignIn onBack={() => resetTo("home")} onSignIn={handleSignIn} onForgot={() => go("resetPassword")} onGoSignUp={() => go("createAccount")} />;
     }
     if (authUser && (screen === "signIn" || screen === "createAccount")) {
       return <HomeScreen onNavigate={setNav} onGo={go} activeTab="home" />;
@@ -153,8 +163,8 @@ export default function App() {
     if (screen === "welcome") return <Welcome onContinue={() => go("reminderSetup")} />;
     if (screen === "reminderSetup") return <ReminderSetup onBack={() => go("welcome")} onContinue={() => go("stayConnected")} />;
     if (screen === "stayConnected") return <StayConnected onBack={() => go("reminderSetup")} onContinue={() => go("home")} onSkip={() => go("home")} />;
-    if (screen === "signIn") return <SignIn onBack={() => go("home")} onSignIn={signIn} onForgot={() => go("resetPassword")} onGoSignUp={() => go("createAccount")} />;
-    if (screen === "createAccount") return <CreateAccount onBack={() => go("signIn")} onCreate={createAccount} />;
+    if (screen === "signIn") return <SignIn onBack={() => go("home")} onSignIn={handleSignIn} onForgot={() => go("resetPassword")} onGoSignUp={() => go("createAccount")} />;
+    if (screen === "createAccount") return <CreateAccount onBack={() => go("signIn")} onCreate={handleCreateAccount} />;
     if (screen === "resetPassword") return <ResetPassword onBack={() => go("signIn")} onSend={() => {}} />;
     if (screen === "home") return <HomeScreen onNavigate={setNav} onGo={go} activeTab={active} />;
     if (screen === "discover") return <Discover onGo={go} activeTab={active} onNavigate={setNav} />;
@@ -163,13 +173,10 @@ export default function App() {
     if (screen === "create") return <Create onGo={go} activeTab={active} onNavigate={setNav} user={authUser} />;
     if (screen === "createTestimony") return <CreateTestimony onBack={() => back("praise")} onDone={() => go("praise")} activeTab={active} onNavigate={setNav} user={authUser} prayerId={params.prayerId} prayerTitle={params.prayerTitle} />;
     if (screen === "editRequest") return <EditRequest onBack={() => back("myPrayers")} request={params.request} />;
-    if (screen === "editProfile") return <EditProfile onBack={() => back("settings")} activeTab={active} onNavigate={setNav} user={authUser} setUser={setAuthUser} />;
+    if (screen === "editProfile") return <EditProfile onBack={() => back("settings")} activeTab={active} onNavigate={setNav} user={authUser} setUser={updateUserProfile} />;
     if (screen === "quickActions") return <QuickActions onClose={() => go("home")} onCreateRequest={() => go("create")} onCreateTestimony={() => go("createTestimony")} onMyPrayers={() => go("myPrayers")} onInvite={() => go("following")} />;
-    if (screen === "groups") return <Groups onBack={() => back("profile")} activeTab={active} onNavigate={setNav} onGroup={(id) => go("groupDetail", { groupId: id })} />;
-    if (screen === "groupDetail") return <GroupDetail onBack={() => back("groups")} activeTab={active} onNavigate={setNav} groupId={params.groupId} />;
-    if (screen === "groupMembers") return <GroupMembers onBack={() => back("groupDetail")} activeTab={active} onNavigate={setNav} />;
     if (screen === "following") return <Following onBack={() => back("profile")} activeTab={active} onNavigate={setNav} />;
-    if (screen === "announcements") return <Announcements onBack={() => back("groups")} activeTab={active} onNavigate={setNav} />;
+    if (screen === "announcements") return <Announcements onBack={() => back("profile")} activeTab={active} onNavigate={setNav} />;
     if (screen === "devotions") return <Devotions onBack={() => back("profile")} onGo={go} activeTab={active} onNavigate={setNav} />;
     if (screen === "guideDetail") return <GuideDetail onBack={() => back("devotions")} activeTab={active} onNavigate={setNav} onStart={() => go("lessonReader")} />;
     if (screen === "lessonReader") return <LessonReader onBack={() => back("guideDetail")} />;
@@ -185,7 +192,7 @@ export default function App() {
     if (screen === "settings") return <Settings onBack={() => back("profile")} activeTab={active} onNavigate={setNav} onSection={(key) => {
       const sectionRoutes = { editProfile: 'editProfile', notifications: 'notificationSettings', help: 'helpCenter', feedback: 'support', privacy: 'privacyPolicy', about: 'termsOfService', prayerPreferences: 'reminderSettings' };
       if (sectionRoutes[key]) go(sectionRoutes[key]);
-    }} onSignOut={signOut} onExitApp={exitApp} onDeleteAccount={deleteAccount} />;
+    }} onSignOut={handleSignOut} onExitApp={exitApp} onDeleteAccount={deleteAccount} />;
     if (screen === "notificationSettings") return <NotificationSettings onBack={() => back("settings")} activeTab={active} onNavigate={setNav} />;
     if (screen === "support") return <SupportDonation onBack={() => back("settings")} activeTab={active} onNavigate={setNav} />;
     if (screen === "helpCenter") return <HelpCenter onBack={() => back("settings")} activeTab={active} onNavigate={setNav} />;
@@ -196,7 +203,7 @@ export default function App() {
     if (screen === "accountSuspended") return <AccountSuspended onAppeal={() => {}} onSignIn={() => go("signIn")} />;
     if (screen === "notifications") return <Notifications onBack={() => go("home")} activeTab={active} onNavigate={setNav} />;
     return <HomeScreen onNavigate={setNav} onGo={go} activeTab={active} />;
-  }, [accounts, authUser, onboarded, setAccounts, setAuthUser, setOnboarded, screen, active, params, go, back, resetTo, handleNav]);
+  }, [authUser, loading, onboarded, setOnboarded, screen, active, params, go, back, resetTo, handleNav, signIn, register, signOut, updateUserProfile, deleteFirebaseAccount, user]);
 
   return (
     <>

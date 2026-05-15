@@ -2,11 +2,13 @@ import { Bell, Search, Flame, Heart, ChevronRight } from 'lucide-react';
 import PrayingHandsIcon from '../PrayingHandsIcon';
 import BottomNav from '../BottomNav';
 import PrayerCard from '../ui/PrayerCard';
-import { prayers } from '../../data/mockData';
+import { usePrayers } from '../../hooks/usePrayers';
 import ImageHero from '../ui/ImageHero';
 import GlassCard from '../ui/GlassCard';
 
 export default function HomeScreen({ onNavigate, onGo, activeTab }) {
+  const { prayers, loading } = usePrayers();
+
   return (
     <div className="cinematic-bg cinematic-texture relative flex h-full flex-col overflow-hidden text-ivory">
       <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto pb-4">
@@ -34,7 +36,7 @@ export default function HomeScreen({ onNavigate, onGo, activeTab }) {
             </div>
           </div>
           <p className="mt-3 text-sm leading-6 text-ivory/72">A family has asked for prayer during a difficult season. Take two quiet minutes and lift them up.</p>
-          <button onClick={() => onGo("detail", { request: prayers[0] })} className="cinematic-button mt-5 flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 font-semibold text-ink transition active:scale-[0.98]">
+          <button onClick={() => prayers.length > 0 && onGo("detail", { request: prayers[0] })} className="cinematic-button mt-5 flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 font-semibold text-ink transition active:scale-[0.98]">
             Pray Now <ChevronRight size={18} />
           </button>
         </GlassCard>
@@ -50,7 +52,7 @@ export default function HomeScreen({ onNavigate, onGo, activeTab }) {
         </div>
         <div className="mt-3 space-y-3">
           {prayers.map((p) => (
-            <PrayerCard key={p.title} prayer={p} onPress={() => onGo("detail", { request: p })} />
+            <PrayerCard key={p.id} prayer={p} onPress={() => onGo("detail", { request: p })} />
           ))}
         </div>
       </div>

@@ -8,8 +8,8 @@ import { usePrayerData } from '../../hooks/usePrayerData';
 
 export default function MyPrayers({ onBack, activeTab, onNavigate, onGo, user }) {
   const [tab, setTab] = useState('All');
-  const { prayers } = usePrayerData(user);
-  const myPrayers = prayers.filter((prayer) => prayer.userId === user?.id || prayer.userId === 'me');
+  const { prayers } = usePrayerData();
+  const myPrayers = prayers.filter((prayer) => prayer.authorUid === user?.uid);
   const tabs = ['All', 'Requests', 'Praise', 'Archived'];
 
   const filtered = tab === 'All' ? myPrayers : myPrayers.filter((p) => {

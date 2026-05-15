@@ -3,9 +3,9 @@ import BottomNav from '../BottomNav';
 import EncouragementThread from '../ui/EncouragementThread';
 import GlassCard from '../ui/GlassCard';
 import SceneImage from '../ui/SceneImage';
-import { mockPrayerRequests, mockTestimonies } from '../../data/mockData';
-import { usePersistentState } from '../../hooks/usePersistentState';
+import { useTestimonies } from '../../hooks/useTestimonies';
 import { usePrayerData } from '../../hooks/usePrayerData';
+import { usePersistentState } from '../../hooks/usePersistentState';
 
 function ReactionButton({ active, count, label, onClick }) {
   return (
@@ -21,10 +21,11 @@ function ReactionButton({ active, count, label, onClick }) {
 }
 
 export default function PraiseDetail({ testimony, onBack, onGo, activeTab, onNavigate, user }) {
-  const selected = testimony || mockTestimonies[0];
+  const { testimonies } = useTestimonies();
+  const { prayers } = usePrayerData();
   const [reactions, setReactions] = usePersistentState('praise:reactions', {});
-  const { prayers } = usePrayerData(user);
-  const relatedPrayer = [...prayers, ...mockPrayerRequests].find((prayer) => prayer.id === selected.prayerId);
+  const selected = testimony || testimonies[0] || {};
+  const relatedPrayer = prayers.find((prayer) => prayer.id === selected.prayerId);
   const reacted = reactions[selected.id] || {};
   const praiseGodCount = (selected.praiseGod || 0) + (reacted.praiseGod ? 1 : 0);
   const amenCount = (selected.amen || 0) + (reacted.amen ? 1 : 0);
@@ -43,6 +44,14 @@ export default function PraiseDetail({ testimony, onBack, onGo, activeTab, onNav
     if (!relatedPrayer) return;
     onGo?.('detail', { request: { ...relatedPrayer, answered: true } });
   };
+
+  if (!selected.id) {
+    return (
+      <div className="flex h-full items-center justify-center bg-sand">
+        <p className="text-sm text-slate-500">No testimony selected.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="cinematic-bg cinematic-texture relative flex h-full flex-col overflow-hidden text-ivory">

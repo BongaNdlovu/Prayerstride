@@ -1,4 +1,4 @@
-import { Settings, ChevronRight, Heart, Bell, BookOpen, Calendar, BarChart3, Award, Clock, Users, Camera, ShieldCheck } from 'lucide-react';
+import { Settings, ChevronRight, Heart, Bell, BookOpen, Calendar, BarChart3, Award, Clock, Camera, ShieldCheck } from 'lucide-react';
 import PrayingHandsIcon from '../PrayingHandsIcon';
 import BottomNav from '../BottomNav';
 import SceneImage from '../ui/SceneImage';
@@ -13,14 +13,13 @@ export default function Profile({ activeTab, onNavigate, onGo, user }) {
     handle: user?.handle || '',
     bio: '',
   });
-  const userPrayers = prayers.filter((prayer) => prayer.userId === user?.id || prayer.userId === 'me');
+  const userPrayers = prayers.filter((prayer) => prayer.authorUid === user?.uid);
   const answeredCount = userPrayers.filter((prayer) => prayer.status === 'answered').length;
   const menu = [
     { icon: PrayingHandsIcon, label: 'My Prayers', key: 'myPrayers' },
     { icon: Heart, label: 'Answered Prayers', key: 'answeredPrayers' },
     { icon: BarChart3, label: 'My Stats', key: 'myStats' },
     { icon: Calendar, label: 'Calendar', key: 'calendar' },
-    { icon: Users, label: 'Groups', key: 'groups' },
     { icon: BookOpen, label: 'Devotions', key: 'devotions' },
     { icon: Award, label: 'Achievements', key: 'achievements' },
     { icon: Clock, label: 'Prayer Stopwatch', key: 'prayerStopwatch' },

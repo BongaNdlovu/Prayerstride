@@ -2,7 +2,7 @@ import { Eye, Flame, Globe2, Send, ShieldCheck, UserRound } from 'lucide-react';
 import BottomNav from '../BottomNav';
 import SceneImage from '../ui/SceneImage';
 import { usePersistentState } from '../../hooks/usePersistentState';
-import { usePrayerData } from '../../hooks/usePrayerData';
+import { addPrayer } from '../../hooks/usePrayers';
 
 export default function Create({ onGo, activeTab, onNavigate, user }) {
   const [text, setText] = usePersistentState('draft:prayer-request', '');
@@ -12,7 +12,6 @@ export default function Create({ onGo, activeTab, onNavigate, user }) {
     anonymous: false,
     shareable: true,
   });
-  const { addPrayer } = usePrayerData(user);
 
   const options = [
     { key: 'privacy', icon: Globe2, title: 'Community', text: 'Visible to trusted PrayerStride members' },
@@ -25,26 +24,22 @@ export default function Create({ onGo, activeTab, onNavigate, user }) {
     setSettings((current) => ({ ...current, [key]: !current[key] }));
   };
 
-  const post = () => {
-    if (!text.trim()) return;
+  const post = async () => {
+    if (!text.trim() || !user) return;
     const title = text.trim().split('\n')[0]?.slice(0, 64) || 'Prayer request';
-    const request = {
-      id: `local-${Date.now()}`,
-      userId: user?.id || 'me',
-      name: settings.anonymous ? 'Anonymous' : user?.name || 'You',
+    const data = {
       title,
-      text: text.trim(),
-      status: 'active',
-      tag: settings.urgency ? 'Urgent' : 'General',
-      urgency: settings.urgency,
-      anonymous: settings.anonymous,
-      allowShare: settings.shareable,
-      privacy: settings.privacy ? 'community' : 'private',
-      count: 0,
-      time: 'just now',
+      body: text.trim(),
+      isAnonymous: settings.anonymous,
     };
 
-    addPrayer(request);
+    try {
+      await addPrayer(data, user);
+    } catch (err) {
+      console.error('Failed to create prayer:', err);
+      return;
+    }
+
     setText('');
     onGo("myPrayers");
   };

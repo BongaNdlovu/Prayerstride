@@ -9,16 +9,18 @@ export default function SignIn({ onBack, onSignIn, onForgot, onGoSignUp }) {
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
 
-  const submit = () => {
+  const submit = async () => {
     if (!email.trim() || !password.trim()) {
       setError('Please enter both email and password.');
       return;
     }
-    const result = onSignIn?.({ email: email.trim(), password });
+
+    const result = await onSignIn?.({ email: email.trim(), password });
     if (result?.error) {
       setError(result.error);
       return;
     }
+
     setError('');
   };
 

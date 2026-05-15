@@ -2,21 +2,17 @@ import { useState } from 'react';
 import { X, Link2, CheckCircle2 } from 'lucide-react';
 import AppScreen from '../ui/AppScreen';
 import ToggleRow from '../ui/ToggleRow';
-import { usePersistentState } from '../../hooks/usePersistentState';
-import { usePrayerData } from '../../hooks/usePrayerData';
+import { addTestimony } from '../../hooks/useTestimonies';
+import { usePrayerData, markAnswered } from '../../hooks/usePrayerData';
 
 export default function CreateTestimony({ onBack, onDone, activeTab, onNavigate, user, prayerId, prayerTitle }) {
   const [text, setText] = useState('');
   const [title, setTitle] = useState('');
-  const { prayers, markAnswered } = usePrayerData(user);
-  const [selectedPrayerId, setSelectedPrayerId] = useState(prayerId || prayers.find((prayer) => prayer.answered)?.id || prayers[0]?.id);
+  const { prayers } = usePrayerData();
+  const [selectedPrayerId, setSelectedPrayerId] = useState(prayerId || null);
   const [shared, setShared] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [, setLocalTestimonies] = usePersistentState('user:testimonies', []);
-  const [, setNotifications] = usePersistentState('notifications:items', []);
-  const [notificationActivity] = usePersistentState('notifications:prayerActivity', { prayerAnswered: true });
-  const [notificationChannels] = usePersistentState('notifications:channels', { inApp: true });
-  const ownPrayers = prayers.filter((prayer) => prayer.userId === user?.id || prayer.userId === 'me');
+  const ownPrayers = prayers.filter((prayer) => prayer.authorUid === user?.uid);
   const selectedPrayer = ownPrayers.find((prayer) => prayer.id === selectedPrayerId);
   const answeredOptions = [
     ...(selectedPrayer ? [selectedPrayer] : []),
@@ -25,30 +21,20 @@ export default function CreateTestimony({ onBack, onDone, activeTab, onNavigate,
   ];
   const activePrayerId = selectedPrayer ? selectedPrayerId : answeredOptions[0]?.id;
 
-  const post = () => {
-    if (!text.trim()) return;
-    const linkedPrayer = ownPrayers.find((prayer) => prayer.id === activePrayerId);
-    if (!linkedPrayer) return;
-    if (activePrayerId) markAnswered(activePrayerId);
-    const testimony = {
-      id: `local-testimony-${Date.now()}`,
+  const post = async () => {
+    if (!text.trim() || !user || !activePrayerId) return;
+
+    await addTestimony({
+      title: title.trim() || prayerTitle || 'Answered prayer',
+      body: text.trim(),
       prayerId: activePrayerId,
-      userId: user?.id || 'me',
-      name: user?.name || 'You',
-      title: title.trim() || prayerTitle || linkedPrayer?.title || 'Answered prayer',
-      text: text.trim(),
-      praiseGod: 0,
-      amen: 0,
-      time: 'just now',
       shared,
-    };
-    setLocalTestimonies((current) => [testimony, ...current]);
-    if (notificationChannels.inApp && notificationActivity.prayerAnswered) {
-      setNotifications((current) => [
-        { id: `n-${Date.now()}`, text: 'Your testimony was shared.', type: 'new', time: 'just now', read: false },
-        ...current,
-      ]);
-    }
+      isAnonymous: false,
+      tags: [],
+    }, user);
+
+    await markAnswered(activePrayerId);
+
     setSuccess(true);
     setTimeout(() => {
       setSuccess(false);

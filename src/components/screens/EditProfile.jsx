@@ -27,10 +27,16 @@ export default function EditProfile({ onBack, activeTab, onNavigate, user, setUs
     reader.readAsDataURL(file);
   };
 
-  const handleSave = () => {
-    const nextProfile = { name: name.trim(), handle: handle.trim(), bio: bio.trim() };
+  const handleSave = async () => {
+    const nextProfile = { name: name.trim(), handle: handle.trim(), bio: bio.trim(), photoURL: previewAvatar || null };
     setProfile(nextProfile);
-    setUser?.((current) => current ? { ...current, name: nextProfile.name, handle: nextProfile.handle } : current);
+    if (setUser) {
+      try {
+        await setUser(nextProfile);
+      } catch (err) {
+        console.error('Failed to update profile:', err);
+      }
+    }
     onBack();
   };
 

@@ -24,8 +24,6 @@ export function useNavigation() {
       next === 'settings' ||
       next === 'notificationSettings' ||
       next === 'notifications' ||
-      next === 'groups' ||
-      next === 'groupDetail' ||
       next === 'devotions' ||
       next === 'guideDetail' ||
       next === 'following' ||

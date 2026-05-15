@@ -2,12 +2,9 @@ import { useState } from 'react';
 import { ArrowLeft, Search, Plus, Filter, X } from 'lucide-react';
 import BottomNav from '../BottomNav';
 import PrayerCard from '../ui/PrayerCard';
-import { mockTestimonies, mockUsers } from '../../data/mockData';
-import { usePersistentState } from '../../hooks/usePersistentState';
+import { mockUsers } from '../../data/mockData';
 import { usePrayerData } from '../../hooks/usePrayerData';
 import ImageHero from '../ui/ImageHero';
-
-const extraPrayer = { name: "Grace L.", title: "College finals", text: "Please pray for focus, peace, and wisdom during exams.", count: 31, tag: "Guidance" };
 
 export default function Discover({ onGo, activeTab, onNavigate }) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -15,34 +12,27 @@ export default function Discover({ onGo, activeTab, onNavigate }) {
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [selectedFilters, setSelectedFilters] = useState({ tag: 'All', urgency: 'All' });
   const { prayers } = usePrayerData();
-  const [localTestimonies] = usePersistentState('user:testimonies', []);
+  const [localTestimonies] = useState([]);
 
-  const allPrayers = [...prayers, extraPrayer];
-  const filteredPrayers = allPrayers.filter((p) => {
-    const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         p.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         p.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesTag = selectedFilters.tag === 'All' || p.tag === selectedFilters.tag;
-    const matchesUrgency = selectedFilters.urgency === 'All' ||
-                          (selectedFilters.urgency === 'Urgent' && p.urgency) ||
-                          (selectedFilters.urgency === 'Regular' && !p.urgency);
-    return matchesSearch && matchesTag && matchesUrgency;
-  });
-
-  const allTestimonies = [...localTestimonies, ...mockTestimonies];
-  const filteredTestimonies = allTestimonies.filter((t) => {
-    return t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-           t.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
-           t.name.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredPrayers = prayers.filter((p) => {
+    const matchesSearch = searchQuery === '' || p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         (p.text && p.text.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                         (p.name && p.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    return matchesSearch;
   });
 
   const filteredUsers = mockUsers.filter((u) => {
-    return u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    return searchQuery === '' || u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
            u.handle.toLowerCase().includes(searchQuery.toLowerCase()) ||
            u.bio.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
-  const uniqueTags = ['All', ...new Set(allPrayers.map(p => p.tag))];
+  const allTestimonies = localTestimonies;
+  const filteredTestimonies = allTestimonies.filter((t) => {
+    return searchQuery === '' || t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           (t.text && t.text.toLowerCase().includes(searchQuery.toLowerCase())) ||
+           (t.name && t.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  });
 
   return (
     <div className="cinematic-bg cinematic-texture relative flex h-full flex-col overflow-hidden text-ivory">
@@ -80,7 +70,7 @@ export default function Discover({ onGo, activeTab, onNavigate }) {
         <div className="mt-3 rounded-2xl border border-[#e6ddcf] bg-white/95 p-4 shadow-lg">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Filter by Category</h3>
           <div className="flex flex-wrap gap-2 mb-4">
-            {uniqueTags.map((tag) => (
+            {['All', 'Family', 'Healing', 'Guidance', 'Provision', 'Missions'].map((tag) => (
               <button
                 key={tag}
                 onClick={() => setSelectedFilters({ ...selectedFilters, tag })}
@@ -127,7 +117,7 @@ export default function Discover({ onGo, activeTab, onNavigate }) {
               </div>
             ) : (
               filteredPrayers.map((p) => (
-                <PrayerCard key={p.title} prayer={p} onPress={() => onGo("detail", { request: p })} />
+                <PrayerCard key={p.id} prayer={p} onPress={() => onGo("detail", { request: p })} />
               ))
             )}
           </div>
