@@ -41,7 +41,7 @@ export default function PrayerStopwatch({ request, onBack, activeTab, onNavigate
       <AppHeader title="Prayer Timer" onBack={onBack} />
       <div className="flex min-h-[600px] flex-col px-6 pb-8 pt-8 text-center">
         <div className={`mx-auto flex h-44 w-44 items-center justify-center rounded-full border bg-white/88 shadow-glow transition ${running ? 'animate-pulse-slow border-candle ring-8 ring-candle/20' : 'border-[#e6ddcf]'}`}>
-          <span className="font-serif text-5xl text-navy">{formatTime(seconds)}</span>
+          <span className="font-serif text-5xl" style={{ color: '#071B33' }}>{formatTime(seconds)}</span>
         </div>
         <h1 className="mt-8 font-serif text-3xl leading-tight text-navy">{prayer.title}</h1>
         <p className="mt-3 text-sm leading-6 text-slate-600">Take a quiet moment to pray. When you finish, the session is added to your prayer time.</p>
