@@ -1,18 +1,16 @@
 import { useState } from 'react';
-import { Users, FileText, AlertTriangle, ShieldCheck, HeartHandshake, MessageSquare, Settings, Flag, Pin, Bell, Eye, Megaphone, UserCheck, CheckCircle2, Archive, Search } from 'lucide-react';
+import { Users, FileText, AlertTriangle, ShieldCheck, HeartHandshake, Flag, Eye, CheckCircle2, Archive, Search } from 'lucide-react';
 import AppScreen from '../ui/AppScreen';
 import AppHeader from '../ui/AppHeader';
 import StatCard from '../ui/StatCard';
 import Card from '../ui/Card';
 import { useReports, resolveReport, dismissReport } from '../../hooks/useReports';
 import { useIsAdmin } from '../../hooks/useIsAdmin';
-import { usePersistentState } from '../../hooks/usePersistentState';
 import { useUsers } from '../../hooks/useUsers';
 import { usePrayers } from '../../hooks/usePrayers';
 import { useTestimonies } from '../../hooks/useTestimonies';
 import EmptyState from '../ui/EmptyState';
 
-const ownerSettingsRoute = 'admin:owner-settings';
 const reportsRoute = 'admin:reports';
 
 export default function AdminDashboard({ onBack, activeTab, onNavigate, onGo }) {
@@ -24,12 +22,6 @@ export default function AdminDashboard({ onBack, activeTab, onNavigate, onGo }) 
   const [activeTabFilter, setActiveTabFilter] = useState('overview');
   const [showMenu, setShowMenu] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [ownerSettings, setOwnerSettings] = usePersistentState('admin:owner-settings', {
-    prayerReview: true,
-    testimonyReview: false,
-    newSignups: true,
-  });
-
   const reports = firebaseReports.length > 0 ? firebaseReports.map((r) => ({
     id: r.id,
     reportedBy: r.reportedByUid,
@@ -83,7 +75,7 @@ export default function AdminDashboard({ onBack, activeTab, onNavigate, onGo }) 
             </div>
             <div>
               <h2 className="font-serif text-xl">Owner tools</h2>
-              <p className="mt-1 text-xs leading-5 text-white/72">Care for members, moderate sensitive content, publish updates, and keep the PrayerStride community trustworthy.</p>
+              <p className="mt-1 text-xs leading-5 text-white/72">Care for members, review reports, and keep the PrayerStride community trustworthy.</p>
             </div>
           </div>
         </Card>
@@ -94,8 +86,6 @@ export default function AdminDashboard({ onBack, activeTab, onNavigate, onGo }) 
             { key: 'reports', label: `Reports (${openReports.length})` },
             { key: 'members', label: 'Members' },
             { key: 'content', label: 'Content' },
-            { key: 'broadcasts', label: 'Broadcasts' },
-            { key: 'stewardship', label: 'Settings' },
           ].map((tab) => (
             <button
               key={tab.key}
@@ -120,9 +110,6 @@ export default function AdminDashboard({ onBack, activeTab, onNavigate, onGo }) 
               {[
                 { icon: Flag, label: 'Review Reports', action: 'reviewReports' },
                 { icon: Users, label: 'Manage Members', action: 'manageUsers' },
-                { icon: Pin, label: 'Featured Prayers', action: 'pinned' },
-                { icon: Bell, label: 'Announcements', action: 'announcements' },
-                { icon: Settings, label: 'App Settings', action: 'settings' },
               ].map((qa) => (
                 <button
                   key={qa.label}
@@ -268,44 +255,9 @@ export default function AdminDashboard({ onBack, activeTab, onNavigate, onGo }) 
           </div>
         )}
 
-        {activeTabFilter === 'broadcasts' && (
-          <div className="space-y-3">
-            <button className="cinematic-button flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold text-ink transition active:scale-[0.98]">
-              <Megaphone size={17} />
-              Create Announcement
-            </button>
-            <EmptyState icon={Megaphone} title="No broadcasts yet" subtitle="Broadcast publishing needs a backend endpoint before it can send real announcements." />
-          </div>
-        )}
-
-        {activeTabFilter === 'stewardship' && (
-          <div className="space-y-3">
-            {[
-              { key: 'prayerReview', icon: ShieldCheck, title: 'Review public prayer requests', detail: 'Owner team approves sensitive public requests before they trend.' },
-              { key: 'testimonyReview', icon: HeartHandshake, title: 'Review testimonies before publishing', detail: 'Adds a care step for stories shared in Praise.' },
-              { key: 'newSignups', icon: UserCheck, title: 'Allow new account creation', detail: 'Temporarily close signups during maintenance or abuse spikes.' },
-            ].map((setting) => (
-              <Card key={setting.key} className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#f2e7d6] text-navy">
-                    <setting.icon size={18} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="text-sm font-semibold text-slate-900">{setting.title}</h3>
-                    <p className="mt-1 text-xs leading-5 text-slate-500">{setting.detail}</p>
-                  </div>
-                  <button
-                    onClick={() => setOwnerSettings((current) => ({ ...current, [setting.key]: !current[setting.key] }))}
-                    className={`flex h-7 w-12 shrink-0 items-center rounded-full p-1 transition ${ownerSettings[setting.key] ? 'bg-navy' : 'bg-slate-300'}`}
-                    aria-label={`Toggle ${setting.title}`}
-                  >
-                    <span className={`h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${ownerSettings[setting.key] ? 'translate-x-5' : 'translate-x-0'}`} />
-                  </button>
-                </div>
-              </Card>
-            ))}
-          </div>
-        )}
+        <div className="rounded-2xl border border-slate-200 bg-white/70 p-4 text-xs leading-5 text-slate-500">
+          Broadcasts, owner settings, account blocking, and content deletion are disabled until server-enforced admin endpoints exist.
+        </div>
       </div>
     </AppScreen>
   );

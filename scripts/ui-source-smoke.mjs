@@ -28,13 +28,24 @@ for (const navLabel of ['Home', 'Prayers', 'Create', 'Praise', 'Profile']) {
   assert(bottomNav.includes(navLabel), `Bottom nav is missing "${navLabel}".`);
 }
 
-for (const text of ['Stewardship Console', 'Owner tools', 'Review Reports', 'Manage Members', 'Create Announcement']) {
+for (const text of ['Stewardship Console', 'Owner tools', 'Review Reports', 'Manage Members']) {
   assert(adminDashboard.includes(text) || profile.includes(text), `Owner/admin UI is missing "${text}".`);
 }
 
-for (const ariaLabel of ['View report details', 'Toggle']) {
+for (const ariaLabel of ['View report details']) {
   assert(adminDashboard.includes(ariaLabel), `Admin UI is missing accessible control text containing "${ariaLabel}".`);
 }
+
+const resetPassword = read('src', 'components', 'screens', 'ResetPassword.jsx');
+const editRequest = read('src', 'components', 'screens', 'EditRequest.jsx');
+const reportDetails = read('src', 'components', 'screens', 'ReportDetails.jsx');
+const support = read('src', 'components', 'screens', 'SupportDonation.jsx');
+
+assert(app.includes('onSend={resetPassword}'), 'Reset password screen must call the Firebase reset function.');
+assert(editRequest.includes('updatePrayer') && editRequest.includes('deletePrayer'), 'Edit request must use Firestore update/delete helpers.');
+assert(!reportDetails.includes('Delete Content') && !reportDetails.includes('Suspend User'), 'Fake destructive moderation actions should stay disabled.');
+assert(support.includes('Donations are not enabled yet') && !support.includes('Continue'), 'Donation checkout CTA should stay disabled until Stripe exists.');
+assert(resetPassword.includes('disabled={busy}'), 'Reset password submit button should have a busy/disabled state.');
 
 const disallowedHeroPatterns = [
   ['tracking-[-', 'Negative letter spacing can make compact UI text harder to read.'],

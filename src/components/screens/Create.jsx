@@ -1,4 +1,5 @@
 import { Eye, Flame, Globe2, Send, ShieldCheck, UserRound } from 'lucide-react';
+import { useState } from 'react';
 import BottomNav from '../BottomNav';
 import SceneImage from '../ui/SceneImage';
 import { usePersistentState } from '../../hooks/usePersistentState';
@@ -12,6 +13,8 @@ export default function Create({ onGo, activeTab, onNavigate, user }) {
     anonymous: false,
     shareable: true,
   });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
 
   const options = [
     { key: 'privacy', icon: Globe2, title: 'Community', text: 'Visible to trusted PrayerStride members' },
@@ -25,21 +28,32 @@ export default function Create({ onGo, activeTab, onNavigate, user }) {
   };
 
   const post = async () => {
-    if (!text.trim() || !user) return;
+    if (busy) return;
+    if (!text.trim() || !user) {
+      setError('Write a prayer request before posting.');
+      return;
+    }
     const title = text.trim().split('\n')[0]?.slice(0, 64) || 'Prayer request';
     const data = {
       title,
       body: text.trim(),
       isAnonymous: settings.anonymous,
+      privacy: settings.privacy ? 'community' : 'private',
+      urgent: settings.urgency,
+      allowShare: settings.shareable,
     };
 
+    setBusy(true);
+    setError('');
     try {
       await addPrayer(data, user);
     } catch (err) {
-      console.error('Failed to create prayer:', err);
+      setError('We could not post this request. Please try again.');
+      setBusy(false);
       return;
     }
 
+    setBusy(false);
     setText('');
     onGo("myPrayers");
   };
@@ -54,7 +68,7 @@ export default function Create({ onGo, activeTab, onNavigate, user }) {
           Cancel
         </button>
         <h1 className="font-semibold text-ivory">Create Request</h1>
-        <button onClick={post} className="text-sm font-semibold text-candle">Post</button>
+        <button disabled={busy} onClick={post} className="text-sm font-semibold text-candle disabled:opacity-50">{busy ? 'Posting' : 'Post'}</button>
       </div>
       <h2 className="mt-10 font-serif text-3xl leading-tight text-ivory">
         What do you need
@@ -62,7 +76,8 @@ export default function Create({ onGo, activeTab, onNavigate, user }) {
         prayer for?
       </h2>
       <p className="mt-3 text-sm leading-6 text-ivory/68">Share as much or as little as you're comfortable with.</p>
-      <textarea value={text} onChange={(e) => setText(e.target.value)} className="mt-7 h-40 w-full resize-none rounded-2xl border border-ivory/15 bg-ivory/10 p-4 text-sm text-ivory outline-none placeholder:text-ivory/45 focus:border-candle" placeholder="Write your request..." />
+      {error && <p className="mt-4 rounded-2xl border border-red-300/30 bg-red-950/35 px-4 py-3 text-sm text-red-100">{error}</p>}
+      <textarea value={text} maxLength={1500} onChange={(e) => setText(e.target.value)} className="mt-7 h-40 w-full resize-none rounded-2xl border border-ivory/15 bg-ivory/10 p-4 text-sm text-ivory outline-none placeholder:text-ivory/45 focus:border-candle" placeholder="Write your request..." />
       <div className="mt-3 flex items-center justify-between text-xs text-ivory/45">
         <div className="flex gap-4">
           <Eye size={18} />

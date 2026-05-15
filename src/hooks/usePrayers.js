@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   onSnapshot,
   orderBy,
@@ -30,6 +31,10 @@ function mapPrayer(docSnap) {
     count: data.prayedCount || 0,
     prayedCount: data.prayedCount || 0,
     status: data.status,
+    privacy: data.privacy || 'community',
+    urgent: Boolean(data.urgent),
+    urgency: Boolean(data.urgent),
+    allowShare: data.allowShare !== false,
     answered: data.status === 'answered',
   };
 }
@@ -86,7 +91,28 @@ export async function addPrayer(data, user) {
     updatedAt: serverTimestamp(),
     prayedCount: 0,
     status: 'active',
+    privacy: data.privacy || 'community',
+    urgent: Boolean(data.urgent ?? data.urgency),
+    allowShare: data.allowShare !== false,
   });
+}
+
+export async function updatePrayer(prayerId, data) {
+  if (!prayerId) throw new Error('Missing prayer request.');
+  return updateDoc(doc(db, 'prayers', prayerId), {
+    title: data.title,
+    body: data.body || data.text,
+    isAnonymous: Boolean(data.isAnonymous ?? data.anonymous),
+    privacy: data.privacy || 'community',
+    urgent: Boolean(data.urgent ?? data.urgency),
+    allowShare: data.allowShare !== false,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function deletePrayer(prayerId) {
+  if (!prayerId) throw new Error('Missing prayer request.');
+  return deleteDoc(doc(db, 'prayers', prayerId));
 }
 
 export async function markAnswered(prayerId) {

@@ -94,5 +94,8 @@ export async function addPrayer(data, user) {
     updatedAt: serverTimestamp(),
     prayedCount: 0,
     status: 'active',
+    privacy: 'community',
+    urgent: false,
+    allowShare: true,
   });
 }

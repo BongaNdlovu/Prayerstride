@@ -59,13 +59,15 @@ assert(adminDashboard.includes('Stewardship Console'), 'Admin console title is m
 assert(navigation.includes("next === 'adminDashboard'"), 'Navigation does not keep adminDashboard under the profile tab.');
 assert(navigation.includes("next === 'reportDetails'"), 'Navigation does not keep reportDetails under the profile tab.');
 
-for (const tab of ['overview', 'reports', 'members', 'content', 'broadcasts', 'stewardship']) {
+for (const tab of ['overview', 'reports', 'members', 'content']) {
   assert(adminDashboard.includes(`key: '${tab}'`) || adminDashboard.includes(`setActiveTabFilter('${tab}')`), `Admin console is missing "${tab}" tab/functionality.`);
 }
 
-for (const action of ['resolved', 'dismissed', 'admin:owner-settings', 'admin:reports']) {
+for (const action of ['resolved', 'dismissed', 'admin:reports']) {
   assert(adminDashboard.includes(action) || reportDetails.includes(action), `Admin flow is missing "${action}" handling.`);
 }
+
+assert(adminDashboard.includes('disabled until server-enforced admin endpoints exist'), 'Fake admin actions should be visibly disabled until backend endpoints exist.');
 
 for (const report of mockReports) {
   assert(report.id && report.reason && report.status, `Report "${report.id || 'unknown'}" is missing id, reason, or status.`);

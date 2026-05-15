@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import {
   createUserWithEmailAndPassword,
   onAuthStateChanged,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
   updateProfile,
@@ -44,6 +45,9 @@ export function AuthProvider({ children }) {
     },
     async signOut() {
       return firebaseSignOut(auth);
+    },
+    async resetPassword(email) {
+      return sendPasswordResetEmail(auth, email);
     },
   }), [user, loading]);
 

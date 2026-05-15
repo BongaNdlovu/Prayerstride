@@ -9,100 +9,223 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == uid;
     }
 
+    function isOwnerEmail() {
+      return signedIn()
+        && request.auth.token.email == "fanelesibonge50@gmail.com";
+    }
+
     function isAdmin() {
       return signedIn()
         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
     }
 
-    function isOwnerEmail() {
-      return signedIn()
-        && request.auth.token.email == "fanelesibonge50@gmail.com";
+    function isAuthor() {
+      return signedIn() && resource.data.authorUid == request.auth.uid;
     }
 
-    function validSelfUserCreate(uid) {
+    function unchanged(keys) {
+      return request.resource.data.diff(resource.data).unchangedKeys().hasAll(keys);
+    }
+
+    function changedOnly(keys) {
+      return request.resource.data.diff(resource.data).changedKeys().hasOnly(keys);
+    }
+
+    function validString(value, maxLength) {
+      return value is string && value.size() > 0 && value.size() <= maxLength;
+    }
+
+    function optionalString(key, maxLength) {
+      return !(key in request.resource.data)
+        || request.resource.data[key] == null
+        || (request.resource.data[key] is string && request.resource.data[key].size() <= maxLength);
+    }
+
+    function optionalBool(key) {
+      return !(key in request.resource.data) || request.resource.data[key] is bool;
+    }
+
+    function validUserCreate(uid) {
       return isSelf(uid)
+        && request.resource.data.keys().hasAll(["uid", "email", "displayName", "role", "owner", "createdAt"])
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.email == request.auth.token.email
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() <= 80
+        && request.resource.data.createdAt is timestamp
+        && optionalString("photoURL", 2048)
+        && optionalString("handle", 40)
+        && optionalString("bio", 180)
         && (
           (isOwnerEmail() && request.resource.data.role == "admin" && request.resource.data.owner == true)
           || (!isOwnerEmail() && request.resource.data.role == "user" && request.resource.data.owner == false)
         );
     }
 
-    function validSelfUserUpdate() {
-      return request.resource.data.uid == resource.data.uid
-        && request.resource.data.email == resource.data.email
-        && request.resource.data.role == resource.data.role
-        && request.resource.data.owner == resource.data.owner;
+    function validUserUpdate() {
+      return unchanged(["uid", "email", "role", "owner", "createdAt"])
+        && changedOnly(["displayName", "handle", "bio", "photoURL", "updatedAt"])
+        && optionalString("displayName", 80)
+        && optionalString("handle", 40)
+        && optionalString("bio", 180)
+        && optionalString("photoURL", 2048)
+        && (!("updatedAt" in request.resource.data) || request.resource.data.updatedAt is timestamp);
     }
 
-    function isAuthor() {
-      return signedIn() && resource.data.authorUid == request.auth.uid;
+    function validPrayerCreate() {
+      return signedIn()
+        && request.resource.data.keys().hasAll(["title", "body", "authorUid", "authorName", "isAnonymous", "createdAt", "updatedAt", "prayedCount", "status"])
+        && request.resource.data.authorUid == request.auth.uid
+        && validString(request.resource.data.title, 120)
+        && validString(request.resource.data.body, 2000)
+        && request.resource.data.authorName is string
+        && request.resource.data.authorName.size() <= 80
+        && request.resource.data.isAnonymous is bool
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.prayedCount == 0
+        && request.resource.data.status == "active"
+        && optionalString("privacy", 24)
+        && optionalBool("urgent")
+        && optionalBool("allowShare");
+    }
+
+    function validPrayerAuthorUpdate() {
+      return isAuthor()
+        && unchanged(["authorUid", "authorName", "createdAt", "prayedCount"])
+        && changedOnly(["title", "body", "isAnonymous", "status", "updatedAt", "privacy", "urgent", "allowShare"])
+        && request.resource.data.status in ["active", "answered"]
+        && validString(request.resource.data.title, 120)
+        && validString(request.resource.data.body, 2000)
+        && request.resource.data.isAnonymous is bool
+        && request.resource.data.updatedAt is timestamp
+        && optionalString("privacy", 24)
+        && optionalBool("urgent")
+        && optionalBool("allowShare");
+    }
+
+    function validTestimonyCreate() {
+      return signedIn()
+        && request.resource.data.keys().hasAll(["title", "body", "authorUid", "authorName", "isAnonymous", "createdAt", "updatedAt", "amen", "praiseGod"])
+        && request.resource.data.authorUid == request.auth.uid
+        && validString(request.resource.data.title, 120)
+        && validString(request.resource.data.body, 2400)
+        && request.resource.data.authorName is string
+        && request.resource.data.authorName.size() <= 80
+        && request.resource.data.isAnonymous is bool
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.amen == 0
+        && request.resource.data.praiseGod == 0
+        && optionalString("prayerId", 160)
+        && optionalBool("shared");
+    }
+
+    function validTestimonyAuthorUpdate() {
+      return isAuthor()
+        && unchanged(["authorUid", "authorName", "createdAt", "amen", "praiseGod"])
+        && changedOnly(["title", "body", "isAnonymous", "shared", "tags", "updatedAt"])
+        && validString(request.resource.data.title, 120)
+        && validString(request.resource.data.body, 2400)
+        && request.resource.data.isAnonymous is bool
+        && request.resource.data.updatedAt is timestamp
+        && optionalBool("shared");
     }
 
     match /users/{uid} {
       allow read: if isSelf(uid) || isAdmin();
-      allow create: if validSelfUserCreate(uid);
-      allow update: if isSelf(uid) && validSelfUserUpdate();
-      allow delete: if isSelf(uid) || isAdmin();
+      allow create: if validUserCreate(uid);
+      allow update: if isSelf(uid) && validUserUpdate();
+      allow delete: if false;
+
+      match /devices/{deviceId} {
+        allow read, write: if false;
+      }
     }
 
     match /prayers/{prayerId} {
       allow read: if signedIn();
-
-      allow create: if signedIn()
-        && request.resource.data.authorUid == request.auth.uid
-        && request.resource.data.status in ["active", "answered"];
-
-      allow update: if isAuthor()
-        && request.resource.data.authorUid == resource.data.authorUid
-        && request.resource.data.status in ["active", "answered"];
-
+      allow create: if validPrayerCreate();
+      allow update: if validPrayerAuthorUpdate();
       allow delete: if isAuthor() || isAdmin();
+
+      match /prays/{uid} {
+        allow read: if isSelf(uid) || isAdmin();
+        allow write: if false;
+      }
     }
 
     match /testimonies/{testimonyId} {
       allow read: if signedIn();
-
-      allow create: if signedIn()
-        && request.resource.data.authorUid == request.auth.uid;
-
-      allow update: if isAuthor()
-        && request.resource.data.authorUid == resource.data.authorUid;
-
+      allow create: if validTestimonyCreate();
+      allow update: if validTestimonyAuthorUpdate();
       allow delete: if isAuthor() || isAdmin();
+
+      match /reactions/{reactionId} {
+        allow read: if signedIn();
+        allow write: if false;
+      }
     }
 
     match /reports/{reportId} {
       allow create: if signedIn()
+        && request.resource.data.keys().hasAll(["targetId", "targetType", "reason", "reportedByUid", "status", "createdAt"])
         && request.resource.data.reportedByUid == request.auth.uid
+        && request.resource.data.targetId is string
+        && request.resource.data.targetId.size() > 0
+        && request.resource.data.targetId.size() <= 160
         && request.resource.data.targetType in ["prayer", "testimony", "user"]
-        && request.resource.data.status == "pending";
+        && validString(request.resource.data.reason, 800)
+        && request.resource.data.status == "pending"
+        && request.resource.data.createdAt is timestamp;
 
       allow read, delete: if isAdmin();
 
       allow update: if isAdmin()
-        && request.resource.data.diff(resource.data).changedKeys().hasOnly(["status"])
+        && changedOnly(["status"])
         && request.resource.data.status in ["pending", "resolved", "dismissed"];
     }
 
     match /prayerSessions/{sessionId} {
       allow read: if signedIn() && resource.data.authorUid == request.auth.uid;
       allow create: if signedIn()
-        && request.resource.data.authorUid == request.auth.uid;
+        && request.resource.data.keys().hasAll(["authorUid", "title", "seconds", "createdAt"])
+        && request.resource.data.authorUid == request.auth.uid
+        && validString(request.resource.data.title, 140)
+        && request.resource.data.seconds is number
+        && request.resource.data.seconds > 0
+        && request.resource.data.seconds <= 86400
+        && request.resource.data.createdAt is timestamp
+        && optionalString("prayerId", 160);
       allow update, delete: if signedIn()
         && resource.data.authorUid == request.auth.uid
-        && request.resource.data.authorUid == resource.data.authorUid;
+        && unchanged(["authorUid", "createdAt"])
+        && changedOnly(["title", "seconds", "prayerId", "updatedAt"])
+        && validString(request.resource.data.title, 140)
+        && request.resource.data.seconds is number
+        && request.resource.data.seconds > 0
+        && request.resource.data.seconds <= 86400;
     }
 
     match /encouragements/{encouragementId} {
       allow read: if signedIn();
       allow create: if signedIn()
-        && request.resource.data.authorUid == request.auth.uid;
-      allow update, delete: if signedIn()
+        && request.resource.data.keys().hasAll(["threadId", "authorUid", "authorName", "text", "createdAt", "updatedAt"])
+        && request.resource.data.authorUid == request.auth.uid
+        && validString(request.resource.data.threadId, 160)
+        && request.resource.data.authorName is string
+        && request.resource.data.authorName.size() <= 80
+        && validString(request.resource.data.text, 800)
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp;
+      allow update: if signedIn()
         && resource.data.authorUid == request.auth.uid
-        && request.resource.data.authorUid == resource.data.authorUid;
+        && unchanged(["threadId", "authorUid", "authorName", "createdAt"])
+        && changedOnly(["text", "updatedAt"])
+        && validString(request.resource.data.text, 800)
+        && request.resource.data.updatedAt is timestamp;
+      allow delete: if signedIn() && resource.data.authorUid == request.auth.uid;
     }
 
     match /notifications/{notificationId} {
@@ -111,10 +234,21 @@ service cloud.firestore {
 
       allow update: if signedIn()
         && resource.data.recipientUid == request.auth.uid
-        && request.resource.data.diff(resource.data).changedKeys().hasOnly(["read"])
+        && changedOnly(["read"])
         && request.resource.data.read is bool;
 
       allow create, delete: if false;
+    }
+
+    match /notificationSettings/{uid} {
+      allow read: if isSelf(uid);
+      allow create, update: if isSelf(uid)
+        && request.resource.data.keys().hasOnly(["prayerActivity", "testimonyReactions", "pushEnabled", "updatedAt"])
+        && optionalBool("prayerActivity")
+        && optionalBool("testimonyReactions")
+        && optionalBool("pushEnabled")
+        && (!("updatedAt" in request.resource.data) || request.resource.data.updatedAt is timestamp);
+      allow delete: if false;
     }
   }
 }

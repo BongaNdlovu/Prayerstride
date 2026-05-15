@@ -16,7 +16,10 @@ export default {
 
       return json({ ok: true, service: 'prayerstride-api' });
     } catch (error) {
-      return withCors(json({ error: error.message || 'Unexpected server error' }, 500), env);
+      console.error('Worker request failed', error);
+      const status = Number(error.status || 500);
+      const message = status >= 500 ? 'Unexpected server error' : (error.publicMessage || error.message || 'Request failed');
+      return withCors(json({ error: message }, status), env);
     }
   },
 };
@@ -69,21 +72,35 @@ async function prayForRequest(env, user, prayerId) {
 
   const data = fromFirestoreFields(prayer.fields);
   const now = new Date().toISOString();
+  const prayDoc = docName(env, 'prayers', prayerId, 'prays', user.uid);
+  const existingPray = await getDocument(env, prayDoc);
+  if (existingPray.exists) return json({ ok: true, duplicate: true });
+  await enforceCooldown(env, user.uid, 'pray', 1);
 
   const writes = [
     {
       update: {
-        name: prayer.name,
+        name: prayDoc,
         fields: toFirestoreFields({
-          ...data,
-          prayedCount: Number(data.prayedCount || 0) + 1,
-          updatedAt: now,
+          uid: user.uid,
+          createdAt: now,
         }),
+      },
+      currentDocument: { exists: false },
+    },
+    {
+      transform: {
+        document: prayer.name,
+        fieldTransforms: [
+          { fieldPath: 'prayedCount', increment: { integerValue: '1' } },
+          { fieldPath: 'updatedAt', setToServerValue: 'REQUEST_TIME' },
+        ],
       },
     },
   ];
 
-  if (data.authorUid && data.authorUid !== user.uid) {
+  const prefs = await getNotificationSettings(env, data.authorUid);
+  if (data.authorUid && data.authorUid !== user.uid && prefs.prayerActivity !== false) {
     writes.push(notificationWrite(env, data.authorUid, {
       type: 'prayer_prayed',
       message: 'Someone prayed for your request.',
@@ -92,9 +109,10 @@ async function prayForRequest(env, user, prayerId) {
     }));
   }
 
-  await firestoreCommit(env, writes);
+  const result = await firestoreCommit(env, writes, { allowAlreadyExists: true });
+  if (result.alreadyExists) return json({ ok: true, duplicate: true });
 
-  if (data.authorUid && data.authorUid !== user.uid) {
+  if (data.authorUid && data.authorUid !== user.uid && prefs.prayerActivity !== false && prefs.pushEnabled !== false) {
     await sendPushToUser(env, data.authorUid, {
       title: 'PrayerStride',
       body: 'Someone prayed for your request.',
@@ -115,33 +133,50 @@ async function reactToTestimony(env, user, testimonyId, reaction) {
 
   const data = fromFirestoreFields(testimony.fields);
   const now = new Date().toISOString();
+  const reactionDoc = docName(env, 'testimonies', testimonyId, 'reactions', `${user.uid}_${reaction}`);
   const message = reaction === 'amen' ? 'Someone said Amen to your testimony.' : 'Someone praised God for your testimony.';
+  const existingReaction = await getDocument(env, reactionDoc);
+  if (existingReaction.exists) return json({ ok: true, duplicate: true });
+  await enforceCooldown(env, user.uid, `react:${reaction}`, 1);
 
   const writes = [
     {
       update: {
-        name: testimony.name,
+        name: reactionDoc,
         fields: toFirestoreFields({
-          ...data,
-          [reaction]: Number(data[reaction] || 0) + 1,
-          updatedAt: now,
+          uid: user.uid,
+          reaction,
+          createdAt: now,
         }),
+      },
+      currentDocument: { exists: false },
+    },
+    {
+      transform: {
+        document: testimony.name,
+        fieldTransforms: [
+          { fieldPath: reaction, increment: { integerValue: '1' } },
+          { fieldPath: 'updatedAt', setToServerValue: 'REQUEST_TIME' },
+        ],
       },
     },
   ];
 
-  if (data.authorUid && data.authorUid !== user.uid) {
+  const prefs = await getNotificationSettings(env, data.authorUid);
+  if (data.authorUid && data.authorUid !== user.uid && prefs.testimonyReactions !== false) {
     writes.push(notificationWrite(env, data.authorUid, {
       type: 'testimony_reaction',
       message,
       relatedId: testimonyId,
       actorUid: user.uid,
+      reaction,
     }));
   }
 
-  await firestoreCommit(env, writes);
+  const result = await firestoreCommit(env, writes, { allowAlreadyExists: true });
+  if (result.alreadyExists) return json({ ok: true, duplicate: true });
 
-  if (data.authorUid && data.authorUid !== user.uid) {
+  if (data.authorUid && data.authorUid !== user.uid && prefs.testimonyReactions !== false && prefs.pushEnabled !== false) {
     await sendPushToUser(env, data.authorUid, {
       title: 'PrayerStride',
       body: message,
@@ -169,15 +204,25 @@ function notificationWrite(env, recipientUid, notification) {
 async function sendPushToUser(env, uid, payload) {
   const devices = await listDocuments(env, docName(env, 'users', uid, 'devices'));
   const tokens = devices
-    .map((document) => fromFirestoreFields(document.fields).token)
+    .map((document) => ({ token: fromFirestoreFields(document.fields).token, name: document.name }))
+    .filter((device) => device.token)
     .filter(Boolean);
 
-  await Promise.all(tokens.map((token) => sendFcm(env, token, payload)));
+  await Promise.all(tokens.map(async (device) => {
+    try {
+      await sendFcm(env, device.token, payload);
+    } catch (error) {
+      console.error('FCM send failed', error);
+      if (error.invalidToken) {
+        await firestoreCommit(env, [{ delete: device.name }]);
+      }
+    }
+  }));
 }
 
 async function sendFcm(env, token, payload) {
   const accessToken = await getGoogleAccessToken(env);
-  await fetch(`https://fcm.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/messages:send`, {
+  const response = await fetch(`https://fcm.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/messages:send`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -191,6 +236,14 @@ async function sendFcm(env, token, payload) {
       },
     }),
   });
+  if (!response.ok) {
+    const result = await response.json().catch(() => ({}));
+    const status = result.error?.status || '';
+    if (['NOT_FOUND', 'INVALID_ARGUMENT', 'UNREGISTERED'].includes(status)) {
+      throw Object.assign(new Error('Invalid FCM token'), { invalidToken: true });
+    }
+    throw new Error(result.error?.message || 'FCM send failed');
+  }
 }
 
 async function verifyFirebaseUser(request, env) {
@@ -219,7 +272,7 @@ async function getDocument(env, name) {
   return { ...document, exists: true };
 }
 
-async function firestoreCommit(env, writes) {
+async function firestoreCommit(env, writes, options = {}) {
   const accessToken = await getGoogleAccessToken(env);
   const response = await fetch(`https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents:commit`, {
     method: 'POST',
@@ -230,22 +283,12 @@ async function firestoreCommit(env, writes) {
     body: JSON.stringify({ writes }),
   });
   const result = await response.json();
-  if (!response.ok) throw new Error(result.error?.message || 'Firestore commit failed');
-  return result;
-}
-
-async function runFirestoreQuery(env, body) {
-  const accessToken = await getGoogleAccessToken(env);
-  const response = await fetch(`https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents:runQuery`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
-  const result = await response.json();
-  if (!response.ok) throw new Error(result.error?.message || 'Firestore query failed');
+  if (!response.ok) {
+    if (options.allowAlreadyExists && result.error?.status === 'ALREADY_EXISTS') {
+      return { alreadyExists: true };
+    }
+    throw new Error(result.error?.message || 'Firestore commit failed');
+  }
   return result;
 }
 
@@ -258,6 +301,32 @@ async function listDocuments(env, parentName) {
   const result = await response.json();
   if (!response.ok) throw new Error(result.error?.message || 'Firestore list failed');
   return result.documents || [];
+}
+
+async function getNotificationSettings(env, uid) {
+  if (!uid) return {};
+  const settings = await getDocument(env, docName(env, 'notificationSettings', uid));
+  return settings.exists ? fromFirestoreFields(settings.fields) : {};
+}
+
+async function enforceCooldown(env, uid, action, seconds) {
+  const key = await hashToken(`${uid}:${action}`);
+  const name = docName(env, 'apiRateLimits', key);
+  const now = new Date();
+  const current = await getDocument(env, name);
+  if (current.exists) {
+    const data = fromFirestoreFields(current.fields);
+    const last = data.updatedAt ? new Date(data.updatedAt).getTime() : 0;
+    if (Number.isFinite(last) && now.getTime() - last < seconds * 1000) {
+      throw Object.assign(new Error('Please wait a moment before trying again.'), { status: 429 });
+    }
+  }
+  await firestoreCommit(env, [{
+    update: {
+      name,
+      fields: toFirestoreFields({ uid, action, updatedAt: now.toISOString() }),
+    },
+  }]);
 }
 
 async function getGoogleAccessToken(env) {
@@ -345,7 +414,7 @@ function json(body, status = 200) {
 
 function withCors(response, env) {
   const next = new Response(response.body, response);
-  next.headers.set('Access-Control-Allow-Origin', env.CORS_ORIGIN || '*');
+  next.headers.set('Access-Control-Allow-Origin', env.CORS_ORIGIN || 'https://prayerstride.app');
   next.headers.set('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
   next.headers.set('Access-Control-Allow-Headers', 'Authorization,Content-Type');
   return next;

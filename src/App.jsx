@@ -69,7 +69,7 @@ function runSmokeTests() {
 runSmokeTests();
 
 export default function App() {
-  const { user, loading, signIn, register, signOut, updateUserProfile, deleteAccount: deleteFirebaseAccount } = useAuth();
+  const { user, loading, signIn, register, signOut, resetPassword, updateUserProfile, deleteAccount: deleteFirebaseAccount } = useAuth();
   const { isAdmin } = useIsAdmin();
   const { onboarded, setOnboarded, screen, active, params, go, back, resetTo, handleNav } = useNavigation();
 
@@ -190,7 +190,7 @@ export default function App() {
     if (screen === "stayConnected") return <StayConnected onBack={() => go("reminderSetup")} onContinue={() => go("home")} onSkip={() => go("home")} />;
     if (screen === "signIn") return <SignIn onBack={() => go("signIn")} onSignIn={handleSignIn} onForgot={() => go("resetPassword")} onGoSignUp={() => go("createAccount")} />;
     if (screen === "createAccount") return <CreateAccount onBack={() => go("signIn")} onCreate={handleCreateAccount} />;
-    if (screen === "resetPassword") return <ResetPassword onBack={() => go("signIn")} onSend={() => {}} />;
+    if (screen === "resetPassword") return <ResetPassword onBack={() => go("signIn")} onSend={resetPassword} />;
     if (screen === "home") return <HomeScreen onNavigate={setNav} onGo={go} activeTab={active} />;
     if (screen === "discover") return <Discover onGo={go} activeTab={active} onNavigate={setNav} />;
     if (screen === "detail") return <Detail request={params.request} user={authUser} onBack={() => back("home")} onGo={go} activeTab={active} onNavigate={setNav} />;
@@ -228,7 +228,7 @@ export default function App() {
     if (screen === "accountSuspended") return <AccountSuspended onAppeal={() => {}} onSignIn={() => go("signIn")} />;
     if (screen === "notifications") return <Notifications onBack={() => go("home")} activeTab={active} onNavigate={setNav} />;
     return <HomeScreen onNavigate={setNav} onGo={go} activeTab={active} />;
-  }, [authUser, loading, onboarded, setOnboarded, screen, active, params, go, back, resetTo, handleNav, signIn, register, signOut, updateUserProfile, deleteFirebaseAccount, user, isAdmin]);
+  }, [authUser, loading, onboarded, setOnboarded, screen, active, params, go, back, resetTo, handleNav, signIn, register, signOut, resetPassword, updateUserProfile, deleteFirebaseAccount, user, isAdmin]);
 
   return (
     <>

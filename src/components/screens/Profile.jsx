@@ -7,9 +7,8 @@ import { usePrayerData } from '../../hooks/usePrayerData';
 import { useIsAdmin } from '../../hooks/useIsAdmin';
 
 export default function Profile({ activeTab, onNavigate, onGo, user }) {
-  const [avatar, setAvatar] = usePersistentState(`profile:${user?.id || 'guest'}:avatar`, '');
   const { prayers } = usePrayerData(user);
-  const { isAdmin } = useIsAdmin();
+  const { isAdmin, loading: adminLoading } = useIsAdmin();
   const [profile] = usePersistentState(`profile:${user?.id || 'guest'}`, {
     name: user?.name || 'Guest',
     handle: user?.handle || '',
@@ -23,17 +22,9 @@ export default function Profile({ activeTab, onNavigate, onGo, user }) {
     { icon: BarChart3, label: 'My Stats', key: 'myStats' },
     { icon: Clock, label: 'Prayer Stopwatch', key: 'prayerStopwatch' },
     { icon: Bell, label: 'Notifications', key: 'notifications' },
-    ...(isAdmin ? [{ icon: ShieldCheck, label: 'Stewardship Console', key: 'adminDashboard' }] : []),
+    ...(isAdmin && !adminLoading ? [{ icon: ShieldCheck, label: 'Stewardship Console', key: 'adminDashboard' }] : []),
     { icon: Settings, label: 'Settings', key: 'settings' },
   ];
-
-  const uploadAvatar = (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => setAvatar(reader.result);
-    reader.readAsDataURL(file);
-  };
 
   return (
     <div className="cinematic-bg relative flex h-full flex-col overflow-hidden text-ivory">
@@ -45,9 +36,9 @@ export default function Profile({ activeTab, onNavigate, onGo, user }) {
         <button onClick={() => onGo?.('settings')} className="text-ivory"><Settings size={22} /></button>
       </div>
       <div className="glass-panel mt-6 rounded-[28px] p-4 text-center">
-        <label className="relative mx-auto block h-20 w-20 cursor-pointer">
-          {avatar ? (
-            <img src={avatar} alt="" className="h-20 w-20 rounded-full object-cover" />
+        <button onClick={() => onGo?.('editProfile')} className="relative mx-auto block h-20 w-20">
+          {user?.photoURL || profile.photoURL ? (
+            <img src={user?.photoURL || profile.photoURL} alt="" className="h-20 w-20 rounded-full object-cover" />
           ) : (
             <div className="flex h-20 w-20 items-center justify-center rounded-full bg-candle/18 text-candle">
               <Camera size={24} />
@@ -56,8 +47,7 @@ export default function Profile({ activeTab, onNavigate, onGo, user }) {
           <span className="absolute bottom-0 right-0 flex h-7 w-7 items-center justify-center rounded-full bg-candle text-ink shadow-sm">
             <Camera size={14} />
           </span>
-          <input type="file" accept="image/*" onChange={uploadAvatar} className="sr-only" />
-        </label>
+        </button>
         <h2 className="mt-3 font-serif text-xl text-ivory">{profile.name || user?.name || 'Guest'}</h2>
         <p className="mt-1 text-xs text-ivory/58">{profile.bio || user?.email || 'Sign in to sync your prayer journey.'}</p>
         <div className="mt-5 grid grid-cols-3 gap-2">

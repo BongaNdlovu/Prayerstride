@@ -3,6 +3,8 @@ import { ArrowLeft, Camera, Save, X } from 'lucide-react';
 import AppScreen from '../ui/AppScreen';
 import AppHeader from '../ui/AppHeader';
 import { usePersistentState } from '../../hooks/usePersistentState';
+import { storage } from '../../lib/firebase';
+import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 
 export default function EditProfile({ onBack, activeTab, onNavigate, user, setUser }) {
   const [profile, setProfile] = usePersistentState(`profile:${user?.id || 'guest'}`, {
@@ -13,31 +15,45 @@ export default function EditProfile({ onBack, activeTab, onNavigate, user, setUs
   const [name, setName] = useState(profile.name || user?.name || '');
   const [bio, setBio] = useState(profile.bio || '');
   const [handle, setHandle] = useState(profile.handle || user?.handle || '');
-  const [avatar, setAvatar] = usePersistentState(`profile:${user?.id || 'guest'}:avatar`, '');
-  const [previewAvatar, setPreviewAvatar] = useState(avatar);
+  const [previewAvatar, setPreviewAvatar] = useState(user?.photoURL || profile.photoURL || '');
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
 
   const handleAvatarChange = (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      setPreviewAvatar(reader.result);
-      setAvatar(reader.result);
-    };
-    reader.readAsDataURL(file);
+    if (!file.type.startsWith('image/') || file.size > 2 * 1024 * 1024) {
+      setError('Choose an image under 2 MB.');
+      return;
+    }
+    setError('');
+    setAvatarFile(file);
+    setPreviewAvatar(URL.createObjectURL(file));
   };
 
   const handleSave = async () => {
-    const nextProfile = { name: name.trim(), handle: handle.trim(), bio: bio.trim(), photoURL: previewAvatar || null };
-    setProfile(nextProfile);
-    if (setUser) {
-      try {
-        await setUser(nextProfile);
-      } catch (err) {
-        console.error('Failed to update profile:', err);
+    setBusy(true);
+    setError('');
+    try {
+      let photoURL = user?.photoURL || profile.photoURL || null;
+      if (avatarFile && user?.id) {
+        const extension = avatarFile.name.split('.').pop() || 'jpg';
+        const avatarRef = ref(storage, `avatars/${user.id}/profile.${extension}`);
+        await uploadBytes(avatarRef, avatarFile, { contentType: avatarFile.type });
+        photoURL = await getDownloadURL(avatarRef);
       }
+      const nextProfile = { name: name.trim(), handle: handle.trim(), bio: bio.trim(), photoURL };
+      if (setUser) {
+        await setUser(nextProfile);
+      }
+      setProfile(nextProfile);
+      onBack();
+    } catch {
+      setError('We could not update your profile. Please try again.');
+    } finally {
+      setBusy(false);
     }
-    onBack();
   };
 
   return (
@@ -60,6 +76,7 @@ export default function EditProfile({ onBack, activeTab, onNavigate, user, setUs
           </label>
           <p className="mt-3 text-xs text-slate-500">Tap to change photo</p>
         </div>
+        {error && <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
 
         <div className="space-y-4">
           <div>
@@ -102,10 +119,11 @@ export default function EditProfile({ onBack, activeTab, onNavigate, user, setUs
         <div className="space-y-3">
           <button
             onClick={handleSave}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-navy py-4 font-semibold text-white transition active:scale-[0.98]"
+            disabled={busy}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-navy py-4 font-semibold text-white transition active:scale-[0.98] disabled:opacity-60"
           >
             <Save size={18} />
-            Save Changes
+            {busy ? 'Saving...' : 'Save Changes'}
           </button>
           <button
             onClick={onBack}

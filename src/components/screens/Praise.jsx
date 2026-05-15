@@ -109,7 +109,13 @@ export default function Praise({ activeTab, onNavigate, onGo, user }) {
     try {
       await reactToTestimony(id, key);
     } catch (error) {
-      console.error('Testimony reaction notification failed', error);
+      setReactions((current) => ({
+        ...current,
+        [id]: {
+          ...current[id],
+          [key]: false,
+        },
+      }));
     }
   };
 

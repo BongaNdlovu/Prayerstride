@@ -3,7 +3,7 @@ import { X, Link2, CheckCircle2 } from 'lucide-react';
 import AppScreen from '../ui/AppScreen';
 import ToggleRow from '../ui/ToggleRow';
 import { addTestimony } from '../../hooks/useTestimonies';
-import { usePrayerData, markAnswered } from '../../hooks/usePrayerData';
+import { usePrayerData } from '../../hooks/usePrayerData';
 
 export default function CreateTestimony({ onBack, onDone, activeTab, onNavigate, user, prayerId, prayerTitle }) {
   const [text, setText] = useState('');
@@ -12,6 +12,8 @@ export default function CreateTestimony({ onBack, onDone, activeTab, onNavigate,
   const [selectedPrayerId, setSelectedPrayerId] = useState(prayerId || null);
   const [shared, setShared] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
   const ownPrayers = prayers.filter((prayer) => prayer.authorUid === user?.uid);
   const selectedPrayer = ownPrayers.find((prayer) => prayer.id === selectedPrayerId);
   const answeredOptions = [
@@ -22,19 +24,30 @@ export default function CreateTestimony({ onBack, onDone, activeTab, onNavigate,
   const activePrayerId = selectedPrayer ? selectedPrayerId : answeredOptions[0]?.id;
 
   const post = async () => {
-    if (!text.trim() || !user || !activePrayerId) return;
+    if (busy) return;
+    if (!text.trim() || !user || !activePrayerId) {
+      setError('Choose a prayer and write your testimony before posting.');
+      return;
+    }
 
-    await addTestimony({
-      title: title.trim() || prayerTitle || 'Answered prayer',
-      body: text.trim(),
-      prayerId: activePrayerId,
-      shared,
-      isAnonymous: false,
-      tags: [],
-    }, user);
+    setBusy(true);
+    setError('');
+    try {
+      await addTestimony({
+        title: title.trim() || prayerTitle || 'Answered prayer',
+        body: text.trim(),
+        prayerId: activePrayerId,
+        shared,
+        isAnonymous: false,
+        tags: [],
+      }, user);
+    } catch {
+      setError('We could not share this testimony. Please try again.');
+      setBusy(false);
+      return;
+    }
 
-    await markAnswered(activePrayerId);
-
+    setBusy(false);
     setSuccess(true);
     setTimeout(() => {
       setSuccess(false);
@@ -60,7 +73,7 @@ export default function CreateTestimony({ onBack, onDone, activeTab, onNavigate,
         <div className="mt-4 flex items-center justify-between">
           <button onClick={onBack} className="text-sm text-slate-700"><X size={22} /></button>
           <h1 className="font-semibold text-slate-900">Create Testimony</h1>
-          <button onClick={post} className="text-sm font-semibold text-navy">Post</button>
+          <button disabled={busy} onClick={post} className="text-sm font-semibold text-navy disabled:opacity-50">{busy ? 'Posting' : 'Post'}</button>
         </div>
         <h2 className="mt-10 font-serif text-3xl leading-tight text-navy">Share how God answered your prayer</h2>
         <p className="mt-3 text-sm leading-6 text-slate-500">Tell how God answered your prayer and what He taught you.</p>
@@ -74,6 +87,7 @@ export default function CreateTestimony({ onBack, onDone, activeTab, onNavigate,
           </div>
         ) : (
         <>
+        {error && <p className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -82,6 +96,7 @@ export default function CreateTestimony({ onBack, onDone, activeTab, onNavigate,
         />
         <textarea
           value={text}
+          maxLength={1500}
           onChange={(e) => setText(e.target.value)}
           className="mt-3 h-40 w-full resize-none rounded-2xl border border-[#e6ddcf] bg-white/80 p-4 text-sm outline-none focus:border-navy"
           placeholder="Write your testimony..."

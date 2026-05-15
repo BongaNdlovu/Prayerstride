@@ -1,80 +1,68 @@
-import { ArrowLeft } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
 import AppScreen from '../ui/AppScreen';
 import AppHeader from '../ui/AppHeader';
 import ToggleRow from '../ui/ToggleRow';
-import { usePersistentState } from '../../hooks/usePersistentState';
+import { db } from '../../lib/firebase';
+import { useAuth } from '../../contexts/AuthContext.jsx';
+
+const defaults = {
+  prayerActivity: true,
+  testimonyReactions: true,
+  pushEnabled: true,
+};
 
 export default function NotificationSettings({ onBack, activeTab, onNavigate }) {
-  const [prayerActivity, setPrayerActivity] = usePersistentState('notifications:prayerActivity', {
-    newRequest: true,
-    prayerAnswered: true,
-    prayerUpdates: true,
-    requestMatched: false,
-  });
-  const [reminders, setReminders] = usePersistentState('notifications:reminders', {
-    dailyReminder: true,
-    eveningReflection: true,
-    weeklySummary: false,
-  });
-  const [channels, setChannels] = usePersistentState('notifications:channels', {
-    push: true,
-    email: false,
-    inApp: true,
-  });
+  const { user } = useAuth();
+  const [settings, setSettings] = useState(defaults);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!user) return undefined;
+    return onSnapshot(doc(db, 'notificationSettings', user.uid), (snapshot) => {
+      setSettings({ ...defaults, ...(snapshot.exists() ? snapshot.data() : {}) });
+    });
+  }, [user]);
+
+  const updateSetting = async (key, value) => {
+    if (!user) return;
+    const next = { ...settings, [key]: value };
+    setSettings(next);
+    setError('');
+    try {
+      await setDoc(doc(db, 'notificationSettings', user.uid), {
+        [key]: value,
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+    } catch {
+      setSettings(settings);
+      setError('We could not save that preference. Please try again.');
+    }
+  };
 
   return (
     <AppScreen activeTab={activeTab} onNavigate={onNavigate}>
       <AppHeader title="Notifications" onBack={onBack} />
       <div className="mt-4 px-5 space-y-6">
+        {error && <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
         <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Prayer Activity</h3>
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Activity</h3>
           <div className="mt-2 space-y-2">
             <ToggleRow
-              title="New prayer request"
-              subtitle="When someone posts a request nearby."
-              initial={prayerActivity.newRequest}
-              onChange={(value) => setPrayerActivity({ ...prayerActivity, newRequest: value })}
+              key={`prayer-${settings.prayerActivity}`}
+              title="Prayer activity"
+              subtitle="When someone prays for your request."
+              initial={settings.prayerActivity}
+              storageKey={null}
+              onChange={(value) => updateSetting('prayerActivity', value)}
             />
             <ToggleRow
-              title="Prayer answered"
-              subtitle="When a request you follow is answered."
-              initial={prayerActivity.prayerAnswered}
-              onChange={(value) => setPrayerActivity({ ...prayerActivity, prayerAnswered: value })}
-            />
-            <ToggleRow
-              title="Prayer updates & comments"
-              subtitle="Activity on your requests."
-              initial={prayerActivity.prayerUpdates}
-              onChange={(value) => setPrayerActivity({ ...prayerActivity, prayerUpdates: value })}
-            />
-            <ToggleRow
-              title="Request matched"
-              subtitle="Requests that match your prayer focus."
-              initial={prayerActivity.requestMatched}
-              onChange={(value) => setPrayerActivity({ ...prayerActivity, requestMatched: value })}
-            />
-          </div>
-        </div>
-        <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Reminders</h3>
-          <div className="mt-2 space-y-2">
-            <ToggleRow
-              title="Daily prayer reminder"
-              subtitle="Your chosen prayer time."
-              initial={reminders.dailyReminder}
-              onChange={(value) => setReminders({ ...reminders, dailyReminder: value })}
-            />
-            <ToggleRow
-              title="Evening reflection"
-              subtitle="A prompt to reflect on your day."
-              initial={reminders.eveningReflection}
-              onChange={(value) => setReminders({ ...reminders, eveningReflection: value })}
-            />
-            <ToggleRow
-              title="Weekly summary"
-              subtitle="A summary of your prayer activity."
-              initial={reminders.weeklySummary}
-              onChange={(value) => setReminders({ ...reminders, weeklySummary: value })}
+              key={`testimony-${settings.testimonyReactions}`}
+              title="Testimony reactions"
+              subtitle="When someone reacts to your testimony."
+              initial={settings.testimonyReactions}
+              storageKey={null}
+              onChange={(value) => updateSetting('testimonyReactions', value)}
             />
           </div>
         </div>
@@ -82,22 +70,18 @@ export default function NotificationSettings({ onBack, activeTab, onNavigate }) 
           <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Channels</h3>
           <div className="mt-2 space-y-2">
             <ToggleRow
+              key={`push-${settings.pushEnabled}`}
               title="Push notifications"
-              initial={channels.push}
-              onChange={(value) => setChannels({ ...channels, push: value })}
-            />
-            <ToggleRow
-              title="Email"
-              initial={channels.email}
-              onChange={(value) => setChannels({ ...channels, email: value })}
-            />
-            <ToggleRow
-              title="In-app messages"
-              initial={channels.inApp}
-              onChange={(value) => setChannels({ ...channels, inApp: value })}
+              subtitle="Allow Worker-sent push notifications for enabled activity."
+              initial={settings.pushEnabled}
+              storageKey={null}
+              onChange={(value) => updateSetting('pushEnabled', value)}
             />
           </div>
         </div>
+        <p className="rounded-2xl border border-[#e6ddcf] bg-white/60 p-4 text-xs leading-5 text-slate-500">
+          Reminder, email, and weekly summary preferences are disabled until those backends are connected.
+        </p>
       </div>
     </AppScreen>
   );

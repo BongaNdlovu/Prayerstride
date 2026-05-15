@@ -7,15 +7,23 @@ export default function ResetPassword({ onBack, onSend }) {
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
 
-  const submit = () => {
+  const submit = async () => {
     if (!email.trim()) {
       setError('Please enter your email.');
       return;
     }
     setError('');
-    setSent(true);
-    onSend?.();
+    setBusy(true);
+    try {
+      await onSend?.(email.trim());
+      setSent(true);
+    } catch {
+      setError('We could not send a reset link right now. Please check the email and try again.');
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -47,8 +55,8 @@ export default function ResetPassword({ onBack, onSend }) {
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className="w-full bg-transparent text-sm text-ivory outline-none placeholder:text-ivory/45" />
             </div>
           </div>
-          <button onClick={submit} className="cinematic-button relative z-10 mt-6 w-full rounded-2xl py-4 font-semibold text-ink transition active:scale-[0.98]">
-            Send reset link
+          <button disabled={busy} onClick={submit} className="cinematic-button relative z-10 mt-6 w-full rounded-2xl py-4 font-semibold text-ink transition active:scale-[0.98] disabled:opacity-60">
+            {busy ? 'Sending...' : 'Send reset link'}
           </button>
         </>
       )}

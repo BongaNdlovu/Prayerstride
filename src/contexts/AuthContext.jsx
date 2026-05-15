@@ -3,6 +3,7 @@ import {
   createUserWithEmailAndPassword,
   deleteUser,
   onAuthStateChanged,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
   updateProfile,
@@ -53,6 +54,9 @@ export function AuthProvider({ children }) {
     },
     async signOut() {
       await firebaseSignOut(auth);
+    },
+    async resetPassword(email) {
+      await sendPasswordResetEmail(auth, email);
     },
     async updateUserProfile(profile) {
       if (!auth.currentUser) throw new Error('No signed-in user.');

@@ -210,7 +210,8 @@ function PraiseScreen() {
     try {
       await reactToTestimony(id, key);
     } catch (error) {
-      Alert.alert('Reaction saved locally', error.message);
+      setReacted((current) => ({ ...current, [`${id}:${key}`]: false }));
+      Alert.alert('Reaction not saved', error.message);
     }
   };
 
@@ -245,7 +246,8 @@ function PrayerDetail({ prayer, onBack }) {
     try {
       await prayForRequest(prayer.id);
     } catch (error) {
-      Alert.alert('Prayer noted locally', error.message);
+      setPrayed(false);
+      Alert.alert('Prayer not saved', error.message);
     }
   };
 

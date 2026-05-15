@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, Trash2, AlertTriangle, Ban, UserX, CheckCircle2, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, X } from 'lucide-react';
 import AppScreen from '../ui/AppScreen';
 import AppHeader from '../ui/AppHeader';
 import Card from '../ui/Card';
@@ -99,7 +99,7 @@ export default function ReportDetails({ onBack, activeTab, onNavigate, reportId,
               <AlertTriangle size={20} className="text-amber-600 shrink-0 mt-0.5" />
               <div>
                 <h4 className="font-semibold text-amber-900">Confirm Action</h4>
-                <p className="mt-1 text-xs text-amber-700">You are about to {actionTaken} this content/user. This action cannot be undone.</p>
+                <p className="mt-1 text-xs text-amber-700">You are about to {actionTaken === 'dismissed' ? 'dismiss' : 'resolve'} this report.</p>
                 <div className="mt-3 flex gap-2">
                   <button
                     onClick={confirmAction}
@@ -122,28 +122,10 @@ export default function ReportDetails({ onBack, activeTab, onNavigate, reportId,
         {report.status === 'pending' && (
           <div className="space-y-2">
             <button
-              onClick={() => handleAction('delete')}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-red-700 py-3.5 font-semibold text-white transition active:scale-[0.98]"
+              onClick={() => handleAction('resolved')}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-green-700 py-3.5 font-semibold text-white transition active:scale-[0.98]"
             >
-              <Trash2 size={18} /> Delete Content
-            </button>
-            <button
-              onClick={() => handleAction('warn')}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 py-3.5 font-semibold text-amber-800 transition active:scale-[0.98]"
-            >
-              <AlertTriangle size={18} /> Warn User
-            </button>
-            <button
-              onClick={() => handleAction('block')}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-red-200 bg-red-50 py-3.5 font-semibold text-red-700 transition active:scale-[0.98]"
-            >
-              <Ban size={18} /> Block User
-            </button>
-            <button
-              onClick={() => handleAction('suspend')}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-slate-100 py-3.5 font-semibold text-slate-700 transition active:scale-[0.98]"
-            >
-              <UserX size={18} /> Suspend User
+              <CheckCircle2 size={18} /> Resolve Report
             </button>
             <button
               onClick={() => handleAction('dismissed')}
@@ -151,6 +133,9 @@ export default function ReportDetails({ onBack, activeTab, onNavigate, reportId,
             >
               <X size={18} /> Dismiss Report
             </button>
+            <p className="rounded-2xl border border-slate-200 bg-white/70 p-3 text-xs leading-5 text-slate-500">
+              Content deletion, warnings, blocking, and suspension are disabled until the moderation backend is implemented.
+            </p>
           </div>
         )}
 

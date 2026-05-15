@@ -2,10 +2,12 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   addDoc,
   collection,
+  doc,
   onSnapshot,
   orderBy,
   query,
   serverTimestamp,
+  writeBatch,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext.jsx';
@@ -26,6 +28,8 @@ function mapTestimony(docSnap) {
     updatedAt: data.updatedAt,
     prayerId: data.prayerId ?? null,
     shared: Boolean(data.shared),
+    amen: data.amen || 0,
+    praiseGod: data.praiseGod || 0,
     tags: data.tags || [],
   };
 }
@@ -65,7 +69,7 @@ export function useTestimonies() {
 export async function addTestimony(data, user) {
   if (!user) throw new Error('You must be signed in to create a testimony.');
 
-  return addDoc(collection(db, 'testimonies'), {
+  const testimony = {
     title: data.title,
     body: data.body || data.text,
     prayerId: data.prayerId ?? null,
@@ -75,6 +79,20 @@ export async function addTestimony(data, user) {
     isAnonymous: Boolean(data.isAnonymous),
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
+    amen: 0,
+    praiseGod: 0,
     tags: data.tags || [],
+  };
+
+  if (!data.prayerId) return addDoc(collection(db, 'testimonies'), testimony);
+
+  const testimonyRef = doc(collection(db, 'testimonies'));
+  const batch = writeBatch(db);
+  batch.set(testimonyRef, testimony);
+  batch.update(doc(db, 'prayers', data.prayerId), {
+    status: 'answered',
+    updatedAt: serverTimestamp(),
   });
+  await batch.commit();
+  return testimonyRef;
 }
