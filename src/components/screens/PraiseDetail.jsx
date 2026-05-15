@@ -1,4 +1,5 @@
-import { ArrowLeft, CheckCircle2, ChevronRight, Heart, MessageCircle, Sparkles } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowLeft, CheckCircle2, ChevronRight, Flag, Heart, MessageCircle, Sparkles } from 'lucide-react';
 import BottomNav from '../BottomNav';
 import EncouragementThread from '../ui/EncouragementThread';
 import GlassCard from '../ui/GlassCard';
@@ -7,6 +8,7 @@ import { useTestimonies } from '../../hooks/useTestimonies';
 import { usePrayerData } from '../../hooks/usePrayerData';
 import { usePersistentState } from '../../hooks/usePersistentState';
 import { reactToTestimony } from '../../lib/api';
+import { submitReport } from '../../hooks/useReports';
 
 function ReactionButton({ active, count, label, onClick }) {
   return (
@@ -25,6 +27,8 @@ export default function PraiseDetail({ testimony, onBack, onGo, activeTab, onNav
   const { testimonies } = useTestimonies();
   const { prayers } = usePrayerData();
   const [reactions, setReactions] = usePersistentState('praise:reactions', {});
+  const [reported, setReported] = useState(false);
+  const [reportError, setReportError] = useState(null);
   const selected = testimony || testimonies[0] || {};
   const relatedPrayer = prayers.find((prayer) => prayer.id === selected.prayerId);
   const reacted = reactions[selected.id] || {};
@@ -57,6 +61,17 @@ export default function PraiseDetail({ testimony, onBack, onGo, activeTab, onNav
     }
   };
 
+  const handleReport = async () => {
+    if (reported || !selected.id) return;
+    setReportError(null);
+    try {
+      await submitReport(selected.id, 'testimony', 'Reported by user', user);
+      setReported(true);
+    } catch (err) {
+      setReportError(err);
+    }
+  };
+
   const openPrayer = () => {
     if (!relatedPrayer) return;
     onGo?.('detail', { request: { ...relatedPrayer, answered: true } });
@@ -76,10 +91,18 @@ export default function PraiseDetail({ testimony, onBack, onGo, activeTab, onNav
         <div className="relative min-h-[260px] overflow-hidden rounded-b-[34px]">
           <SceneImage scene="answered" className="absolute inset-0" />
           <div className="absolute inset-0 bg-gradient-to-b from-ink/18 via-ink/38 to-ink/92" />
-          <div className="relative z-10 px-5 pb-8 pt-4">
-            <button onClick={onBack} className="text-ivory">
-              <ArrowLeft size={22} />
-            </button>
+            <div className="relative z-10 px-5 pb-8 pt-4">
+            <div className="flex items-center justify-between">
+              <button onClick={onBack} className="text-ivory">
+                <ArrowLeft size={22} />
+              </button>
+              <button onClick={handleReport} className={`text-ivory transition ${reported ? 'opacity-50' : 'hover:text-red-300'}`} aria-label="Report testimony">
+                <Flag size={20} fill={reported ? 'currentColor' : 'none'} />
+              </button>
+            </div>
+            {reportError && (
+              <p className="mt-2 text-xs text-red-300">{reportError.message || 'Could not submit report.'}</p>
+            )}
             <div className="mt-14">
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-candle">Praise Report</p>
               <h1 className="mt-2 font-serif text-3xl leading-tight text-ivory">{selected.title}</h1>

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { ArrowLeft, Clock, Video } from 'lucide-react';
 import AppScreen from '../ui/AppScreen';
 import AppHeader from '../ui/AppHeader';
@@ -7,7 +8,7 @@ import { mockCalendarEvents } from '../../data/mockData';
 export default function CalendarScreen({ onBack, activeTab, onNavigate }) {
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const dates = Array.from({ length: 31 }, (_, i) => i + 1);
-  const selected = 15;
+  const [selected, setSelected] = useState(15);
 
   return (
     <AppScreen activeTab={activeTab} onNavigate={onNavigate}>
@@ -21,7 +22,8 @@ export default function CalendarScreen({ onBack, activeTab, onNavigate }) {
           {dates.map((d) => (
             <button
               key={d}
-              className={`flex h-8 w-8 items-center justify-center rounded-full mx-auto ${d === selected ? 'bg-navy text-white' : 'text-slate-700'}`}
+              onClick={() => setSelected(d)}
+              className={`flex h-8 w-8 items-center justify-center rounded-full mx-auto ${d === selected ? 'bg-navy text-white' : 'text-slate-700 hover:bg-slate-100'}`}
             >
               {d}
             </button>

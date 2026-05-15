@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { ChevronRight, User, ShieldCheck, Bell, BookOpen, HelpCircle, Info, LogOut, Power, Trash2, AlertTriangle } from 'lucide-react';
+import { deleteUser } from 'firebase/auth';
 import AppScreen from '../ui/AppScreen';
 import AppHeader from '../ui/AppHeader';
 import { deleteOwnAccount } from '../../lib/api';
+import { auth } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 
 export default function Settings({ onBack, activeTab, onNavigate, onSection, onSignOut, onExitApp, onDeleteAccount }) {
@@ -31,6 +33,9 @@ export default function Settings({ onBack, activeTab, onNavigate, onSection, onS
     setDeleteError(null);
     try {
       await deleteOwnAccount();
+      if (auth?.currentUser) {
+        try { await deleteUser(auth.currentUser); } catch {}
+      }
       await signOut();
     } catch (err) {
       setDeleteError(err);

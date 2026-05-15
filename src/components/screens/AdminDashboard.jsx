@@ -9,7 +9,7 @@ import { useIsAdmin } from '../../hooks/useIsAdmin';
 import { useUsers } from '../../hooks/useUsers';
 import { usePrayers } from '../../hooks/usePrayers';
 import { useTestimonies } from '../../hooks/useTestimonies';
-import { adminDeleteContent, adminSuspendUser } from '../../lib/api';
+import { adminDeleteContent, adminSuspendUser, adminDeleteAccount } from '../../lib/api';
 import EmptyState from '../ui/EmptyState';
 
 const reportsRoute = 'admin:reports';
@@ -226,15 +226,27 @@ export default function AdminDashboard({ onBack, activeTab, onNavigate, onGo }) 
                       <p className="truncate text-xs text-slate-500">{user.email || 'No email'}</p>
                     </div>
                     {user.role !== 'admin' && (
-                      <button
-                        onClick={async () => {
-                          try { await adminSuspendUser(user.id, 'Suspended by admin'); } catch (err) { console.error(err); }
-                        }}
-                        className="ml-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full hover:bg-red-50 transition"
-                        aria-label="Suspend user"
-                      >
-                        <Ban size={16} className="text-red-500" />
-                      </button>
+                      <>
+                        <button
+                          onClick={async () => {
+                            try { await adminSuspendUser(user.id, 'Suspended by admin'); } catch (err) { console.error(err); }
+                          }}
+                          className="ml-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full hover:bg-red-50 transition"
+                          aria-label="Suspend user"
+                        >
+                          <Ban size={16} className="text-red-500" />
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (!window.confirm('Permanently delete this user account and all their data?')) return;
+                            try { await adminDeleteAccount(user.id); } catch (err) { console.error(err); }
+                          }}
+                          className="ml-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full hover:bg-red-100 transition"
+                          aria-label="Delete account"
+                        >
+                          <Trash2 size={16} className="text-red-600" />
+                        </button>
+                      </>
                     )}
                   </div>
                 </Card>

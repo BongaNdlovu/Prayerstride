@@ -1,4 +1,4 @@
-import { MessageCircle, Send, MoreHorizontal, Edit2, Trash2, X } from 'lucide-react';
+import { MessageCircle, Send, MoreHorizontal, Edit2, Trash2, X, Flag } from 'lucide-react';
 import { useState } from 'react';
 import AsyncState from './AsyncState';
 import {
@@ -7,6 +7,7 @@ import {
   updateEncouragement,
   useEncouragements,
 } from '../../hooks/useEncouragements';
+import { submitReport } from '../../hooks/useReports';
 
 export default function EncouragementThread({ threadId, currentUser }) {
   const [draft, setDraft] = useState('');
@@ -15,6 +16,7 @@ export default function EncouragementThread({ threadId, currentUser }) {
   const [editingId, setEditingId] = useState(null);
   const [editText, setEditText] = useState('');
   const [showMenu, setShowMenu] = useState(null);
+  const [reportedIds, setReportedIds] = useState({});
 
   const post = async () => {
     if (!draft.trim()) return;
@@ -33,6 +35,16 @@ export default function EncouragementThread({ threadId, currentUser }) {
 
   const isOwnComment = (comment) => {
     return comment.authorUid === currentUser?.uid || comment.authorUid === currentUser?.id;
+  };
+
+  const reportComment = async (commentId) => {
+    if (reportedIds[commentId]) return;
+    setReportedIds((prev) => ({ ...prev, [commentId]: true }));
+    try {
+      await submitReport(commentId, 'encouragement', 'Reported by user', currentUser);
+    } catch {
+      setReportedIds((prev) => ({ ...prev, [commentId]: false }));
+    }
   };
 
   const startEdit = (comment) => {
@@ -163,6 +175,16 @@ export default function EncouragementThread({ threadId, currentUser }) {
                     </div>
                   )}
                 </div>
+              )}
+              {!isOwnComment(comment) && (
+                <button
+                  onClick={() => reportComment(comment.id)}
+                  disabled={reportedIds[comment.id]}
+                  className={`ml-2 flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition ${reportedIds[comment.id] ? 'text-slate-300' : 'text-slate-400 hover:text-red-500 hover:bg-red-50'}`}
+                  aria-label="Report comment"
+                >
+                  <Flag size={13} fill={reportedIds[comment.id] ? 'currentColor' : 'none'} />
+                </button>
               )}
             </div>
           </div>

@@ -1,4 +1,4 @@
-import { CheckCircle2, ChevronRight, Heart, MessageCircle, Plus, Sparkles } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Flag, Heart, MessageCircle, Plus, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import BottomNav from '../BottomNav';
 import Card from '../ui/Card';
@@ -7,6 +7,7 @@ import { usePrayerData } from '../../hooks/usePrayerData';
 import { usePersistentState } from '../../hooks/usePersistentState';
 import ImageHero from '../ui/ImageHero';
 import { reactToTestimony } from '../../lib/api';
+import { submitReport } from '../../hooks/useReports';
 
 function ReactionButton({ active, count, label, onClick }) {
   return (
@@ -21,11 +22,21 @@ function ReactionButton({ active, count, label, onClick }) {
   );
 }
 
-function TestimonyCard({ testimony, prayers, reactions, onReact, onPrayer, onOpen }) {
+function TestimonyCard({ testimony, prayers, reactions, onReact, onPrayer, onOpen, user }) {
+  const [reported, setReported] = useState(false);
   const relatedPrayer = prayers.find((prayer) => prayer.id === testimony.prayerId);
   const reacted = reactions[testimony.id] || {};
   const praiseGodCount = (testimony.praiseGod || 0) + (reacted.praiseGod ? 1 : 0);
   const amenCount = (testimony.amen || 0) + (reacted.amen ? 1 : 0);
+
+  const handleReport = async (e) => {
+    e.stopPropagation();
+    if (reported) return;
+    try {
+      await submitReport(testimony.id, 'testimony', 'Reported by user', user);
+      setReported(true);
+    } catch {}
+  };
 
   return (
     <Card className="p-4">
@@ -63,7 +74,7 @@ function TestimonyCard({ testimony, prayers, reactions, onReact, onPrayer, onOpe
         </button>
       )}
 
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-4 flex flex-wrap items-center gap-2">
         <ReactionButton
           active={reacted.praiseGod}
           count={praiseGodCount}
@@ -76,6 +87,14 @@ function TestimonyCard({ testimony, prayers, reactions, onReact, onPrayer, onOpe
           label="Amen"
           onClick={() => onReact(testimony.id, 'amen')}
         />
+        <button
+          onClick={handleReport}
+          disabled={reported}
+          className={`ml-auto rounded-full border px-2 py-2 text-xs transition ${reported ? 'border-slate-200 bg-slate-100 text-slate-400' : 'border-slate-200 bg-white text-slate-400 hover:text-red-500'}`}
+          aria-label="Report testimony"
+        >
+          <Flag size={13} fill={reported ? 'currentColor' : 'none'} />
+        </button>
       </div>
     </Card>
   );
@@ -180,6 +199,7 @@ export default function Praise({ activeTab, onNavigate, onGo, user }) {
               onReact={react}
               onPrayer={openPrayer}
               onOpen={openTestimony}
+              user={user}
             />
           ))}
         </div>

@@ -37,31 +37,37 @@ async function handleApi(request, env, url, requestId) {
 
   let match = url.pathname.match(/^\/api\/devices\/register$/);
   if (match && request.method === 'POST') {
+    await checkNotSuspended(env, user.uid);
     return registerDevice(env, user, body);
   }
 
   match = url.pathname.match(/^\/api\/prayers\/([^/]+)\/pray$/);
   if (match && request.method === 'POST') {
+    await checkNotSuspended(env, user.uid);
     return prayForRequest(env, user, decodeURIComponent(match[1]));
   }
 
   match = url.pathname.match(/^\/api\/testimonies\/([^/]+)\/react$/);
   if (match && request.method === 'POST') {
+    await checkNotSuspended(env, user.uid);
     return reactToTestimony(env, user, decodeURIComponent(match[1]), body.reaction);
   }
 
   match = url.pathname.match(/^\/api\/admin\/delete-content$/);
   if (match && request.method === 'POST') {
+    await requireAdmin(env, user);
     return adminDeleteContent(env, user, body);
   }
 
   match = url.pathname.match(/^\/api\/admin\/suspend-user$/);
   if (match && request.method === 'POST') {
+    await requireAdmin(env, user);
     return adminSuspendUser(env, user, body);
   }
 
   match = url.pathname.match(/^\/api\/admin\/delete-account$/);
   if (match && request.method === 'POST') {
+    await requireAdmin(env, user);
     return adminDeleteAccount(env, user, body);
   }
 
@@ -219,10 +225,11 @@ async function adminDeleteContent(env, user, body) {
   if (!body.targetId || !body.targetType) {
     return json({ error: 'Missing targetId or targetType' }, 400);
   }
-  if (!['prayer', 'testimony'].includes(body.targetType)) {
-    return json({ error: 'targetType must be prayer or testimony' }, 400);
+  if (!['prayer', 'testimony', 'encouragement'].includes(body.targetType)) {
+    return json({ error: 'targetType must be prayer, testimony, or encouragement' }, 400);
   }
-  const collection = body.targetType === 'prayer' ? 'prayers' : 'testimonies';
+  const collectionMap = { prayer: 'prayers', testimony: 'testimonies', encouragement: 'encouragements' };
+  const collection = collectionMap[body.targetType] || body.targetType + 's';
   const targetDoc = await getDocument(env, docName(env, collection, body.targetId));
   if (!targetDoc.exists) return json({ error: 'Content not found' }, 404);
 
@@ -233,9 +240,13 @@ async function adminDeleteContent(env, user, body) {
 async function adminSuspendUser(env, user, body) {
   await requireAdmin(env, user);
   if (!body.targetUid) return json({ error: 'Missing targetUid' }, 400);
+  if (body.targetUid === user.uid) return json({ error: 'Cannot suspend yourself' }, 400);
 
   const targetUser = await getDocument(env, docName(env, 'users', body.targetUid));
   if (!targetUser.exists) return json({ error: 'User not found' }, 404);
+
+  const targetData = fromFirestoreFields(targetUser.fields);
+  if (targetData.role === 'admin') return json({ error: 'Cannot suspend another admin' }, 400);
 
   const reason = body.reason || 'Violation of community guidelines';
   const writes = [
@@ -264,6 +275,14 @@ async function adminSuspendUser(env, user, body) {
 async function adminDeleteAccount(env, user, body) {
   await requireAdmin(env, user);
   if (!body.targetUid) return json({ error: 'Missing targetUid' }, 400);
+  if (body.targetUid === user.uid) return json({ error: 'Cannot delete your own admin account via this endpoint. Use /api/account instead.' }, 400);
+
+  const targetUser = await getDocument(env, docName(env, 'users', body.targetUid));
+  if (!targetUser.exists) return json({ error: 'User not found' }, 404);
+
+  const targetData = fromFirestoreFields(targetUser.fields);
+  if (targetData.role === 'admin') return json({ error: 'Cannot delete another admin account' }, 400);
+
   return deleteUserData(env, body.targetUid);
 }
 
@@ -275,33 +294,55 @@ async function deleteUserData(env, uid) {
   const userDoc = await getDocument(env, docName(env, 'users', uid));
   if (!userDoc.exists) return json({ error: 'User not found' }, 404);
 
-  const collectionsToClear = ['prayers', 'testimonies', 'encouragements', 'prayerSessions', 'notifications', 'apiRateLimits'];
   const writes = [{ delete: userDoc.name }];
 
-  for (const collection of collectionsToClear) {
+  const processCollection = async (collectionName, matchField) => {
     try {
-      const docs = await listDocuments(env, docName(env, collection));
-      for (const doc of docs) {
-        const data = fromFirestoreFields(doc.fields || {});
-        if (data.authorUid === uid || data.recipientUid === uid || data.uid === uid || data.reportedByUid === uid) {
-          writes.push({ delete: doc.name });
+      const docs = await listDocuments(env, docName(env, collectionName));
+      for (const d of docs) {
+        const data = fromFirestoreFields(d.fields || {});
+        if (matchField(data)) {
+          writes.push({ delete: d.name });
+          if (collectionName === 'prayers' || collectionName === 'testimonies') {
+            const subName = collectionName === 'prayers' ? 'prays' : 'reactions';
+            try {
+              const subs = await listDocuments(env, docName(env, collectionName, dataId(d), subName));
+              for (const s of subs) writes.push({ delete: s.name });
+            } catch {}
+          }
         }
       }
     } catch (err) {
-      log(env, 'warn', { uid, collection, error: err.message }, 'deleteUserData:collection-list-failed');
+      log(env, 'warn', { uid, collection: collectionName, error: err.message }, 'deleteUserData:list-failed');
     }
-  }
+  };
+
+  await processCollection('prayers', (d) => d.authorUid === uid);
+  await processCollection('testimonies', (d) => d.authorUid === uid);
+  await processCollection('encouragements', (d) => d.authorUid === uid);
+  await processCollection('prayerSessions', (d) => d.authorUid === uid);
+  await processCollection('notifications', (d) => d.recipientUid === uid || d.actorUid === uid);
+  await processCollection('reports', (d) => d.reportedByUid === uid || d.targetId === uid);
+
+  try {
+    const apiDocs = await listDocuments(env, docName(env, 'apiRateLimits'));
+    for (const d of apiDocs) {
+      const data = fromFirestoreFields(d.fields || {});
+      if (data.uid === uid) writes.push({ delete: d.name });
+    }
+  } catch {}
 
   const deviceDocs = await listDocuments(env, docName(env, 'users', uid, 'devices'));
-  for (const doc of deviceDocs) {
-    writes.push({ delete: doc.name });
-  }
+  for (const d of deviceDocs) writes.push({ delete: d.name });
 
-  const settingsDoc = docName(env, 'notificationSettings', uid);
-  writes.push({ delete: settingsDoc });
+  writes.push({ delete: docName(env, 'notificationSettings', uid) });
 
   await firestoreCommit(env, writes);
   return json({ ok: true });
+}
+
+function dataId(doc) {
+  return doc.name.split('/').pop();
 }
 
 function notificationWrite(env, recipientUid, notification) {
@@ -326,16 +367,27 @@ async function sendPushToUser(env, uid, payload) {
     .filter(Boolean);
 
   await Promise.all(tokens.map(async (device) => {
-    try {
-      await sendFcm(env, device.token, payload);
-    } catch (error) {
-      log(env, 'error', { uid, tokenPrefix: device.token.slice(0, 10), error: error.message }, 'fcm-send-failed');
-      if (error.invalidToken) {
-        await firestoreCommit(env, [{ delete: device.name }]);
-        log(env, 'info', { uid, deviceName: device.name }, 'invalid-token-cleaned');
+    let lastError = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        await sendFcm(env, device.token, payload);
+        return;
+      } catch (error) {
+        lastError = error;
+        if (error.invalidToken) break;
+        if (attempt < 2) await sleep(Math.pow(2, attempt) * 200);
       }
     }
+    log(env, 'error', { uid, tokenPrefix: device.token.slice(0, 10), error: lastError?.message, attempts: lastError?.invalidToken ? 1 : 3 }, 'fcm-send-failed');
+    if (lastError?.invalidToken) {
+      await firestoreCommit(env, [{ delete: device.name }]);
+      log(env, 'info', { uid, deviceName: device.name }, 'invalid-token-cleaned');
+    }
   }));
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function sendFcm(env, token, payload) {
@@ -376,6 +428,7 @@ async function verifyFirebaseUser(request, env) {
   });
   const result = await response.json();
   if (!response.ok || !result.users?.[0]) throw new Error('Invalid Firebase ID token');
+  if (result.users[0].disabled) throw Object.assign(new Error('This account has been disabled.'), { status: 403, publicMessage: 'Account disabled' });
   return { uid: result.users[0].localId, email: result.users[0].email };
 }
 
@@ -384,6 +437,16 @@ async function requireAdmin(env, user) {
   if (!userDoc.exists) throw Object.assign(new Error('User profile not found'), { status: 403 });
   const data = fromFirestoreFields(userDoc.fields);
   if (data.role !== 'admin') throw Object.assign(new Error('Admin access required'), { status: 403 });
+}
+
+async function checkNotSuspended(env, uid) {
+  const userDoc = await getDocument(env, docName(env, 'users', uid));
+  if (userDoc.exists) {
+    const data = fromFirestoreFields(userDoc.fields);
+    if (data.suspended === true) {
+      throw Object.assign(new Error('Your account has been suspended.'), { status: 403, publicMessage: 'Account suspended' });
+    }
+  }
 }
 
 async function getDocument(env, name) {
@@ -399,18 +462,29 @@ async function getDocument(env, name) {
 
 async function firestoreCommit(env, writes, options = {}) {
   const accessToken = await getGoogleAccessToken(env);
+  const body = { writes };
+  if (options.precondition) {
+    for (const write of writes) {
+      if (write.update && !write.currentDocument) {
+        write.currentDocument = options.precondition;
+      }
+    }
+  }
   const response = await fetch(`https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents:commit`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ writes }),
+    body: JSON.stringify(body),
   });
   const result = await response.json();
   if (!response.ok) {
     if (options.allowAlreadyExists && result.error?.status === 'ALREADY_EXISTS') {
       return { alreadyExists: true };
+    }
+    if (result.error?.status === 'FAILED_PRECONDITION') {
+      return { preconditionFailed: true };
     }
     throw new Error(result.error?.message || 'Firestore commit failed');
   }
@@ -446,12 +520,15 @@ async function enforceCooldown(env, uid, action, seconds) {
       throw Object.assign(new Error('Please wait a moment before trying again.'), { status: 429 });
     }
   }
+  const precondition = current.exists
+    ? { updateTime: current.updateTime }
+    : { exists: false };
   await firestoreCommit(env, [{
     update: {
       name,
       fields: toFirestoreFields({ uid, action, updatedAt: now.toISOString() }),
     },
-  }]);
+  }], { precondition });
 }
 
 async function enforceGlobalRateLimit(env, request, requestId) {
@@ -471,22 +548,35 @@ async function enforceGlobalRateLimit(env, request, requestId) {
     }
   }
 
-  const count = (current.exists ? fromFirestoreFields(current.fields).count || 0 : 0) + 1;
-  await firestoreCommit(env, [{
+  const isNewWindow = !current.exists || fromFirestoreFields(current.fields).window !== minuteWindow;
+  const count = isNewWindow ? 1 : ((fromFirestoreFields(current.fields).count || 0) + 1);
+  const precondition = current.exists ? { updateTime: current.updateTime } : { exists: false };
+  const result = await firestoreCommit(env, [{
     update: {
       name: rateDoc,
       fields: toFirestoreFields({
         clientIp,
         window: minuteWindow,
-        count: current.exists && fromFirestoreFields(current.fields).window !== minuteWindow ? 1 : count,
+        count,
         updatedAt: new Date().toISOString(),
       }),
     },
-  }]);
+  }], { precondition });
+  if (result.preconditionFailed) {
+    log(env, 'warn', { requestId, clientIp }, 'rate-limit-precondition-failed');
+    return;
+  }
 }
+
+let cachedAccessToken = null;
+let cachedAccessTokenExpiry = 0;
 
 async function getGoogleAccessToken(env) {
   const now = Math.floor(Date.now() / 1000);
+  if (cachedAccessToken && now < cachedAccessTokenExpiry - 60) {
+    return cachedAccessToken;
+  }
+
   const header = base64Url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
   const claim = base64Url(JSON.stringify({
     iss: env.FIREBASE_CLIENT_EMAIL,
@@ -507,6 +597,8 @@ async function getGoogleAccessToken(env) {
   });
   const result = await response.json();
   if (!response.ok) throw new Error(result.error_description || 'Google auth failed');
+  cachedAccessToken = result.access_token;
+  cachedAccessTokenExpiry = now + 3600;
   return result.access_token;
 }
 

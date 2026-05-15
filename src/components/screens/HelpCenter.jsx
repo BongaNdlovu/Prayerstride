@@ -34,7 +34,7 @@ export default function HelpCenter({ onBack, activeTab, onNavigate }) {
             <MessageCircle size={22} />
           </div>
           <p className="mt-3 text-sm font-semibold text-slate-800">Still need help? We are here for you.</p>
-          <button className="mt-3 rounded-2xl bg-navy px-6 py-2.5 text-sm font-semibold text-white">Contact Support</button>
+          <a href="mailto:support@prayerstride.app" className="mt-3 inline-block rounded-2xl bg-navy px-6 py-2.5 text-sm font-semibold text-white">Contact Support</a>
         </Card>
       </div>
     </AppScreen>

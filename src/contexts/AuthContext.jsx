@@ -3,12 +3,13 @@ import {
   createUserWithEmailAndPassword,
   deleteUser,
   onAuthStateChanged,
+  sendEmailVerification,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
   updateProfile,
 } from 'firebase/auth';
-import { deleteDoc, doc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 import { isOwnerEmail, OWNER_DISPLAY_NAME } from '../data/owner';
 
@@ -50,6 +51,8 @@ export function AuthProvider({ children }) {
         photoURL: null,
       }, { merge: true });
 
+      await sendEmailVerification(credential.user);
+
       return credential.user;
     },
     async signOut() {
@@ -76,9 +79,6 @@ export function AuthProvider({ children }) {
     },
     async deleteAccount() {
       if (!auth.currentUser) throw new Error('No signed-in user.');
-      const uid = auth.currentUser.uid;
-
-      await deleteDoc(doc(db, 'users', uid));
       await deleteUser(auth.currentUser);
     },
   }), [user, loading]);

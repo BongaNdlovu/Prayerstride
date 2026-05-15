@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import {
   createUserWithEmailAndPassword,
   onAuthStateChanged,
+  sendEmailVerification,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
@@ -40,7 +41,9 @@ export function AuthProvider({ children }) {
         createdAt: serverTimestamp(),
         role: isOwner ? 'admin' : 'user',
         owner: isOwner,
+        photoURL: null,
       });
+      await sendEmailVerification(credential.user);
       return credential;
     },
     async signOut() {

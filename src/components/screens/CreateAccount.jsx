@@ -70,7 +70,7 @@ export default function CreateAccount({ onBack, onCreate }) {
         Create Account
       </button>
       <p className="relative z-10 mt-4 text-center text-[11px] leading-5 text-ivory/58">
-        By creating an account, you agree to our <button className="font-semibold text-candle">Terms of Use</button> and <button className="font-semibold text-candle">Privacy Policy</button>.
+        By creating an account, you agree to our <span className="font-semibold text-candle">Terms of Use</span> and <span className="font-semibold text-candle">Privacy Policy</span>.
       </p>
     </div>
   );

@@ -70,7 +70,7 @@ runSmokeTests();
 
 export default function App() {
   const { user, loading, signIn, register, signOut, resetPassword, updateUserProfile, deleteAccount: deleteFirebaseAccount } = useAuth();
-  const { isAdmin } = useIsAdmin();
+  const { isAdmin, suspended, suspendedReason } = useIsAdmin();
   const { onboarded, setOnboarded, screen, active, params, go, back, resetTo, handleNav } = useNavigation();
 
   const authUser = user ? {
@@ -101,6 +101,13 @@ export default function App() {
       resetTo('signIn');
     }
   }, [loading, resetTo, screen, user]);
+
+  useEffect(() => {
+    if (loading || !user) return;
+    if (suspended && screen !== 'accountSuspended' && screen !== 'signIn') {
+      resetTo('accountSuspended');
+    }
+  }, [loading, user, suspended, screen, resetTo]);
 
   const content = useMemo(() => {
     const setNav = handleNav;
@@ -137,8 +144,12 @@ export default function App() {
     };
 
     const deleteAccount = async () => {
-      await deleteFirebaseAccount();
-
+      try {
+        await import('./lib/api').then((m) => m.deleteOwnAccount());
+      } catch {}
+      try {
+        await deleteFirebaseAccount();
+      } catch {}
       if (typeof window !== 'undefined') {
         [
           'auth:user',
@@ -153,7 +164,7 @@ export default function App() {
           `profile:${authUser?.id || 'guest'}:avatar`,
         ].forEach((key) => window.localStorage.removeItem(key));
       }
-
+      await signOut();
       setOnboarded(false);
       resetTo('splash');
     };
@@ -225,10 +236,10 @@ export default function App() {
     if (screen === "termsOfService") return <TermsOfService onBack={() => back("settings")} activeTab={active} onNavigate={setNav} />;
     if (screen === "adminDashboard") return <AdminDashboard onBack={() => go("profile")} activeTab={active} onNavigate={setNav} onGo={go} />;
     if (screen === "reportDetails") return <ReportDetails onBack={() => go("adminDashboard")} activeTab={active} onNavigate={setNav} reportId={params.reportId} />;
-    if (screen === "accountSuspended") return <AccountSuspended onAppeal={() => {}} onSignIn={() => go("signIn")} />;
+    if (screen === "accountSuspended") return <AccountSuspended onAppeal={async () => { await signOut(); resetTo('signIn'); }} onSignIn={async () => { await signOut(); resetTo('signIn'); }} />;
     if (screen === "notifications") return <Notifications onBack={() => go("home")} activeTab={active} onNavigate={setNav} />;
     return <HomeScreen onNavigate={setNav} onGo={go} activeTab={active} />;
-  }, [authUser, loading, onboarded, setOnboarded, screen, active, params, go, back, resetTo, handleNav, signIn, register, signOut, resetPassword, updateUserProfile, deleteFirebaseAccount, user, isAdmin]);
+  }, [authUser, loading, onboarded, setOnboarded, screen, active, params, go, back, resetTo, handleNav, signIn, register, signOut, resetPassword, updateUserProfile, deleteFirebaseAccount, user, isAdmin, suspended, suspendedReason]);
 
   return (
     <>

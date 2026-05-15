@@ -1,14 +1,17 @@
-import { Settings, ChevronRight, Heart, Bell, BarChart3, Clock, Camera, ShieldCheck } from 'lucide-react';
+import { useState } from 'react';
+import { Settings, ChevronRight, Heart, Bell, BarChart3, Clock, Camera, ShieldCheck, Flag } from 'lucide-react';
 import PrayingHandsIcon from '../PrayingHandsIcon';
 import BottomNav from '../BottomNav';
 import SceneImage from '../ui/SceneImage';
 import { usePersistentState } from '../../hooks/usePersistentState';
 import { usePrayerData } from '../../hooks/usePrayerData';
 import { useIsAdmin } from '../../hooks/useIsAdmin';
+import { submitReport } from '../../hooks/useReports';
 
 export default function Profile({ activeTab, onNavigate, onGo, user }) {
   const { prayers } = usePrayerData(user);
   const { isAdmin, loading: adminLoading } = useIsAdmin();
+  const [reported, setReported] = useState(false);
   const [profile] = usePersistentState(`profile:${user?.id || 'guest'}`, {
     name: user?.name || 'Guest',
     handle: user?.handle || '',
@@ -16,6 +19,14 @@ export default function Profile({ activeTab, onNavigate, onGo, user }) {
   });
   const userPrayers = prayers.filter((prayer) => prayer.authorUid === user?.uid);
   const answeredCount = userPrayers.filter((prayer) => prayer.status === 'answered').length;
+
+  const handleReport = async () => {
+    if (reported || !user?.uid) return;
+    try {
+      await submitReport(user.uid, 'user', 'Reported by user', user);
+      setReported(true);
+    } catch {}
+  };
   const menu = [
     { icon: PrayingHandsIcon, label: 'My Prayers', key: 'myPrayers' },
     { icon: Heart, label: 'Answered Prayers', key: 'answeredPrayers' },
@@ -33,7 +44,12 @@ export default function Profile({ activeTab, onNavigate, onGo, user }) {
       <div className="no-scrollbar relative z-10 min-h-0 flex-1 overflow-y-auto px-4 pb-4">
       <div className="mt-4 flex items-center justify-between">
         <h1 className="font-serif text-3xl text-ivory">Profile</h1>
-        <button onClick={() => onGo?.('settings')} className="text-ivory"><Settings size={22} /></button>
+        <div className="flex items-center gap-3">
+          <button onClick={handleReport} disabled={reported} className={`text-ivory transition ${reported ? 'opacity-40' : 'hover:text-red-300'}`} aria-label="Report user">
+            <Flag size={18} fill={reported ? 'currentColor' : 'none'} />
+          </button>
+          <button onClick={() => onGo?.('settings')} className="text-ivory"><Settings size={22} /></button>
+        </div>
       </div>
       <div className="glass-panel mt-6 rounded-[28px] p-4 text-center">
         <button onClick={() => onGo?.('editProfile')} className="relative mx-auto block h-20 w-20">
