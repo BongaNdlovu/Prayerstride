@@ -8,7 +8,10 @@
     "build": "vite build",
     "preview": "vite preview",
     "test:visual": "node scripts/visual-smoke.mjs",
-    "test:flow": "node scripts/flow-smoke.mjs"
+    "test:flow": "node scripts/flow-smoke.mjs",
+    "test:logic": "node scripts/logic-smoke.mjs",
+    "test:ui": "node scripts/ui-source-smoke.mjs",
+    "test": "npm run test:flow && npm run test:logic && npm run test:ui"
   },
   "dependencies": {
     "react": "^18.3.1",

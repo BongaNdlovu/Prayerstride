@@ -1,0 +1,82 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import {
+  APP_SCREENS,
+  NAV_TO_SCREEN,
+} from '../src/data/constants.js';
+import {
+  mockAdminStats,
+  mockAnnouncements,
+  mockPrayerRequests,
+  mockReports,
+  mockUsers,
+} from '../src/data/mockData.js';
+
+const root = process.cwd();
+const app = readFileSync(join(root, 'src', 'App.jsx'), 'utf8');
+const profile = readFileSync(join(root, 'src', 'components', 'screens', 'Profile.jsx'), 'utf8');
+const adminDashboard = readFileSync(join(root, 'src', 'components', 'screens', 'AdminDashboard.jsx'), 'utf8');
+const reportDetails = readFileSync(join(root, 'src', 'components', 'screens', 'ReportDetails.jsx'), 'utf8');
+const navigation = readFileSync(join(root, 'src', 'hooks', 'useNavigation.js'), 'utf8');
+
+const failures = [];
+
+const assert = (condition, message) => {
+  if (!condition) failures.push(message);
+};
+
+const uniqueScreens = new Set(APP_SCREENS);
+assert(uniqueScreens.size === APP_SCREENS.length, 'APP_SCREENS contains duplicate route names.');
+
+for (const [navKey, screen] of Object.entries(NAV_TO_SCREEN)) {
+  assert(APP_SCREENS.includes(screen), `Bottom nav key "${navKey}" points to missing screen "${screen}".`);
+}
+
+for (const required of ['adminDashboard', 'reportDetails', 'notifications']) {
+  assert(APP_SCREENS.includes(required), `APP_SCREENS is missing required route "${required}".`);
+}
+
+for (const protectedScreen of ['adminDashboard', 'reportDetails', 'create', 'settings']) {
+  assert(app.includes(`"${protectedScreen}"`), `Protected screen "${protectedScreen}" is not represented in App.jsx.`);
+}
+
+assert(profile.includes('Stewardship Console'), 'Profile does not expose the Stewardship Console entry.');
+assert(adminDashboard.includes('Stewardship Console'), 'Admin console title is missing.');
+assert(navigation.includes("next === 'adminDashboard'"), 'Navigation does not keep adminDashboard under the profile tab.');
+assert(navigation.includes("next === 'reportDetails'"), 'Navigation does not keep reportDetails under the profile tab.');
+
+for (const tab of ['overview', 'reports', 'members', 'content', 'broadcasts', 'stewardship']) {
+  assert(adminDashboard.includes(`key: '${tab}'`) || adminDashboard.includes(`setActiveTabFilter('${tab}')`), `Admin console is missing "${tab}" tab/functionality.`);
+}
+
+for (const action of ['resolved', 'dismissed', 'admin:owner-settings', 'admin:reports']) {
+  assert(adminDashboard.includes(action) || reportDetails.includes(action), `Admin flow is missing "${action}" handling.`);
+}
+
+for (const report of mockReports) {
+  assert(report.id && report.reason && report.status, `Report "${report.id || 'unknown'}" is missing id, reason, or status.`);
+  assert(['open', 'resolved', 'dismissed'].includes(report.status), `Report "${report.id}" has unsupported status "${report.status}".`);
+}
+
+for (const user of mockUsers) {
+  assert(user.id && user.name && user.handle && user.role, `Mock user "${user.id || 'unknown'}" is missing required profile fields.`);
+}
+
+for (const prayer of mockPrayerRequests) {
+  assert(prayer.id && prayer.title && prayer.text && prayer.privacy, `Prayer request "${prayer.id || 'unknown'}" is missing required fields.`);
+}
+
+for (const announcement of mockAnnouncements) {
+  assert(announcement.id && announcement.title && announcement.type && announcement.date, `Announcement "${announcement.id || 'unknown'}" is missing required fields.`);
+}
+
+assert(Array.isArray(mockAdminStats.adminChart) && mockAdminStats.adminChart.length >= 7, 'Admin chart needs at least seven data points.');
+assert(mockAdminStats.activeUsers > 0, 'Admin stats should include active users.');
+
+if (failures.length) {
+  console.error('Logic smoke test failed:');
+  for (const failure of failures) console.error(`- ${failure}`);
+  process.exit(1);
+}
+
+console.log(`Logic smoke test passed: ${APP_SCREENS.length} screens, ${mockUsers.length} users, ${mockReports.length} reports checked.`);

@@ -38,6 +38,43 @@ if (!browser) {
 mkdirSync(outDir, { recursive: true });
 const userDataDir = mkdtempSync(join(tmpdir(), 'prayerstride-visual-'));
 
+const pageCheck = spawnSync(browser, [
+  '--headless=new',
+  '--disable-gpu',
+  '--no-first-run',
+  `--user-data-dir=${userDataDir}`,
+  '--virtual-time-budget=2500',
+  '--dump-dom',
+  url,
+], { encoding: 'utf8' });
+
+if (pageCheck.status !== 0) {
+  rmSync(userDataDir, { recursive: true, force: true });
+  process.stderr.write(pageCheck.stderr || '');
+  process.exit(pageCheck.status || 1);
+}
+
+const pageText = `${pageCheck.stdout}\n${pageCheck.stderr}`;
+const browserErrorPatterns = [
+  /ERR_CONNECTION_REFUSED/i,
+  /This site can't be reached/i,
+  /This site can.t be reached/i,
+  /refused to connect/i,
+  /DNS_PROBE/i,
+];
+
+if (browserErrorPatterns.some((pattern) => pattern.test(pageText))) {
+  rmSync(userDataDir, { recursive: true, force: true });
+  console.error(`Visual smoke failed: ${url} rendered a browser error page.`);
+  process.exit(1);
+}
+
+if (!/PrayerStride/i.test(pageText)) {
+  rmSync(userDataDir, { recursive: true, force: true });
+  console.error(`Visual smoke failed: ${url} did not render expected PrayerStride content.`);
+  process.exit(1);
+}
+
 const result = spawnSync(browser, [
   '--headless=new',
   '--disable-gpu',
