@@ -28,24 +28,6 @@ export const mockTestimonies = [
   { id: 't4', prayerId: 'p3', userId: 'u4', name: 'Michael T.', title: 'Restored Relationship', text: 'After a year of estrangement, my brother and I reconciled. Prayer changes things.', praiseGod: 156, amen: 91, time: '2w ago' },
 ];
 
-export const mockGroups = [
-  { id: 'g1', name: 'Daily Prayer Circle', members: 1248, type: 'Public', description: 'We gather each day to lift our hearts in prayer and seek God together.', image: '#efe4d5' },
-  { id: 'g2', name: 'Moms in Prayer', members: 843, type: 'Public', description: 'Encouraging and praying for our children.', image: '#e7dfd2' },
-  { id: 'g3', name: 'College & Young Adults', members: 612, type: 'Public', description: 'Faith, life, and purpose in this season.', image: '#ddd6ca' },
-  { id: 'g4', name: 'Global Intercession', members: 934, type: 'Public', description: 'Praying for nations and global needs.', image: '#d8cec0' },
-];
-
-export const mockGroupMembers = [
-  { id: 'u1', name: 'Olivia Thompson', role: 'Admin', avatarColor: '#ded3c4' },
-  { id: 'u2', name: 'Ethan Brooks', role: 'Admin', avatarColor: '#d4c8b8' },
-  { id: 'u3', name: 'Grace Williams', role: 'Leader', avatarColor: '#c9bda8' },
-  { id: 'u4', name: 'Daniel Kim', role: 'Leader', avatarColor: '#beb29d' },
-  { id: 'u5', name: 'Ava Martinez', role: 'Member', avatarColor: '#b3a792' },
-  { id: 'u6', name: 'Noah Johnson', role: 'Member', avatarColor: '#a89c87' },
-  { id: 'u7', name: 'Mia Anderson', role: 'Member', avatarColor: '#9d9181' },
-  { id: 'u8', name: 'Liam Cooper', role: 'Member', avatarColor: '#92867a' },
-];
-
 export const mockAnnouncements = [
   { id: 'a1', title: 'Community Worship Night', date: 'May 24', time: '7:00 PM', type: 'Events' },
   { id: 'a2', title: 'Baptism Sunday', date: 'May 18', time: '10:30 AM', type: 'Events' },

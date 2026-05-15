@@ -27,21 +27,27 @@ service cloud.firestore {
 
     match /prayers/{prayerId} {
       allow read: if signedIn();
+
       allow create: if signedIn()
         && request.resource.data.authorUid == request.auth.uid
         && request.resource.data.status in ["active", "answered"];
+
       allow update: if isAuthor()
         && request.resource.data.authorUid == resource.data.authorUid
         && request.resource.data.status in ["active", "answered"];
+
       allow delete: if isAuthor() || isAdmin();
     }
 
     match /testimonies/{testimonyId} {
       allow read: if signedIn();
+
       allow create: if signedIn()
         && request.resource.data.authorUid == request.auth.uid;
+
       allow update: if isAuthor()
         && request.resource.data.authorUid == resource.data.authorUid;
+
       allow delete: if isAuthor() || isAdmin();
     }
 
@@ -50,16 +56,23 @@ service cloud.firestore {
         && request.resource.data.reportedByUid == request.auth.uid
         && request.resource.data.targetType in ["prayer", "testimony", "user"]
         && request.resource.data.status == "pending";
-      allow update: if isAdmin()
-        && request.resource.data.status in ["pending", "resolved", "dismissed"];
+
       allow read, delete: if isAdmin();
+
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly(["status"])
+        && request.resource.data.status in ["pending", "resolved", "dismissed"];
     }
 
     match /notifications/{notificationId} {
-      allow read: if signedIn() && resource.data.recipientUid == request.auth.uid;
+      allow read: if signedIn()
+        && resource.data.recipientUid == request.auth.uid;
+
       allow update: if signedIn()
         && resource.data.recipientUid == request.auth.uid
-        && request.resource.data.recipientUid == resource.data.recipientUid;
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly(["read"])
+        && request.resource.data.read is bool;
+
       allow create, delete: if false;
     }
   }

@@ -247,7 +247,7 @@ export default function App() {
             </div>
             <div className="mt-6 rounded-2xl border border-[#e3d9ca] bg-sand p-4">
               <h3 className="font-serif text-xl text-navy">Screens included</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600">39+ screens: onboarding, auth, home feed, prayer hub, explore, prayer detail, create request/testimony, groups, devotions, calendar, stats, reminders, achievements, settings, admin, and more. Use the phone navigation to move through the app.</p>
+              <p className="mt-2 text-sm leading-6 text-slate-600">39+ screens: onboarding, auth, home feed, prayer hub, explore, prayer detail, create request/testimony, devotions, calendar, stats, reminders, achievements, settings, admin, and more. Use the phone navigation to move through the app.</p>
             </div>
           </div>
 

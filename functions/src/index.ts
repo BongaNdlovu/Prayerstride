@@ -1,6 +1,6 @@
 import { onDocumentUpdated } from 'firebase-functions/v2/firestore';
 import { initializeApp } from 'firebase-admin/app';
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 
 initializeApp();
 
@@ -9,14 +9,14 @@ export const notifyPrayerAuthorOnPrayed = onDocumentUpdated(
   async (event) => {
     const before = event.data?.before.data();
     const after = event.data?.after.data();
-    const prayerId = event.params.prayerId;
 
     if (!before || !after) return;
 
-    const beforeCount = before.prayedCount || 0;
-    const afterCount = after.prayedCount || 0;
+    const beforeCount = Number(before.prayedCount || 0);
+    const afterCount = Number(after.prayedCount || 0);
 
     if (afterCount <= beforeCount) return;
+    if (!after.authorUid) return;
 
     await getFirestore().collection('notifications').add({
       recipientUid: after.authorUid,
@@ -24,7 +24,7 @@ export const notifyPrayerAuthorOnPrayed = onDocumentUpdated(
       message: 'Someone prayed for your request.',
       read: false,
       createdAt: FieldValue.serverTimestamp(),
-      relatedId: prayerId,
+      relatedId: event.params.prayerId,
     });
   },
 );

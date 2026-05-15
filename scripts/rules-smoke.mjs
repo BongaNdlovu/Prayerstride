@@ -10,45 +10,59 @@ const testEnv = await initializeTestEnvironment({
   firestore: { rules },
 });
 
-const USER_A = { uid: 'user-a', email: 'a@test.com' };
-const USER_B = { uid: 'user-b', email: 'b@test.com' };
-const ADMIN_USER = { uid: 'admin-user', email: 'admin@test.com' };
+async function seedFixtures() {
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
 
-const UNAUTH = null;
+    await db.doc('users/admin-user').set({
+      uid: 'admin-user',
+      email: 'admin@test.com',
+      displayName: 'Admin',
+      role: 'admin',
+    });
 
-async function setupRoles() {
-  const adminDb = testEnv.authenticatedContext(ADMIN_USER).firestore();
-  await adminDb.doc('users/admin-user').set({
-    uid: 'admin-user',
-    email: 'admin@test.com',
-    displayName: 'Admin',
-    role: 'admin',
-  });
-  await adminDb.doc('users/user-a').set({
-    uid: 'user-a',
-    email: 'a@test.com',
-    displayName: 'User A',
-    role: 'user',
+    await db.doc('users/user-a').set({
+      uid: 'user-a',
+      email: 'a@test.com',
+      displayName: 'User A',
+      role: 'user',
+    });
+
+    await db.doc('users/user-b').set({
+      uid: 'user-b',
+      email: 'b@test.com',
+      displayName: 'User B',
+      role: 'user',
+    });
+
+    await db.doc('notifications/notification-a').set({
+      recipientUid: 'user-a',
+      type: 'prayer_activity',
+      message: 'Test notification',
+      read: false,
+      createdAt: new Date(),
+      relatedId: null,
+    });
   });
 }
 
 async function runTests() {
   await testEnv.clearFirestore();
-  await setupRoles();
+  await seedFixtures();
 
-  // 1. Users: self read/write, cross-user reject
-  const aDb = testEnv.authenticatedContext(USER_A, { email_verified: true }).firestore();
-  await assertSucceeds(aDb.doc('users/user-a').set({ uid: 'user-a', role: 'user' }));
+  const aDb = testEnv.authenticatedContext('user-a', { email: 'a@test.com' }).firestore();
+  const bDb = testEnv.authenticatedContext('user-b', { email: 'b@test.com' }).firestore();
+  const adminDb = testEnv.authenticatedContext('admin-user', { email: 'admin@test.com' }).firestore();
+  const unauthDb = testEnv.unauthenticatedContext().firestore();
+
   await assertSucceeds(aDb.doc('users/user-a').get());
+  await assertSucceeds(aDb.doc('users/user-a').update({ displayName: 'Updated User A' }));
   await assertFails(aDb.doc('users/user-b').get());
 
-  // 2. Signed-in user reads prayers
-  const unauthDb = testEnv.unauthenticatedContext().firestore();
   await assertFails(unauthDb.collection('prayers').get());
   await assertSucceeds(aDb.collection('prayers').get());
 
-  // 3. Author can update own prayer; non-author cannot delete
-  const prayerRef = aDb.collection('prayers').doc();
+  const prayerRef = aDb.collection('prayers').doc('prayer-a');
   await assertSucceeds(prayerRef.set({
     title: 'Test',
     body: 'Test body',
@@ -57,60 +71,43 @@ async function runTests() {
     isAnonymous: false,
     prayedCount: 0,
     status: 'active',
+    createdAt: new Date(),
+    updatedAt: new Date(),
   }));
 
-  const bDb = testEnv.authenticatedContext(USER_B, { email_verified: true }).firestore();
-  const bPrayerRef = bDb.collection('prayers').doc(prayerRef.id);
-  await assertSucceeds(bPrayerRef.get());
-  await assertFails(bPrayerRef.delete());
+  await assertSucceeds(bDb.collection('prayers').doc('prayer-a').get());
+  await assertFails(bDb.collection('prayers').doc('prayer-a').delete());
   await assertSucceeds(prayerRef.update({ status: 'answered' }));
+  await assertSucceeds(adminDb.collection('prayers').doc('prayer-a').delete());
 
-  // 4. Admin can delete any prayer
-  const adminDbCtx = testEnv.authenticatedContext(ADMIN_USER, { email_verified: true }).firestore();
-  const adminPrayerRef = adminDbCtx.collection('prayers').doc(prayerRef.id);
-  await assertSucceeds(adminPrayerRef.delete());
-
-  // 5. Signed-in user can create a report
-  const reportRef = aDb.collection('reports').doc();
+  const reportRef = aDb.collection('reports').doc('report-a');
   await assertSucceeds(reportRef.set({
     targetId: 'target-1',
     targetType: 'prayer',
     reason: 'Test report',
     reportedByUid: 'user-a',
     status: 'pending',
+    createdAt: new Date(),
   }));
 
-  // 6. Non-admin cannot read reports
   await assertFails(aDb.collection('reports').get());
+  await assertSucceeds(adminDb.collection('reports').get());
+  await assertSucceeds(adminDb.collection('reports').doc('report-a').update({ status: 'resolved' }));
+  await assertSucceeds(adminDb.collection('reports').doc('report-a').update({ status: 'dismissed' }));
+  await assertFails(adminDb.collection('reports').doc('report-a').update({ targetId: 'changed' }));
 
-  // 7. Admin can read/update reports
-  const adminReportRef = adminDbCtx.collection('reports').doc(reportRef.id);
-  await assertSucceeds(adminDbCtx.collection('reports').get());
-  await assertSucceeds(adminReportRef.update({ status: 'resolved' }));
-  await assertSucceeds(adminReportRef.update({ status: 'dismissed' }));
-  await assertFails(aDb.doc(`reports/${reportRef.id}`).get());
-
-  // 8. Recipient can read/update own notification; cannot create notifications
-  const notificationRef = adminDbCtx.collection('notifications').doc();
-  await assertFails(aDb.collection('notifications').doc().set({
+  await assertFails(aDb.collection('notifications').doc('bad-create').set({
     recipientUid: 'user-a',
     type: 'test',
     message: 'Test',
     read: false,
+    createdAt: new Date(),
+    relatedId: null,
   }));
 
-  const existingNotificationRef = adminDbCtx.collection('notifications').doc();
-  await existingNotificationRef.set({
-    recipientUid: 'user-a',
-    type: 'prayer_activity',
-    message: 'Test notification',
-    read: false,
-  });
-
-  const aNotificationRef = aDb.collection('notifications').doc(existingNotificationRef.id);
-  await assertSucceeds(aNotificationRef.get());
-  await assertSucceeds(aNotificationRef.update({ read: true }));
-  await assertFails(bDb.collection('notifications').doc(existingNotificationRef.id).get());
+  await assertSucceeds(aDb.collection('notifications').doc('notification-a').get());
+  await assertSucceeds(aDb.collection('notifications').doc('notification-a').update({ read: true }));
+  await assertFails(bDb.collection('notifications').doc('notification-a').get());
 
   console.log('All rules smoke tests passed.');
 }
