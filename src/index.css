@@ -1,0 +1,134 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-ink text-ivory font-sans antialiased;
+    overflow-x: hidden;
+  }
+
+  #root {
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+}
+
+@layer utilities {
+  .cinematic-bg {
+    background:
+      radial-gradient(circle at 20% 0%, rgba(244, 196, 106, 0.24), transparent 28%),
+      radial-gradient(circle at 88% 18%, rgba(180, 110, 89, 0.14), transparent 30%),
+      linear-gradient(145deg, #080b13 0%, #101820 42%, #1f2d3f 100%);
+  }
+
+  .cinematic-texture::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.17;
+    mix-blend-mode: screen;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+      radial-gradient(circle at 50% 30%, rgba(244, 196, 106, 0.2), transparent 26%);
+    background-size: 34px 34px, 34px 34px, 100% 100%;
+  }
+
+  .glass-panel {
+    border: 1px solid rgba(247, 240, 228, 0.16);
+    background: linear-gradient(145deg, rgba(247, 240, 228, 0.14), rgba(247, 240, 228, 0.06));
+    box-shadow: 0 20px 70px rgba(2, 7, 18, 0.3);
+    backdrop-filter: blur(18px);
+  }
+
+  .warm-panel {
+    border: 1px solid rgba(216, 203, 184, 0.52);
+    background: linear-gradient(145deg, rgba(253, 246, 235, 0.94), rgba(231, 213, 190, 0.82));
+    box-shadow: 0 18px 55px rgba(14, 18, 27, 0.18);
+  }
+
+  .cinematic-bg .text-navy {
+    color: #f7f0e4;
+  }
+
+  .cinematic-bg .text-slate-900,
+  .cinematic-bg .text-slate-800,
+  .cinematic-bg .text-slate-700,
+  .cinematic-bg .text-slate-600,
+  .cinematic-bg .text-slate-500 {
+    color: rgba(247, 240, 228, 0.72);
+  }
+
+  .cinematic-bg .warm-panel .text-navy {
+    color: #071b33;
+  }
+
+  .cinematic-bg .warm-panel .text-slate-900,
+  .cinematic-bg .warm-panel .text-slate-800,
+  .cinematic-bg .warm-panel .text-slate-700 {
+    color: #1f2937;
+  }
+
+  .cinematic-bg .warm-panel .text-slate-600,
+  .cinematic-bg .warm-panel .text-slate-500 {
+    color: #64748b;
+  }
+
+  .cinematic-bg :is([class*="bg-white"], [class*="bg-sand"], [class*="bg-[#f"], [class*="bg-[#e8f0f6]"]):not(.glass-panel):not(.cinematic-button),
+  .cinematic-bg :is([class*="bg-white"], [class*="bg-sand"], [class*="bg-[#f"], [class*="bg-[#e8f0f6]"]):not(.glass-panel):not(.cinematic-button) .text-navy {
+    color: #071b33;
+  }
+
+  .cinematic-bg :is([class*="bg-white"], [class*="bg-sand"], [class*="bg-[#f"], [class*="bg-[#e8f0f6]"]):not(.glass-panel):not(.cinematic-button) .text-slate-900,
+  .cinematic-bg :is([class*="bg-white"], [class*="bg-sand"], [class*="bg-[#f"], [class*="bg-[#e8f0f6]"]):not(.glass-panel):not(.cinematic-button) .text-slate-800,
+  .cinematic-bg :is([class*="bg-white"], [class*="bg-sand"], [class*="bg-[#f"], [class*="bg-[#e8f0f6]"]):not(.glass-panel):not(.cinematic-button) .text-slate-700 {
+    color: #1f2937;
+  }
+
+  .cinematic-bg :is([class*="bg-white"], [class*="bg-sand"], [class*="bg-[#f"], [class*="bg-[#e8f0f6]"]):not(.glass-panel):not(.cinematic-button) .text-slate-600,
+  .cinematic-bg :is([class*="bg-white"], [class*="bg-sand"], [class*="bg-[#f"], [class*="bg-[#e8f0f6]"]):not(.glass-panel):not(.cinematic-button) .text-slate-500,
+  .cinematic-bg :is([class*="bg-white"], [class*="bg-sand"], [class*="bg-[#f"], [class*="bg-[#e8f0f6]"]):not(.glass-panel):not(.cinematic-button) .text-slate-400 {
+    color: #64748b;
+  }
+
+  .cinematic-button {
+    background: linear-gradient(135deg, #d7a552 0%, #b46e59 100%);
+    box-shadow: 0 16px 38px rgba(215, 165, 82, 0.26);
+  }
+
+  .scene-dawn { object-position: 16% 22%; }
+  .scene-bible { object-position: 50% 22%; }
+  .scene-community { object-position: 84% 22%; }
+  .scene-chapel { object-position: 16% 78%; }
+  .scene-answered { object-position: 50% 78%; }
+  .scene-texture { object-position: 84% 78%; }
+
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Custom scrollbar for webkit */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d8cec0;
+  border-radius: 3px;
+}
