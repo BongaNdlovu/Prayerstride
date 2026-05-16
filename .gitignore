@@ -25,3 +25,8 @@ npm-debug.log*
 
 # Artifacts
 artifacts/
+
+# Android
+*.keystore
+*.jks
+android/app/debug.keystore

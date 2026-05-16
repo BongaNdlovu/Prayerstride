@@ -14,6 +14,7 @@
     "assetBundlePatterns": [
       "**/*"
     ],
+    "jsEngine": "jsc",
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.prayerstride.app"
