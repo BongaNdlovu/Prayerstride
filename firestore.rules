@@ -27,6 +27,7 @@ service cloud.firestore {
     function notSuspended() {
       return signedIn()
         && (!exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        || !("suspended" in get(/databases/$(database)/documents/users/$(request.auth.uid)).data)
         || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.suspended != true);
     }
 

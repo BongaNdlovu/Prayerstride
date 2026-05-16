@@ -314,7 +314,7 @@ function PrayerCard({ prayer, onPress }) {
       <Text style={styles.cardEyebrow}>Prayer Request</Text>
       <Text style={styles.cardTitle}>{prayer.title}</Text>
       <Text numberOfLines={3} style={styles.cardBody}>{prayer.body}</Text>
-      <Text style={styles.authorText}>{prayer.authorName} · {prayer.prayedCount} praying</Text>
+      <Text style={styles.authorText}>{prayer.authorName} - {prayer.prayedCount} praying</Text>
     </Pressable>
   );
 }
@@ -336,7 +336,7 @@ function SectionHeader({ title }) {
 function ReactionButton({ label, count, onPress }) {
   return (
     <Pressable onPress={onPress} style={styles.reactionButton}>
-      <Text style={styles.reactionText}>{label} · {count}</Text>
+      <Text style={styles.reactionText}>{label} - {count}</Text>
     </Pressable>
   );
 }
