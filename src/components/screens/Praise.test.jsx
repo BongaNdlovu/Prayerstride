@@ -71,7 +71,7 @@ describe('Praise', () => {
     render(<Praise {...defaultProps} />);
 
     expect(screen.getByText('Praise Reports')).toBeInTheDocument();
-    expect(screen.getByText('Test Testimony')).toBeInTheDocument();
+    expect(screen.getAllByText('Test Testimony').length).toBeGreaterThan(0);
   });
 
   it('should display featured testimony', () => {

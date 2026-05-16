@@ -183,7 +183,7 @@ export default function Praise({ activeTab, onNavigate, onGo, user }) {
         />
 
         <div className="mt-6 flex items-center justify-between">
-          <h2 className="font-serif text-xl text-ivory">Recent Praise</h2>
+          <h2 className="font-serif text-xl text-ivory">Praise Reports</h2>
           <span className="flex items-center gap-1 text-xs font-semibold text-ivory/55">
             <MessageCircle size={14} />
             {testimonies.length}

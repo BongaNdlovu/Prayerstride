@@ -21,7 +21,11 @@ export default function Detail({ request, user, onBack, onGo, activeTab, onNavig
   const [reported, setReported] = useState(false);
   const [error, setError] = useState(null);
   const prayedCount = (prayer?.count || 0) + (prayed ? 1 : 0);
-  const isOwnPrayer = prayer?.authorUid === user?.uid || prayer?.userId === user?.id || prayer?.userId === 'me';
+  const isOwnPrayer = Boolean(
+    (prayer?.authorUid && user?.uid && prayer.authorUid === user.uid)
+    || (prayer?.userId && user?.id && prayer.userId === user.id)
+    || prayer?.userId === 'me'
+  );
 
   const handleMarkAnswered = async () => {
     if (!isOwnPrayer) return;
