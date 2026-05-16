@@ -7,7 +7,7 @@ import {
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
   updateProfile,
-} from 'firebase/auth';
+} from '@firebase/auth';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import { isOwnerEmail, OWNER_DISPLAY_NAME } from '../data/owner';
