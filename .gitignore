@@ -4,6 +4,7 @@ node_modules/
 # Build output
 dist/
 functions/lib/
+.expo/
 
 # Environment files
 .env
