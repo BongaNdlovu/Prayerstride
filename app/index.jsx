@@ -4,6 +4,7 @@ import {
   Alert,
   FlatList,
   KeyboardAvoidingView,
+  ImageBackground,
   Platform,
   Pressable,
   SafeAreaView,
@@ -13,7 +14,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { Bell, Flame, Heart, Home, Plus, Search, Sparkles, User } from 'lucide-react-native';
+import { BarChart3, Bell, Bookmark, ChevronRight, Flame, Heart, Home, Plus, Search, Sparkles, User, Users } from 'lucide-react-native';
 import { useAuth } from '../src/mobile/AuthProvider';
 import { addPrayer, usePrayers, useTestimonies } from '../src/mobile/usePrayerData';
 import { prayForRequest, reactToTestimony } from '../src/mobile/api';
@@ -22,11 +23,14 @@ import { colors, shadow } from '../src/mobile/theme';
 
 const tabs = [
   { key: 'home', label: 'Home', icon: Home },
-  { key: 'discover', label: 'Discover', icon: Search },
+  { key: 'prayers', label: 'Prayers', icon: Sparkles },
   { key: 'create', label: 'Create', icon: Plus },
   { key: 'praise', label: 'Praise', icon: Heart },
+  { key: 'stats', label: 'Stats', icon: BarChart3 },
   { key: 'profile', label: 'Profile', icon: User },
 ];
+
+const dawnScene = require('../src/assets/compressed-scenes/1.jpg');
 
 export default function MobileApp() {
   const { user, loading, signIn, register, signOut } = useAuth();
@@ -104,9 +108,10 @@ function AuthScreen({ onSignIn, onRegister }) {
 }
 
 function TabContent({ tab, user, signOut, onOpenPrayer }) {
-  if (tab === 'discover') return <DiscoverScreen onOpenPrayer={onOpenPrayer} />;
+  if (tab === 'discover' || tab === 'prayers') return <DiscoverScreen onOpenPrayer={onOpenPrayer} />;
   if (tab === 'create') return <CreatePrayerScreen user={user} />;
   if (tab === 'praise') return <PraiseScreen />;
+  if (tab === 'stats') return <StatsScreen />;
   if (tab === 'profile') return <ProfileScreen user={user} signOut={signOut} />;
   return <HomeScreen onOpenPrayer={onOpenPrayer} />;
 }
@@ -116,24 +121,60 @@ function HomeScreen({ onOpenPrayer }) {
   const featured = prayers[0];
 
   return (
-    <ScrollView contentContainerStyle={styles.screenContent}>
-      <View style={styles.heroPanel}>
-        <Text style={styles.eyebrow}>Today</Text>
-        <Text style={styles.screenTitle}>Start with a quiet step</Text>
-        <Text style={styles.heroCopySmall}>Pray for someone, keep your streak alive, and notice what God is doing.</Text>
-      </View>
+    <View style={styles.cinematicScreen}>
+      <ScrollView contentContainerStyle={styles.cinematicContent}>
+      <ImageBackground source={dawnScene} resizeMode="cover" imageStyle={styles.heroImage} style={styles.imageHero}>
+        <View style={styles.heroOverlay} />
+        <View style={styles.heroContent}>
+          <Text style={styles.cinematicEyebrow}>PrayerStride</Text>
+          <Text style={styles.cinematicTitle}>Begin in quiet light</Text>
+          <Text style={styles.cinematicSubtitle}>A daily walk in prayer, presence, and hope.</Text>
+          <View style={styles.heroActions}>
+            <Pressable style={styles.roundAction}>
+              <Bell size={20} color={colors.ivory} />
+            </Pressable>
+            <Pressable style={styles.roundAction}>
+              <Search size={20} color={colors.ivory} />
+            </Pressable>
+          </View>
+        </View>
+      </ImageBackground>
 
-      <View style={styles.streakRow}>
-        <StatCard icon={Flame} value="7" label="Day streak" />
-        <StatCard icon={Heart} value={String(prayers.length)} label="Open prayers" />
-        <StatCard icon={Bell} value="On" label="Reminders" />
-      </View>
+      <View style={styles.homeStack}>
+        <View style={styles.glassCard}>
+          <View style={styles.missionHeader}>
+            <View style={styles.missionText}>
+              <Text style={styles.cinematicEyebrow}>Today's Prayer Mission</Text>
+              <Text style={styles.missionTitle}>{featured?.title || 'Pray for peace in our home'}</Text>
+            </View>
+            <View style={styles.missionIcon}>
+              <Sparkles size={25} color={colors.ink} />
+            </View>
+          </View>
+          <Text style={styles.glassBody}>{featured?.body || 'A family has asked for prayer during a difficult season. Take two quiet minutes and lift them up.'}</Text>
+          <Pressable onPress={() => featured && onOpenPrayer(featured)} style={styles.cinematicButton}>
+            <Text style={styles.cinematicButtonText}>Pray Now</Text>
+            <ChevronRight size={18} color={colors.ink} />
+          </Pressable>
+        </View>
 
-      <SectionHeader title="Prayer requests" />
+        <View style={styles.oldStatsGrid}>
+          <GlassStat icon={Flame} value="7 days" label="walking with God" />
+          <GlassStat icon={Heart} value="2" label="answered prayers this week" />
+        </View>
+
+        <View style={styles.sectionRow}>
+          <Text style={styles.oldSectionTitle}>Prayer Requests</Text>
+          <Text style={styles.viewAllText}>View all</Text>
+        </View>
+      </View>
       {loading ? <ActivityIndicator color={colors.navy} /> : null}
-      {featured ? <PrayerCard prayer={featured} onPress={() => onOpenPrayer(featured)} /> : <Empty label="No prayers yet." />}
-      {prayers.slice(1, 5).map((prayer) => <PrayerCard key={prayer.id} prayer={prayer} onPress={() => onOpenPrayer(prayer)} />)}
-    </ScrollView>
+      <View style={styles.homeList}>
+        {prayers.length === 0 ? <Empty label="No prayers yet." /> : null}
+        {prayers.map((prayer) => <PrayerCard key={prayer.id} prayer={prayer} onPress={() => onOpenPrayer(prayer)} variant="glass" />)}
+      </View>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -237,6 +278,23 @@ function PraiseScreen() {
   );
 }
 
+function StatsScreen() {
+  return (
+    <ScrollView contentContainerStyle={styles.screenContent}>
+      <Text style={styles.pageTitle}>Stats</Text>
+      <View style={styles.streakRow}>
+        <StatCard icon={Flame} value="21" label="Current streak" />
+        <StatCard icon={Heart} value="248" label="Total prayers" />
+        <StatCard icon={Users} value="37" label="People supported" />
+      </View>
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Prayer time</Text>
+        <Text style={styles.cardBody}>14h 32m spent in prayer and encouragement.</Text>
+      </View>
+    </ScrollView>
+  );
+}
+
 function PrayerDetail({ prayer, onBack }) {
   const [prayed, setPrayed] = useState(false);
 
@@ -308,14 +366,42 @@ function BottomTabs({ active, onChange }) {
   );
 }
 
-function PrayerCard({ prayer, onPress }) {
+function PrayerCard({ prayer, onPress, variant }) {
+  const isGlass = variant === 'glass';
   return (
-    <Pressable onPress={onPress} style={styles.card}>
-      <Text style={styles.cardEyebrow}>Prayer Request</Text>
-      <Text style={styles.cardTitle}>{prayer.title}</Text>
-      <Text numberOfLines={3} style={styles.cardBody}>{prayer.body}</Text>
-      <Text style={styles.authorText}>{prayer.authorName} - {prayer.prayedCount} praying</Text>
+    <Pressable onPress={onPress} style={isGlass ? styles.oldPrayerCard : styles.card}>
+      {isGlass ? (
+        <>
+          <View style={styles.oldPrayerMetaRow}>
+            <Text style={styles.oldPrayerMeta}>{prayer.authorName || prayer.name || 'PrayerStride'} - 2h ago</Text>
+            <Text style={styles.oldPrayerTag}>{prayer.tag || 'Prayer'}</Text>
+          </View>
+          <Text style={styles.oldPrayerTitle}>{prayer.title}</Text>
+          <Text numberOfLines={3} style={styles.oldPrayerBody}>{prayer.body || prayer.text}</Text>
+          <View style={styles.oldPrayerMetaRow}>
+            <Text style={styles.oldPrayerMeta}>{prayer.prayedCount || prayer.count || 0} praying</Text>
+            <Bookmark size={16} color="rgba(248,243,234,0.55)" />
+          </View>
+        </>
+      ) : (
+        <>
+          <Text style={styles.cardEyebrow}>Prayer Request</Text>
+          <Text style={styles.cardTitle}>{prayer.title}</Text>
+          <Text numberOfLines={3} style={styles.cardBody}>{prayer.body}</Text>
+          <Text style={styles.authorText}>{prayer.authorName} - {prayer.prayedCount} praying</Text>
+        </>
+      )}
     </Pressable>
+  );
+}
+
+function GlassStat({ icon: Icon, value, label }) {
+  return (
+    <View style={styles.glassStat}>
+      <Icon color={colors.gold} size={21} />
+      <Text style={styles.glassStatValue}>{value}</Text>
+      <Text style={styles.glassStatLabel}>{label}</Text>
+    </View>
   );
 }
 
@@ -356,7 +442,7 @@ function Centered({ label }) {
 
 const styles = StyleSheet.create({
   shell: { flex: 1, backgroundColor: colors.ink },
-  appBody: { flex: 1, backgroundColor: colors.ivory },
+  appBody: { flex: 1, backgroundColor: colors.ink },
   authShell: { flex: 1, backgroundColor: colors.ink },
   authBody: { flex: 1, justifyContent: 'center', padding: 24 },
   brandMark: { alignSelf: 'center', alignItems: 'center', justifyContent: 'center', width: 74, height: 74, borderRadius: 37, backgroundColor: 'rgba(200,137,43,0.16)' },
@@ -405,4 +491,38 @@ const styles = StyleSheet.create({
   emptyText: { marginTop: 24, color: colors.muted, textAlign: 'center', fontWeight: '700' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.ink },
   centeredText: { marginTop: 12, color: colors.ivory, fontWeight: '700' },
+  cinematicScreen: { flex: 1, backgroundColor: '#080b13' },
+  cinematicContent: { paddingBottom: 22 },
+  imageHero: { minHeight: 272, justifyContent: 'flex-end', overflow: 'hidden', borderBottomLeftRadius: 34, borderBottomRightRadius: 34 },
+  heroImage: { borderBottomLeftRadius: 34, borderBottomRightRadius: 34 },
+  heroOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(8,11,19,0.34)' },
+  heroContent: { minHeight: 272, justifyContent: 'flex-end', paddingHorizontal: 20, paddingTop: 64, paddingBottom: 24 },
+  cinematicEyebrow: { color: colors.gold, fontSize: 11, fontWeight: '800', letterSpacing: 2.4, textTransform: 'uppercase' },
+  cinematicTitle: { marginTop: 8, color: colors.ivory, fontSize: 40, lineHeight: 46, fontWeight: '800' },
+  cinematicSubtitle: { marginTop: 12, maxWidth: 290, color: 'rgba(248,243,234,0.78)', fontSize: 14, lineHeight: 23 },
+  heroActions: { flexDirection: 'row', gap: 12, marginTop: 20 },
+  roundAction: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(248,243,234,0.14)' },
+  homeStack: { marginTop: -22, paddingHorizontal: 16 },
+  glassCard: { borderWidth: 1, borderColor: 'rgba(248,243,234,0.16)', backgroundColor: 'rgba(248,243,234,0.11)', borderRadius: 24, padding: 18, ...shadow },
+  missionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14 },
+  missionText: { flex: 1 },
+  missionTitle: { marginTop: 8, color: colors.ivory, fontSize: 25, lineHeight: 31, fontWeight: '800' },
+  missionIcon: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.gold },
+  glassBody: { marginTop: 12, color: 'rgba(248,243,234,0.72)', fontSize: 14, lineHeight: 23 },
+  cinematicButton: { marginTop: 20, minHeight: 52, borderRadius: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, backgroundColor: colors.gold },
+  cinematicButtonText: { color: colors.ink, fontSize: 15, fontWeight: '800' },
+  oldStatsGrid: { flexDirection: 'row', gap: 12, marginTop: 14 },
+  glassStat: { flex: 1, minHeight: 116, borderWidth: 1, borderColor: 'rgba(248,243,234,0.16)', backgroundColor: 'rgba(248,243,234,0.1)', borderRadius: 22, padding: 16 },
+  glassStatValue: { marginTop: 10, color: colors.ivory, fontSize: 25, fontWeight: '800' },
+  glassStatLabel: { marginTop: 3, color: 'rgba(248,243,234,0.58)', fontSize: 12 },
+  sectionRow: { marginTop: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  oldSectionTitle: { color: colors.ivory, fontSize: 22, fontWeight: '800' },
+  viewAllText: { color: colors.gold, fontSize: 12, fontWeight: '800' },
+  homeList: { paddingHorizontal: 16, paddingTop: 12, gap: 12 },
+  oldPrayerCard: { width: '100%', borderWidth: 1, borderColor: 'rgba(248,243,234,0.16)', backgroundColor: 'rgba(248,243,234,0.1)', borderRadius: 24, padding: 16 },
+  oldPrayerMetaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  oldPrayerMeta: { flexShrink: 1, color: 'rgba(248,243,234,0.55)', fontSize: 12 },
+  oldPrayerTag: { overflow: 'hidden', borderRadius: 999, backgroundColor: 'rgba(200,137,43,0.18)', paddingHorizontal: 9, paddingVertical: 5, color: colors.gold, fontSize: 11, fontWeight: '800' },
+  oldPrayerTitle: { marginTop: 10, color: colors.ivory, fontSize: 21, lineHeight: 26, fontWeight: '800' },
+  oldPrayerBody: { marginTop: 8, color: 'rgba(248,243,234,0.68)', fontSize: 14, lineHeight: 21 },
 });
