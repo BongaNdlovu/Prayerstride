@@ -30,7 +30,14 @@ const tabs = [
   { key: 'profile', label: 'Profile', icon: User },
 ];
 
-const dawnScene = require('../src/assets/compressed-scenes/1.jpg');
+const scenes = {
+  dawn: require('../src/assets/compressed-scenes/1.jpg'),
+  bible: require('../src/assets/compressed-scenes/2.jpg'),
+  community: require('../src/assets/compressed-scenes/3.jpg'),
+  chapel: require('../src/assets/compressed-scenes/4.jpg'),
+  answered: require('../src/assets/compressed-scenes/5.jpg'),
+  texture: require('../src/assets/compressed-scenes/6.jpg'),
+};
 
 export default function MobileApp() {
   const { user, loading, signIn, register, signOut } = useAuth();
@@ -83,25 +90,30 @@ function AuthScreen({ onSignIn, onRegister }) {
   return (
     <SafeAreaView style={styles.authShell}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.authBody}>
-        <View style={styles.brandMark}>
-          <Sparkles color={colors.gold} size={34} />
-        </View>
-        <Text style={styles.heroTitle}>PrayerStride</Text>
-        <Text style={styles.heroCopy}>A daily walk in prayer, encouragement, and answered testimony.</Text>
+        <ImageBackground source={scenes.chapel} resizeMode="cover" imageStyle={styles.authSceneImage} style={styles.authScene}>
+          <View style={styles.sceneOverlayStrong} />
+          <View style={styles.authInner}>
+            <View style={styles.brandMark}>
+              <Sparkles color={colors.gold} size={34} />
+            </View>
+            <Text style={styles.heroTitle}>PrayerStride</Text>
+            <Text style={styles.heroCopy}>A daily walk in prayer, encouragement, and answered testimony.</Text>
 
-        <View style={styles.card}>
-          {mode === 'register' && (
-            <TextInput value={name} onChangeText={setName} placeholder="Name" style={styles.input} placeholderTextColor={colors.muted} />
-          )}
-          <TextInput value={email} onChangeText={setEmail} placeholder="Email" autoCapitalize="none" keyboardType="email-address" style={styles.input} placeholderTextColor={colors.muted} />
-          <TextInput value={password} onChangeText={setPassword} placeholder="Password" secureTextEntry style={styles.input} placeholderTextColor={colors.muted} />
-          <Pressable disabled={busy} onPress={submit} style={styles.primaryButton}>
-            <Text style={styles.primaryButtonText}>{busy ? 'One moment...' : mode === 'register' ? 'Create Account' : 'Sign In'}</Text>
-          </Pressable>
-          <Pressable onPress={() => setMode(mode === 'register' ? 'signIn' : 'register')} style={styles.linkButton}>
-            <Text style={styles.linkText}>{mode === 'register' ? 'I already have an account' : 'Create a new account'}</Text>
-          </Pressable>
-        </View>
+            <View style={styles.glassCard}>
+              {mode === 'register' && (
+                <TextInput value={name} onChangeText={setName} placeholder="Name" style={styles.glassInput} placeholderTextColor="rgba(248,243,234,0.56)" />
+              )}
+              <TextInput value={email} onChangeText={setEmail} placeholder="Email" autoCapitalize="none" keyboardType="email-address" style={styles.glassInput} placeholderTextColor="rgba(248,243,234,0.56)" />
+              <TextInput value={password} onChangeText={setPassword} placeholder="Password" secureTextEntry style={styles.glassInput} placeholderTextColor="rgba(248,243,234,0.56)" />
+              <Pressable disabled={busy} onPress={submit} style={styles.cinematicButton}>
+                <Text style={styles.cinematicButtonText}>{busy ? 'One moment...' : mode === 'register' ? 'Create Account' : 'Sign In'}</Text>
+              </Pressable>
+              <Pressable onPress={() => setMode(mode === 'register' ? 'signIn' : 'register')} style={styles.linkButton}>
+                <Text style={styles.glassLinkText}>{mode === 'register' ? 'I already have an account' : 'Create a new account'}</Text>
+              </Pressable>
+            </View>
+          </View>
+        </ImageBackground>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -123,7 +135,7 @@ function HomeScreen({ onOpenPrayer }) {
   return (
     <View style={styles.cinematicScreen}>
       <ScrollView contentContainerStyle={styles.cinematicContent}>
-      <ImageBackground source={dawnScene} resizeMode="cover" imageStyle={styles.heroImage} style={styles.imageHero}>
+      <ImageBackground source={scenes.dawn} resizeMode="cover" imageStyle={styles.heroImage} style={styles.imageHero}>
         <View style={styles.heroOverlay} />
         <View style={styles.heroContent}>
           <Text style={styles.cinematicEyebrow}>PrayerStride</Text>
@@ -184,15 +196,18 @@ function DiscoverScreen({ onOpenPrayer }) {
   const filtered = useMemo(() => prayers.filter((prayer) => `${prayer.title} ${prayer.body}`.toLowerCase().includes(query.toLowerCase())), [prayers, query]);
 
   return (
-    <View style={styles.listScreen}>
-      <Text style={styles.pageTitle}>Discover</Text>
-      <TextInput value={query} onChangeText={setQuery} placeholder="Search prayers..." style={styles.input} placeholderTextColor={colors.muted} />
+    <View style={styles.cinematicScreen}>
+      <PageHero scene="community" eyebrow="Explore" title="Find a prayer to carry" subtitle="Search requests, people, and praise reports in a quieter, warmer space." compact bleed={false} />
+      <View style={styles.searchPanel}>
+        <Search size={18} color="rgba(248,243,234,0.62)" />
+        <TextInput value={query} onChangeText={setQuery} placeholder="Search prayers..." style={styles.searchInput} placeholderTextColor="rgba(248,243,234,0.58)" />
+      </View>
       <FlatList
         data={filtered}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={styles.cinematicListContent}
         ListEmptyComponent={<Empty label="No matching prayers." />}
-        renderItem={({ item }) => <PrayerCard prayer={item} onPress={() => onOpenPrayer(item)} />}
+        renderItem={({ item }) => <PrayerCard prayer={item} onPress={() => onOpenPrayer(item)} variant="glass" />}
       />
     </View>
   );
@@ -223,21 +238,23 @@ function CreatePrayerScreen({ user }) {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.screenContent}>
-      <Text style={styles.pageTitle}>Create Prayer</Text>
-      <TextInput value={title} onChangeText={setTitle} placeholder="Prayer title" style={styles.input} placeholderTextColor={colors.muted} />
-      <TextInput
-        value={body}
-        onChangeText={setBody}
-        placeholder="What should people pray for?"
-        multiline
-        style={[styles.input, styles.textArea]}
-        placeholderTextColor={colors.muted}
-      />
-      <Pressable disabled={busy} onPress={submit} style={styles.primaryButton}>
-        <Text style={styles.primaryButtonText}>{busy ? 'Sharing...' : 'Share Prayer'}</Text>
-      </Pressable>
-    </ScrollView>
+    <CinematicScroll>
+      <PageHero scene="dawn" eyebrow="Create" title="Share a prayer with care" subtitle="Name the need, keep it clear, and invite the community to walk with you." compact />
+      <View style={styles.glassCard}>
+        <TextInput value={title} onChangeText={setTitle} placeholder="Prayer title" style={styles.glassInput} placeholderTextColor="rgba(248,243,234,0.56)" />
+        <TextInput
+          value={body}
+          onChangeText={setBody}
+          placeholder="What should people pray for?"
+          multiline
+          style={[styles.glassInput, styles.textArea]}
+          placeholderTextColor="rgba(248,243,234,0.56)"
+        />
+        <Pressable disabled={busy} onPress={submit} style={styles.cinematicButton}>
+          <Text style={styles.cinematicButtonText}>{busy ? 'Sharing...' : 'Share Prayer'}</Text>
+        </Pressable>
+      </View>
+    </CinematicScroll>
   );
 }
 
@@ -257,41 +274,47 @@ function PraiseScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.screenContent}>
-      <Text style={styles.pageTitle}>Praise</Text>
-      <Text style={styles.subtleText}>Celebrate answered prayers and testimonies from the community.</Text>
+    <CinematicScroll>
+      <PageHero scene="answered" eyebrow="Praise" title="Answered prayers, remembered" subtitle="Celebrate light breaking through ordinary days." compact />
       {loading ? <ActivityIndicator color={colors.navy} /> : null}
       {testimonies.length === 0 ? <Empty label="No testimonies yet." /> : null}
       {testimonies.map((testimony) => (
-        <View key={testimony.id} style={styles.card}>
-          <Text style={styles.cardEyebrow}>Praise Report</Text>
-          <Text style={styles.cardTitle}>{testimony.title}</Text>
-          <Text style={styles.cardBody}>{testimony.body}</Text>
-          <Text style={styles.authorText}>{testimony.authorName}</Text>
+        <View key={testimony.id} style={styles.glassCard}>
+          <Text style={styles.cinematicEyebrow}>Praise Report</Text>
+          <Text style={styles.oldPrayerTitle}>{testimony.title}</Text>
+          <Text style={styles.oldPrayerBody}>{testimony.body}</Text>
+          <Text style={styles.oldPrayerMeta}>{testimony.authorName}</Text>
           <View style={styles.actionRow}>
             <ReactionButton label="Praise God" count={testimony.praiseGod + (reacted[`${testimony.id}:praiseGod`] ? 1 : 0)} onPress={() => react(testimony.id, 'praiseGod')} />
             <ReactionButton label="Amen" count={testimony.amen + (reacted[`${testimony.id}:amen`] ? 1 : 0)} onPress={() => react(testimony.id, 'amen')} />
           </View>
         </View>
       ))}
-    </ScrollView>
+    </CinematicScroll>
   );
 }
 
 function StatsScreen() {
   return (
-    <ScrollView contentContainerStyle={styles.screenContent}>
-      <Text style={styles.pageTitle}>Stats</Text>
-      <View style={styles.streakRow}>
-        <StatCard icon={Flame} value="21" label="Current streak" />
-        <StatCard icon={Heart} value="248" label="Total prayers" />
-        <StatCard icon={Users} value="37" label="People supported" />
+    <CinematicScroll>
+      <PageHero scene="bible" eyebrow="Rhythm" title="Your prayer walk" subtitle="A calm record of consistency, care, and people carried in prayer." compact />
+      <View style={styles.oldStatsGrid}>
+        <GlassStat icon={Flame} value="21" label="current streak" />
+        <GlassStat icon={Heart} value="248" label="total prayers" />
       </View>
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Prayer time</Text>
-        <Text style={styles.cardBody}>14h 32m spent in prayer and encouragement.</Text>
+      <View style={styles.glassCard}>
+        <View style={styles.missionHeader}>
+          <View style={styles.missionText}>
+            <Text style={styles.cinematicEyebrow}>Prayer Time</Text>
+            <Text style={styles.missionTitle}>14h 32m</Text>
+          </View>
+          <View style={styles.missionIcon}>
+            <Users size={24} color={colors.ink} />
+          </View>
+        </View>
+        <Text style={styles.glassBody}>Time spent in prayer and encouragement across the community.</Text>
       </View>
-    </ScrollView>
+    </CinematicScroll>
   );
 }
 
@@ -310,41 +333,60 @@ function PrayerDetail({ prayer, onBack }) {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.screenContent}>
-      <Pressable onPress={onBack} style={styles.backButton}>
-        <Text style={styles.backText}>Back</Text>
+    <CinematicScroll>
+      <Pressable onPress={onBack} style={styles.glassBackButton}>
+        <Text style={styles.glassLinkText}>Back</Text>
       </Pressable>
-      <View style={styles.heroPanel}>
-        <Text style={styles.eyebrow}>Prayer Request</Text>
-        <Text style={styles.screenTitle}>{prayer.title}</Text>
-        <Text style={styles.heroCopySmall}>{prayer.authorName}</Text>
+      <PageHero scene="chapel" eyebrow="Prayer Request" title={prayer.title} subtitle={prayer.authorName} compact />
+      <View style={styles.glassCard}>
+        <Text style={styles.glassBody}>{prayer.body}</Text>
+        <Text style={styles.oldPrayerMeta}>{prayer.prayedCount + (prayed ? 1 : 0)} people praying</Text>
       </View>
-      <View style={styles.card}>
-        <Text style={styles.cardBody}>{prayer.body}</Text>
-        <Text style={styles.authorText}>{prayer.prayedCount + (prayed ? 1 : 0)} people praying</Text>
-      </View>
-      <Pressable onPress={pray} style={styles.primaryButton}>
-        <Text style={styles.primaryButtonText}>{prayed ? 'You Prayed' : "I'll Pray"}</Text>
+      <Pressable onPress={pray} style={styles.cinematicButton}>
+        <Text style={styles.cinematicButtonText}>{prayed ? 'You Prayed' : "I'll Pray"}</Text>
       </Pressable>
-    </ScrollView>
+    </CinematicScroll>
   );
 }
 
 function ProfileScreen({ user, signOut }) {
   return (
-    <ScrollView contentContainerStyle={styles.screenContent}>
-      <Text style={styles.pageTitle}>Profile</Text>
-      <View style={styles.card}>
+    <CinematicScroll>
+      <PageHero scene="community" eyebrow="Profile" title="Your place in the walk" subtitle="Settings, identity, and the path you are keeping with PrayerStride." compact />
+      <View style={styles.glassCard}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{(user.displayName || user.email || 'P').slice(0, 1).toUpperCase()}</Text>
         </View>
-        <Text style={styles.cardTitle}>{user.displayName || 'PrayerStride User'}</Text>
-        <Text style={styles.subtleText}>{user.email}</Text>
+        <Text style={styles.oldPrayerTitle}>{user.displayName || 'PrayerStride User'}</Text>
+        <Text style={styles.oldPrayerMeta}>{user.email}</Text>
       </View>
-      <Pressable onPress={signOut} style={styles.secondaryButton}>
-        <Text style={styles.secondaryButtonText}>Sign Out</Text>
+      <Pressable onPress={signOut} style={styles.secondaryGlassButton}>
+        <Text style={styles.secondaryGlassButtonText}>Sign Out</Text>
       </Pressable>
-    </ScrollView>
+    </CinematicScroll>
+  );
+}
+
+function CinematicScroll({ children }) {
+  return (
+    <View style={styles.cinematicScreen}>
+      <ScrollView contentContainerStyle={styles.cinematicPageContent}>
+        {children}
+      </ScrollView>
+    </View>
+  );
+}
+
+function PageHero({ scene = 'dawn', eyebrow, title, subtitle, compact = false, bleed = true }) {
+  return (
+    <ImageBackground source={scenes[scene] || scenes.dawn} resizeMode="cover" imageStyle={styles.heroImage} style={[styles.imageHero, compact && styles.compactHero, compact && !bleed && styles.compactHeroFlush]}>
+      <View style={styles.heroOverlay} />
+      <View style={[styles.heroContent, compact && styles.compactHeroContent]}>
+        <Text style={styles.cinematicEyebrow}>{eyebrow}</Text>
+        <Text style={[styles.cinematicTitle, compact && styles.compactHeroTitle]}>{title}</Text>
+        {subtitle ? <Text style={styles.cinematicSubtitle}>{subtitle}</Text> : null}
+      </View>
+    </ImageBackground>
   );
 }
 
@@ -444,7 +486,11 @@ const styles = StyleSheet.create({
   shell: { flex: 1, backgroundColor: colors.ink },
   appBody: { flex: 1, backgroundColor: colors.ink },
   authShell: { flex: 1, backgroundColor: colors.ink },
-  authBody: { flex: 1, justifyContent: 'center', padding: 24 },
+  authBody: { flex: 1 },
+  authScene: { flex: 1, justifyContent: 'center' },
+  authSceneImage: { opacity: 0.92 },
+  authInner: { flex: 1, justifyContent: 'center', padding: 24 },
+  sceneOverlayStrong: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(8,11,19,0.66)' },
   brandMark: { alignSelf: 'center', alignItems: 'center', justifyContent: 'center', width: 74, height: 74, borderRadius: 37, backgroundColor: 'rgba(200,137,43,0.16)' },
   heroTitle: { marginTop: 24, color: colors.ivory, fontSize: 42, fontWeight: '700', textAlign: 'center' },
   heroCopy: { marginTop: 12, color: 'rgba(248,243,234,0.72)', fontSize: 16, lineHeight: 24, textAlign: 'center' },
@@ -468,6 +514,7 @@ const styles = StyleSheet.create({
   cardBody: { marginTop: 10, color: '#475467', fontSize: 15, lineHeight: 23 },
   authorText: { marginTop: 12, color: colors.muted, fontSize: 12, fontWeight: '700' },
   input: { marginTop: 12, minHeight: 52, borderRadius: 16, borderWidth: 1, borderColor: colors.stone, backgroundColor: colors.white, paddingHorizontal: 16, color: colors.ink, fontSize: 15 },
+  glassInput: { marginTop: 12, minHeight: 52, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(248,243,234,0.16)', backgroundColor: 'rgba(248,243,234,0.1)', paddingHorizontal: 16, color: colors.ivory, fontSize: 15 },
   textArea: { minHeight: 150, paddingTop: 16, textAlignVertical: 'top' },
   primaryButton: { marginTop: 18, minHeight: 54, alignItems: 'center', justifyContent: 'center', borderRadius: 18, backgroundColor: colors.gold },
   primaryButtonText: { color: colors.ink, fontSize: 16, fontWeight: '800' },
@@ -475,35 +522,43 @@ const styles = StyleSheet.create({
   secondaryButtonText: { color: colors.navy, fontSize: 16, fontWeight: '800' },
   linkButton: { alignItems: 'center', paddingVertical: 14 },
   linkText: { color: colors.navy, fontWeight: '800' },
+  glassLinkText: { color: colors.gold, fontWeight: '800' },
   actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14 },
-  reactionButton: { borderRadius: 999, borderWidth: 1, borderColor: colors.stone, backgroundColor: colors.sand, paddingHorizontal: 14, paddingVertical: 9 },
-  reactionText: { color: colors.navy, fontSize: 12, fontWeight: '800' },
+  reactionButton: { borderRadius: 999, borderWidth: 1, borderColor: 'rgba(248,243,234,0.16)', backgroundColor: 'rgba(248,243,234,0.1)', paddingHorizontal: 14, paddingVertical: 9 },
+  reactionText: { color: colors.ivory, fontSize: 12, fontWeight: '800' },
   backButton: { alignSelf: 'flex-start', marginBottom: 12, paddingVertical: 8, paddingRight: 16 },
   backText: { color: colors.navy, fontWeight: '800' },
   avatar: { width: 70, height: 70, borderRadius: 35, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.sand },
   avatarText: { color: colors.navy, fontSize: 28, fontWeight: '800' },
-  tabs: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingTop: 10, paddingBottom: 18, paddingHorizontal: 8, backgroundColor: colors.ink },
+  tabs: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingTop: 10, paddingBottom: 18, paddingHorizontal: 8, borderTopWidth: 1, borderTopColor: 'rgba(248,243,234,0.12)', backgroundColor: '#080b13' },
   tabItem: { flex: 1, alignItems: 'center', gap: 4 },
   tabIcon: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
   tabIconActive: { backgroundColor: colors.gold },
   tabLabel: { color: 'rgba(248,243,234,0.62)', fontSize: 10, fontWeight: '700' },
   tabLabelActive: { color: colors.gold },
-  emptyText: { marginTop: 24, color: colors.muted, textAlign: 'center', fontWeight: '700' },
+  emptyText: { marginTop: 24, color: 'rgba(248,243,234,0.62)', textAlign: 'center', fontWeight: '700' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.ink },
   centeredText: { marginTop: 12, color: colors.ivory, fontWeight: '700' },
   cinematicScreen: { flex: 1, backgroundColor: '#080b13' },
   cinematicContent: { paddingBottom: 22 },
+  cinematicPageContent: { paddingBottom: 120, paddingHorizontal: 16 },
   imageHero: { minHeight: 272, justifyContent: 'flex-end', overflow: 'hidden', borderBottomLeftRadius: 34, borderBottomRightRadius: 34 },
+  compactHero: { minHeight: 218, marginHorizontal: -16, marginBottom: 16 },
+  compactHeroFlush: { marginHorizontal: 0 },
   heroImage: { borderBottomLeftRadius: 34, borderBottomRightRadius: 34 },
   heroOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(8,11,19,0.34)' },
   heroContent: { minHeight: 272, justifyContent: 'flex-end', paddingHorizontal: 20, paddingTop: 64, paddingBottom: 24 },
+  compactHeroContent: { minHeight: 218, paddingHorizontal: 16, paddingTop: 44, paddingBottom: 22 },
   cinematicEyebrow: { color: colors.gold, fontSize: 11, fontWeight: '800', letterSpacing: 2.4, textTransform: 'uppercase' },
   cinematicTitle: { marginTop: 8, color: colors.ivory, fontSize: 40, lineHeight: 46, fontWeight: '800' },
+  compactHeroTitle: { fontSize: 31, lineHeight: 37 },
   cinematicSubtitle: { marginTop: 12, maxWidth: 290, color: 'rgba(248,243,234,0.78)', fontSize: 14, lineHeight: 23 },
   heroActions: { flexDirection: 'row', gap: 12, marginTop: 20 },
   roundAction: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(248,243,234,0.14)' },
   homeStack: { marginTop: -22, paddingHorizontal: 16 },
   glassCard: { borderWidth: 1, borderColor: 'rgba(248,243,234,0.16)', backgroundColor: 'rgba(248,243,234,0.11)', borderRadius: 24, padding: 18, ...shadow },
+  searchPanel: { marginHorizontal: 16, marginBottom: 12, minHeight: 52, borderWidth: 1, borderColor: 'rgba(248,243,234,0.16)', backgroundColor: 'rgba(248,243,234,0.11)', borderRadius: 18, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  searchInput: { flex: 1, color: colors.ivory, fontSize: 15 },
   missionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14 },
   missionText: { flex: 1 },
   missionTitle: { marginTop: 8, color: colors.ivory, fontSize: 25, lineHeight: 31, fontWeight: '800' },
@@ -511,6 +566,9 @@ const styles = StyleSheet.create({
   glassBody: { marginTop: 12, color: 'rgba(248,243,234,0.72)', fontSize: 14, lineHeight: 23 },
   cinematicButton: { marginTop: 20, minHeight: 52, borderRadius: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, backgroundColor: colors.gold },
   cinematicButtonText: { color: colors.ink, fontSize: 15, fontWeight: '800' },
+  secondaryGlassButton: { marginTop: 18, minHeight: 54, alignItems: 'center', justifyContent: 'center', borderRadius: 18, borderWidth: 1, borderColor: 'rgba(248,243,234,0.16)', backgroundColor: 'rgba(248,243,234,0.08)' },
+  secondaryGlassButtonText: { color: colors.ivory, fontSize: 16, fontWeight: '800' },
+  glassBackButton: { alignSelf: 'flex-start', marginTop: 16, marginBottom: 4, paddingVertical: 8, paddingRight: 16 },
   oldStatsGrid: { flexDirection: 'row', gap: 12, marginTop: 14 },
   glassStat: { flex: 1, minHeight: 116, borderWidth: 1, borderColor: 'rgba(248,243,234,0.16)', backgroundColor: 'rgba(248,243,234,0.1)', borderRadius: 22, padding: 16 },
   glassStatValue: { marginTop: 10, color: colors.ivory, fontSize: 25, fontWeight: '800' },
@@ -519,6 +577,7 @@ const styles = StyleSheet.create({
   oldSectionTitle: { color: colors.ivory, fontSize: 22, fontWeight: '800' },
   viewAllText: { color: colors.gold, fontSize: 12, fontWeight: '800' },
   homeList: { paddingHorizontal: 16, paddingTop: 12, gap: 12 },
+  cinematicListContent: { paddingHorizontal: 16, paddingBottom: 120, gap: 12 },
   oldPrayerCard: { width: '100%', borderWidth: 1, borderColor: 'rgba(248,243,234,0.16)', backgroundColor: 'rgba(248,243,234,0.1)', borderRadius: 24, padding: 16 },
   oldPrayerMetaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   oldPrayerMeta: { flexShrink: 1, color: 'rgba(248,243,234,0.55)', fontSize: 12 },
