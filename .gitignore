@@ -31,3 +31,8 @@ artifacts/
 *.keystore
 *.jks
 android/app/debug.keystore
+android/.gradle/
+android/.kotlin/
+android/build/
+android/app/.cxx/
+android/app/build/

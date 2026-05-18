@@ -4,8 +4,11 @@ dist/
 .expo/
 .gradle-user-home*/
 android/.gradle/
+android/.kotlin/
+android/build/
 android/app/.cxx/
 android/app/build/
+android-capacitor-legacy/
 
 # Local logs and test artifacts
 *.log
