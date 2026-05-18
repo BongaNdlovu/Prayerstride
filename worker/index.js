@@ -108,9 +108,10 @@ async function prayForRequest(env, user, prayerId) {
     return json({ error: 'Prayer not found' }, 404);
   }
   const now = new Date().toISOString();
-  const prayDoc = docName(env, 'prayers', prayerId, 'prays', user.uid);
+  const dayKey = now.slice(0, 10);
+  const prayDoc = docName(env, 'prayers', prayerId, 'prays', `${user.uid}_${dayKey}`);
   const existingPray = await getDocument(env, prayDoc);
-  if (existingPray.exists) return json({ ok: true, duplicate: true });
+  if (existingPray.exists) return json({ ok: true, duplicate: true, dayKey });
   await enforceCooldown(env, user.uid, 'pray', 1);
 
   const writes = [
@@ -119,6 +120,9 @@ async function prayForRequest(env, user, prayerId) {
         name: prayDoc,
         fields: toFirestoreFields({
           uid: user.uid,
+          dayKey,
+          prayerId,
+          authorUid: data.authorUid || null,
           createdAt: now,
         }),
       },
@@ -146,7 +150,7 @@ async function prayForRequest(env, user, prayerId) {
   }
 
   const result = await firestoreCommit(env, writes, { allowAlreadyExists: true });
-  if (result.alreadyExists) return json({ ok: true, duplicate: true });
+  if (result.alreadyExists) return json({ ok: true, duplicate: true, dayKey });
 
   if (data.authorUid && data.authorUid !== user.uid && prefs.prayerActivity !== false && prefs.pushEnabled !== false) {
     await sendPushToUser(env, data.authorUid, {
@@ -156,7 +160,7 @@ async function prayForRequest(env, user, prayerId) {
     });
   }
 
-  return json({ ok: true });
+  return json({ ok: true, duplicate: false, dayKey });
 }
 
 async function reactToTestimony(env, user, testimonyId, reaction) {

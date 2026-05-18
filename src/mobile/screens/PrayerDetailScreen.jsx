@@ -12,6 +12,7 @@ import EncouragementThread from '../components/EncouragementThread';
 
 export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh }) {
   const [prayed, setPrayed] = useState(false);
+  const [prayerCountDelta, setPrayerCountDelta] = useState(0);
   const [bookmarked, setBookmarked] = useState(false);
   const [showActions, setShowActions] = useState(false);
   const { comments, loading: commentsLoading } = useEncouragements(prayer.id);
@@ -19,7 +20,11 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
 
   useEffect(() => {
     loadBookmark();
+    loadPrayedToday();
   }, [prayer.id]);
+
+  const todayKey = () => new Date().toISOString().slice(0, 10);
+  const prayedStorageKey = (dayKey = todayKey()) => `prayed:${prayer.id}:${dayKey}`;
 
   const loadBookmark = async () => {
     try {
@@ -28,6 +33,16 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
       setBookmarked(saved === 'true');
     } catch (error) {
       console.warn('Failed to load bookmark', error);
+    }
+  };
+
+  const loadPrayedToday = async () => {
+    try {
+      const saved = await AsyncStorage.getItem(prayedStorageKey());
+      setPrayed(saved === 'true');
+      setPrayerCountDelta(0);
+    } catch (error) {
+      console.warn('Failed to load prayer status', error);
     }
   };
 
@@ -46,10 +61,14 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
     if (prayed) return;
     setPrayed(true);
     try {
-      await prayForRequest(prayer.id);
+      const result = await prayForRequest(prayer.id);
+      const dayKey = result.dayKey || todayKey();
+      await AsyncStorage.setItem(prayedStorageKey(dayKey), 'true');
+      setPrayerCountDelta(result.duplicate ? 0 : 1);
       if (onRefresh) onRefresh();
     } catch (error) {
       setPrayed(false);
+      setPrayerCountDelta(0);
       Alert.alert('Prayer not saved', error.message);
     }
   };
@@ -127,7 +146,7 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
       <PageHero scene="chapel" eyebrow="Prayer Request" title={prayer.title} subtitle={prayer.authorName} compact />
         <View style={styles.card}>
           <Text style={styles.body}>{prayer.body}</Text>
-          <Text style={styles.meta}>{prayer.prayedCount + (prayed ? 1 : 0)} people praying</Text>
+          <Text style={styles.meta}>{prayer.prayedCount + prayerCountDelta} people praying</Text>
           {prayer.createdAt && (
             <Text style={styles.meta}>{new Date(prayer.createdAt.seconds * 1000).toLocaleDateString()}</Text>
           )}
@@ -137,7 +156,7 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
 
         <View style={styles.actionsRow}>
           <Pressable onPress={pray} style={[styles.actionButton, prayed && styles.actionButtonDisabled]} disabled={prayed}>
-            <Text style={styles.actionButtonText}>{prayed ? 'You Prayed' : "I'll Pray"}</Text>
+            <Text style={styles.actionButtonText}>{prayed ? 'Prayed Today' : "I'll Pray"}</Text>
           </Pressable>
           <Pressable onPress={toggleBookmark} style={styles.iconButton}>
             <Text style={styles.iconText}>{bookmarked ? '★' : '☆'}</Text>
