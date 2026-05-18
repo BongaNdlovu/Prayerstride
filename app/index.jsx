@@ -15,6 +15,7 @@ import {
   View,
 } from 'react-native';
 import { BarChart3, Bell, Bookmark, ChevronRight, Flame, Heart, Home, Plus, Search, Sparkles, User, Users } from 'lucide-react-native';
+import Svg, { Circle, Line, Path, Text as SvgText } from 'react-native-svg';
 import { useAuth } from '../src/mobile/AuthProvider';
 import { addPrayer, usePrayers, useTestimonies } from '../src/mobile/usePrayerData';
 import { prayForRequest, reactToTestimony } from '../src/mobile/api';
@@ -38,6 +39,16 @@ const scenes = {
   answered: require('../src/assets/compressed-scenes/5.jpg'),
   texture: require('../src/assets/compressed-scenes/6.jpg'),
 };
+
+const weeklyPrayerData = [
+  { day: 'S', prayers: 2 },
+  { day: 'M', prayers: 4 },
+  { day: 'T', prayers: 3 },
+  { day: 'W', prayers: 6 },
+  { day: 'T', prayers: 5 },
+  { day: 'F', prayers: 8 },
+  { day: 'S', prayers: 7 },
+];
 
 export default function MobileApp() {
   const { user, loading, signIn, register, signOut } = useAuth();
@@ -298,6 +309,30 @@ function StatsScreen() {
   return (
     <CinematicScroll>
       <PageHero scene="bible" eyebrow="Rhythm" title="Your prayer walk" subtitle="A calm record of consistency, care, and people carried in prayer." compact />
+      <View style={styles.glassCard}>
+        <View style={styles.missionHeader}>
+          <View style={styles.missionText}>
+            <Text style={styles.cinematicEyebrow}>Prayer Streak</Text>
+            <Text style={styles.missionTitle}>7 days walking with God</Text>
+          </View>
+          <View style={styles.missionIcon}>
+            <Flame size={24} color={colors.ink} />
+          </View>
+        </View>
+        <View style={styles.streakCalendarWrap}>
+          <StreakCalendar streak={7} currentDayIndex={6} />
+        </View>
+      </View>
+      <View style={styles.glassCard}>
+        <View style={styles.sectionRowCompact}>
+          <View>
+            <Text style={styles.cinematicEyebrow}>Prayer Activity</Text>
+            <Text style={styles.chartTitle}>This week</Text>
+          </View>
+          <Text style={styles.viewAllText}>+18%</Text>
+        </View>
+        <MiniLineChart data={weeklyPrayerData} />
+      </View>
       <View style={styles.oldStatsGrid}>
         <GlassStat icon={Flame} value="21" label="current streak" />
         <GlassStat icon={Heart} value="248" label="total prayers" />
@@ -447,6 +482,96 @@ function GlassStat({ icon: Icon, value, label }) {
   );
 }
 
+function StreakCalendar({ streak = 7, currentDayIndex = 6 }) {
+  const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+  return (
+    <View style={styles.streakCalendar}>
+      <View style={styles.streakDays}>
+        {days.map((day, index) => {
+          const isStreakDay = index <= currentDayIndex;
+          const isCurrentDay = index === currentDayIndex;
+
+          return (
+            <View key={`${day}-${index}`} style={[styles.streakDay, isStreakDay && styles.streakDayActive, isCurrentDay && styles.streakDayCurrent]}>
+              <Text style={[styles.streakDayText, isStreakDay && styles.streakDayTextActive]}>{day}</Text>
+            </View>
+          );
+        })}
+      </View>
+      <View style={styles.streakCount}>
+        <Flame size={16} color={colors.gold} />
+        <Text style={styles.streakCountText}>{streak}</Text>
+      </View>
+    </View>
+  );
+}
+
+function MiniLineChart({ data, width = 308, height = 150 }) {
+  if (!data || data.length === 0) return null;
+
+  const padding = { top: 12, right: 10, bottom: 26, left: 28 };
+  const chartW = width - padding.left - padding.right;
+  const chartH = height - padding.top - padding.bottom;
+  const values = data.map((item) => item.prayers ?? item.value ?? 0);
+  const maxVal = Math.max(...values, 1);
+  const minVal = Math.min(...values);
+  const range = maxVal - minVal || 1;
+  const getX = (index) => padding.left + (index / Math.max(data.length - 1, 1)) * chartW;
+  const getY = (value) => padding.top + chartH - ((value - minVal) / range) * chartH;
+  const yTicks = [minVal, (minVal + maxVal) / 2, maxVal];
+  const pathD = data.map((item, index) => {
+    const x = getX(index);
+    const y = getY(item.prayers ?? item.value ?? 0);
+    return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
+  }).join(' ');
+
+  return (
+    <View style={styles.chartWrap}>
+      <Svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`}>
+        {yTicks.map((tick, index) => {
+          const y = getY(tick);
+          return (
+            <Line key={`grid-${index}`} x1={padding.left} y1={y} x2={width - padding.right} y2={y} stroke="rgba(248,243,234,0.14)" strokeWidth="1" />
+          );
+        })}
+        {yTicks.map((tick, index) => {
+          const y = getY(tick);
+          return (
+            <SvgText key={`yl-${index}`} x={padding.left - 7} y={y + 4} textAnchor="end" fontSize="10" fill="rgba(248,243,234,0.5)">
+              {Math.round(tick)}
+            </SvgText>
+          );
+        })}
+        {data.map((item, index) => {
+          const x = getX(index);
+          return (
+            <SvgText key={`xl-${index}`} x={x} y={height - 5} textAnchor="middle" fontSize="10" fill="rgba(248,243,234,0.56)">
+              {item.day}
+            </SvgText>
+          );
+        })}
+        <Path d={pathD} fill="none" stroke={colors.gold} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        {data.map((item, index) => {
+          const value = item.prayers ?? item.value ?? 0;
+          const isLast = index === data.length - 1;
+          return (
+            <Circle
+              key={`dot-${index}`}
+              cx={getX(index)}
+              cy={getY(value)}
+              r={isLast ? 4.5 : 3}
+              fill={isLast ? colors.ivory : colors.gold}
+              stroke="#080b13"
+              strokeWidth="1.5"
+            />
+          );
+        })}
+      </Svg>
+    </View>
+  );
+}
+
 function StatCard({ icon: Icon, value, label }) {
   return (
     <View style={styles.statCard}>
@@ -574,10 +699,23 @@ const styles = StyleSheet.create({
   glassStatValue: { marginTop: 10, color: colors.ivory, fontSize: 25, fontWeight: '800' },
   glassStatLabel: { marginTop: 3, color: 'rgba(248,243,234,0.58)', fontSize: 12 },
   sectionRow: { marginTop: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  sectionRowCompact: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 },
   oldSectionTitle: { color: colors.ivory, fontSize: 22, fontWeight: '800' },
+  chartTitle: { marginTop: 6, color: colors.ivory, fontSize: 22, fontWeight: '800' },
   viewAllText: { color: colors.gold, fontSize: 12, fontWeight: '800' },
   homeList: { paddingHorizontal: 16, paddingTop: 12, gap: 12 },
   cinematicListContent: { paddingHorizontal: 16, paddingBottom: 120, gap: 12 },
+  streakCalendarWrap: { marginTop: 18 },
+  streakCalendar: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  streakDays: { flex: 1, minHeight: 48, borderRadius: 18, backgroundColor: 'rgba(248,243,234,0.1)', borderWidth: 1, borderColor: 'rgba(248,243,234,0.12)', paddingHorizontal: 6, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  streakDay: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(248,243,234,0.08)' },
+  streakDayActive: { backgroundColor: 'rgba(200,137,43,0.22)' },
+  streakDayCurrent: { borderWidth: 2, borderColor: 'rgba(200,137,43,0.62)' },
+  streakDayText: { color: 'rgba(248,243,234,0.5)', fontSize: 11, fontWeight: '800' },
+  streakDayTextActive: { color: colors.ivory },
+  streakCount: { minHeight: 48, borderRadius: 999, backgroundColor: 'rgba(248,243,234,0.1)', borderWidth: 1, borderColor: 'rgba(248,243,234,0.12)', paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  streakCountText: { color: colors.ivory, fontSize: 18, fontWeight: '800' },
+  chartWrap: { marginTop: 14, width: '100%', overflow: 'hidden' },
   oldPrayerCard: { width: '100%', borderWidth: 1, borderColor: 'rgba(248,243,234,0.16)', backgroundColor: 'rgba(248,243,234,0.1)', borderRadius: 24, padding: 16 },
   oldPrayerMetaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   oldPrayerMeta: { flexShrink: 1, color: 'rgba(248,243,234,0.55)', fontSize: 12 },
