@@ -9,9 +9,10 @@ import {
   query,
   serverTimestamp,
   updateDoc,
+  where,
   writeBatch,
 } from 'firebase/firestore';
-import { db } from './firebase';
+import { auth, db } from './firebase';
 
 function mapPrayer(docSnap) {
   const data = docSnap.data();
@@ -23,6 +24,10 @@ function mapPrayer(docSnap) {
     authorName: data.isAnonymous ? 'Anonymous' : data.authorName,
     prayedCount: data.prayedCount || 0,
     status: data.status || 'active',
+    privacy: data.privacy || 'community',
+    urgent: Boolean(data.urgent),
+    allowShare: data.allowShare !== false,
+    createdAt: data.createdAt,
   };
 }
 
@@ -40,7 +45,7 @@ function mapTestimony(docSnap) {
   };
 }
 
-export function usePrayers(enabled) {
+export function usePrayers(enabled, options = {}) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(Boolean(enabled));
 
@@ -51,15 +56,47 @@ export function usePrayers(enabled) {
       return undefined;
     }
 
-    return onSnapshot(
-      query(collection(db, 'prayers'), orderBy('createdAt', 'desc')),
+    const currentUid = options.userId || auth.currentUser?.uid;
+    const includeAll = Boolean(options.includeAll);
+    const prayerRef = collection(db, 'prayers');
+    const queries = includeAll
+      ? [query(prayerRef, orderBy('createdAt', 'desc'))]
+      : [
+          query(prayerRef, where('privacy', '==', 'community'), orderBy('createdAt', 'desc')),
+          ...(currentUid ? [query(prayerRef, where('authorUid', '==', currentUid), orderBy('createdAt', 'desc'))] : []),
+        ];
+
+    const sourceMaps = queries.map(() => new Map());
+    const publish = () => {
+      const docsById = new Map();
+      sourceMaps.forEach((sourceMap) => {
+        sourceMap.forEach((item, id) => docsById.set(id, item));
+      });
+      setItems(Array.from(docsById.values()).sort((a, b) => {
+        const aTime = a.createdAt?.toMillis?.() ?? a.createdAt?.seconds ?? 0;
+        const bTime = b.createdAt?.toMillis?.() ?? b.createdAt?.seconds ?? 0;
+        return bTime - aTime;
+      }));
+      setLoading(false);
+    };
+
+    const unsubscribers = queries.map((prayerQuery, index) => onSnapshot(
+      prayerQuery,
       (snapshot) => {
-        setItems(snapshot.docs.map(mapPrayer));
-        setLoading(false);
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === 'removed') {
+            sourceMaps[index].delete(change.doc.id);
+            return;
+          }
+          sourceMaps[index].set(change.doc.id, mapPrayer(change.doc));
+        });
+        publish();
       },
       () => setLoading(false),
-    );
-  }, [enabled]);
+    ));
+
+    return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
+  }, [enabled, options.includeAll, options.userId]);
 
   return { prayers: items, loading };
 }

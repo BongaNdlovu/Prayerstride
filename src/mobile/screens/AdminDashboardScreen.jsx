@@ -16,7 +16,7 @@ export default function AdminDashboardScreen({ user, go }) {
   const { isAdmin } = useIsAdmin(user);
   const { reports } = useReports(true);
   const { users } = useUsers(true);
-  const { prayers } = usePrayers(isAdmin);
+  const { prayers } = usePrayers(isAdmin, { includeAll: isAdmin });
   const { testimonies } = useTestimonies(isAdmin);
   const [tab, setTab] = useState('Overview');
 

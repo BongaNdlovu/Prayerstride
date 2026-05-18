@@ -8,6 +8,7 @@ import PageHero from '../components/PageHero';
 export default function EditRequestScreen({ prayer, user, onDone }) {
   const [title, setTitle] = useState(prayer?.title || '');
   const [body, setBody] = useState(prayer?.body || '');
+  const [privacy, setPrivacy] = useState(prayer?.privacy || 'community');
   const [busy, setBusy] = useState(false);
 
   const save = async () => {
@@ -17,7 +18,7 @@ export default function EditRequestScreen({ prayer, user, onDone }) {
     }
     setBusy(true);
     try {
-      await updatePrayer(prayer.id, { title: title.trim(), body: body.trim() });
+      await updatePrayer(prayer.id, { title: title.trim(), body: body.trim(), privacy });
       if (onDone) onDone();
     } catch (error) {
       Alert.alert('Could not save', error.message);
@@ -48,6 +49,16 @@ export default function EditRequestScreen({ prayer, user, onDone }) {
       <View style={styles.card}>
         <TextInput value={title} onChangeText={setTitle} placeholder="Prayer title" style={styles.input} placeholderTextColor="rgba(248,243,234,0.56)" />
         <TextInput value={body} onChangeText={setBody} placeholder="What should people pray for?" multiline style={[styles.input, styles.textArea]} placeholderTextColor="rgba(248,243,234,0.56)" />
+        <View style={styles.segmented}>
+          {[
+            ['community', 'Community'],
+            ['private', 'Only me'],
+          ].map(([value, label]) => (
+            <Pressable key={value} onPress={() => setPrivacy(value)} style={[styles.segment, privacy === value && styles.segmentActive]}>
+              <Text style={[styles.segmentText, privacy === value && styles.segmentTextActive]}>{label}</Text>
+            </Pressable>
+          ))}
+        </View>
         <Pressable disabled={busy} onPress={save} style={styles.button}>
           <Text style={styles.buttonText}>{busy ? 'Saving...' : 'Save Changes'}</Text>
         </Pressable>
@@ -63,6 +74,11 @@ const styles = StyleSheet.create({
   card: { borderWidth: 1, borderColor: 'rgba(248,243,234,0.16)', backgroundColor: 'rgba(248,243,234,0.11)', borderRadius: 24, padding: 18 },
   input: { marginTop: 12, minHeight: 52, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(248,243,234,0.16)', backgroundColor: 'rgba(248,243,234,0.1)', paddingHorizontal: 16, color: colors.ivory, fontSize: 15 },
   textArea: { minHeight: 150, paddingTop: 16, textAlignVertical: 'top' },
+  segmented: { marginTop: 12, minHeight: 48, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(248,243,234,0.16)', backgroundColor: 'rgba(248,243,234,0.08)', padding: 4, flexDirection: 'row', gap: 4 },
+  segment: { flex: 1, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  segmentActive: { backgroundColor: 'rgba(200,137,43,0.22)' },
+  segmentText: { color: 'rgba(248,243,234,0.62)', fontSize: 13, fontWeight: '800' },
+  segmentTextActive: { color: colors.gold },
   button: { marginTop: 20, minHeight: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.gold },
   buttonText: { color: colors.ink, fontSize: 15, fontWeight: '800' },
   deleteButton: { marginTop: 14, minHeight: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(200,137,43,0.3)', backgroundColor: 'rgba(200,137,43,0.08)' },

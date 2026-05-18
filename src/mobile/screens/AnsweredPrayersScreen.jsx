@@ -7,7 +7,7 @@ import PrayerCard from '../components/PrayerCard';
 import EmptyState from '../components/EmptyState';
 
 export default function AnsweredPrayersScreen({ user, onOpenPrayer }) {
-  const { prayers } = usePrayers(true);
+  const { prayers } = usePrayers(true, { userId: user?.uid });
   const mine = prayers.filter((p) => p.authorUid === user.uid && p.status === 'answered');
 
   return (

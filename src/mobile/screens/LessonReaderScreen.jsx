@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { colors } from '../theme';
 import { mockLesson } from '../../data/mockData';
 import CinematicScreen from '../components/CinematicScreen';

@@ -1,4 +1,4 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../theme';
 import { mockGuide } from '../../data/mockData';
 import CinematicScreen from '../components/CinematicScreen';

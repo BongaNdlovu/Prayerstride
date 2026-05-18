@@ -8,6 +8,7 @@ import PageHero from '../components/PageHero';
 export default function CreatePrayerScreen({ user }) {
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
+  const [privacy, setPrivacy] = useState('community');
   const [busy, setBusy] = useState(false);
 
   const submit = async () => {
@@ -18,7 +19,7 @@ export default function CreatePrayerScreen({ user }) {
 
     setBusy(true);
     try {
-      await addPrayer({ title: title.trim(), body: body.trim() }, user);
+      await addPrayer({ title: title.trim(), body: body.trim(), privacy }, user);
       setTitle('');
       setBody('');
       Alert.alert('Prayer shared', 'Your request is now in the community feed.');
@@ -42,6 +43,16 @@ export default function CreatePrayerScreen({ user }) {
           style={[styles.input, styles.textArea]}
           placeholderTextColor="rgba(248,243,234,0.56)"
         />
+        <View style={styles.segmented}>
+          {[
+            ['community', 'Community'],
+            ['private', 'Only me'],
+          ].map(([value, label]) => (
+            <Pressable key={value} onPress={() => setPrivacy(value)} style={[styles.segment, privacy === value && styles.segmentActive]}>
+              <Text style={[styles.segmentText, privacy === value && styles.segmentTextActive]}>{label}</Text>
+            </Pressable>
+          ))}
+        </View>
         <Pressable disabled={busy} onPress={submit} style={styles.button}>
           <Text style={styles.buttonText}>{busy ? 'Sharing...' : 'Share Prayer'}</Text>
         </Pressable>
@@ -54,6 +65,11 @@ const styles = StyleSheet.create({
   card: { borderWidth: 1, borderColor: 'rgba(248,243,234,0.16)', backgroundColor: 'rgba(248,243,234,0.11)', borderRadius: 24, padding: 18 },
   input: { marginTop: 12, minHeight: 52, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(248,243,234,0.16)', backgroundColor: 'rgba(248,243,234,0.1)', paddingHorizontal: 16, color: colors.ivory, fontSize: 15 },
   textArea: { minHeight: 150, paddingTop: 16, textAlignVertical: 'top' },
+  segmented: { marginTop: 12, minHeight: 48, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(248,243,234,0.16)', backgroundColor: 'rgba(248,243,234,0.08)', padding: 4, flexDirection: 'row', gap: 4 },
+  segment: { flex: 1, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  segmentActive: { backgroundColor: 'rgba(200,137,43,0.22)' },
+  segmentText: { color: 'rgba(248,243,234,0.62)', fontSize: 13, fontWeight: '800' },
+  segmentTextActive: { color: colors.gold },
   button: { marginTop: 20, minHeight: 52, borderRadius: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, backgroundColor: colors.gold },
   buttonText: { color: colors.ink, fontSize: 15, fontWeight: '800' },
 });

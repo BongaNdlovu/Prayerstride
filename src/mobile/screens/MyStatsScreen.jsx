@@ -76,7 +76,7 @@ function formatMinutes(totalSeconds) {
 }
 
 export default function MyStatsScreen({ user }) {
-  const { prayers } = usePrayers(true);
+  const { prayers } = usePrayers(true, { userId: user?.uid });
   const { sessions, totalSeconds } = usePrayerSessions(user?.uid, true);
   const { testimonies } = useTestimonies(true);
   const myPrayers = prayers.filter((p) => p.authorUid === user?.uid);

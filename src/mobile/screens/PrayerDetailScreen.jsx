@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors } from '../theme';
 import { prayForRequest } from '../api';
 import { markAnswered } from '../usePrayerData';
 import { submitReport } from '../useReports';
-import { useEncouragements, addEncouragement } from '../useEncouragements';
+import { useEncouragements } from '../useEncouragements';
 import CinematicScreen from '../components/CinematicScreen';
 import PageHero from '../components/PageHero';
 import EncouragementThread from '../components/EncouragementThread';
@@ -124,8 +124,7 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
       <Pressable onPress={onBack} style={styles.backButton}>
         <Text style={styles.backText}>Back</Text>
       </Pressable>
-      <ScrollView>
-        <PageHero scene="chapel" eyebrow="Prayer Request" title={prayer.title} subtitle={prayer.authorName} compact />
+      <PageHero scene="chapel" eyebrow="Prayer Request" title={prayer.title} subtitle={prayer.authorName} compact />
         <View style={styles.card}>
           <Text style={styles.body}>{prayer.body}</Text>
           <Text style={styles.meta}>{prayer.prayedCount + (prayed ? 1 : 0)} people praying</Text>
@@ -133,7 +132,7 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
             <Text style={styles.meta}>{new Date(prayer.createdAt.seconds * 1000).toLocaleDateString()}</Text>
           )}
           {prayer.urgent && <Text style={styles.urgent}>Urgent</Text>}
-          {prayer.private && <Text style={styles.private}>Private</Text>}
+          {prayer.privacy === 'private' && <Text style={styles.private}>Private</Text>}
         </View>
 
         <View style={styles.actionsRow}>
@@ -178,7 +177,6 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
           user={user}
           onRefresh={onRefresh}
         />
-      </ScrollView>
     </CinematicScreen>
   );
 }

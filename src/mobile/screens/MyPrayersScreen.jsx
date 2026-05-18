@@ -8,7 +8,7 @@ import PrayerCard from '../components/PrayerCard';
 import EmptyState from '../components/EmptyState';
 
 export default function MyPrayersScreen({ user, onOpenPrayer }) {
-  const { prayers } = usePrayers(true);
+  const { prayers } = usePrayers(true, { userId: user?.uid });
   const [tab, setTab] = useState('Active');
   const mine = prayers.filter((p) => p.authorUid === user.uid);
   const active = mine.filter((p) => p.status === 'active');

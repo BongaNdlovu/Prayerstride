@@ -24,6 +24,22 @@ service cloud.firestore {
       return signedIn() && resource.data.authorUid == request.auth.uid;
     }
 
+    function canReadPrayerData(data) {
+      return signedIn()
+        && (
+          isAdmin()
+          || data.authorUid == request.auth.uid
+          || !("privacy" in data)
+          || data.privacy == null
+          || data.privacy == "community"
+        );
+    }
+
+    function canReadPrayerId(prayerId) {
+      return exists(/databases/$(database)/documents/prayers/$(prayerId))
+        && canReadPrayerData(get(/databases/$(database)/documents/prayers/$(prayerId)).data);
+    }
+
     function notSuspended() {
       return signedIn()
         && (!exists(/databases/$(database)/documents/users/$(request.auth.uid))
@@ -61,6 +77,7 @@ service cloud.firestore {
 
     function validUserCreate(uid) {
       return isSelf(uid)
+        && request.resource.data.keys().hasOnly(["uid", "email", "displayName", "role", "owner", "createdAt", "photoURL", "handle", "bio"])
         && request.resource.data.keys().hasAll(["uid", "email", "displayName", "role", "owner", "createdAt"])
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.email == request.auth.token.email
@@ -88,6 +105,7 @@ service cloud.firestore {
 
     function validPrayerCreate() {
       return signedIn()
+        && request.resource.data.keys().hasOnly(["title", "body", "authorUid", "authorName", "isAnonymous", "createdAt", "updatedAt", "prayedCount", "status", "privacy", "urgent", "allowShare"])
         && request.resource.data.keys().hasAll(["title", "body", "authorUid", "authorName", "isAnonymous", "createdAt", "updatedAt", "prayedCount", "status"])
         && request.resource.data.authorUid == request.auth.uid
         && validString(request.resource.data.title, 120)
@@ -122,6 +140,7 @@ service cloud.firestore {
 
     function validTestimonyCreate() {
       return signedIn()
+        && request.resource.data.keys().hasOnly(["title", "body", "authorUid", "authorName", "isAnonymous", "createdAt", "updatedAt", "amen", "praiseGod", "prayerId", "shared", "tags"])
         && request.resource.data.keys().hasAll(["title", "body", "authorUid", "authorName", "isAnonymous", "createdAt", "updatedAt", "amen", "praiseGod"])
         && request.resource.data.authorUid == request.auth.uid
         && validString(request.resource.data.title, 120)
@@ -162,7 +181,7 @@ service cloud.firestore {
     }
 
     match /prayers/{prayerId} {
-      allow read: if signedIn();
+      allow read: if canReadPrayerData(resource.data);
       allow create: if validPrayerCreate() && notSuspended();
       allow update: if validPrayerAuthorUpdate() && notSuspended();
       allow delete: if isAuthor() || isAdmin();
@@ -187,6 +206,7 @@ service cloud.firestore {
 
     match /reports/{reportId} {
       allow create: if signedIn() && notSuspended()
+        && request.resource.data.keys().hasOnly(["targetId", "targetType", "reason", "reportedByUid", "status", "createdAt"])
         && request.resource.data.keys().hasAll(["targetId", "targetType", "reason", "reportedByUid", "status", "createdAt"])
         && request.resource.data.reportedByUid == request.auth.uid
         && request.resource.data.targetId is string
@@ -207,14 +227,16 @@ service cloud.firestore {
     match /prayerSessions/{sessionId} {
       allow read: if signedIn() && resource.data.authorUid == request.auth.uid;
       allow create: if signedIn() && notSuspended()
-        && request.resource.data.keys().hasAll(["authorUid", "title", "seconds", "createdAt"])
+        && request.resource.data.keys().hasOnly(["authorUid", "title", "seconds", "createdAt", "prayerId"])
+        && request.resource.data.keys().hasAll(["authorUid", "title", "seconds", "createdAt", "prayerId"])
         && request.resource.data.authorUid == request.auth.uid
         && validString(request.resource.data.title, 140)
         && request.resource.data.seconds is number
         && request.resource.data.seconds > 0
         && request.resource.data.seconds <= 86400
         && request.resource.data.createdAt is timestamp
-        && optionalString("prayerId", 160);
+        && validString(request.resource.data.prayerId, 160)
+        && canReadPrayerId(request.resource.data.prayerId);
       allow update, delete: if signedIn() && notSuspended()
         && resource.data.authorUid == request.auth.uid
         && unchanged(["authorUid", "createdAt"])
@@ -222,15 +244,19 @@ service cloud.firestore {
         && validString(request.resource.data.title, 140)
         && request.resource.data.seconds is number
         && request.resource.data.seconds > 0
-        && request.resource.data.seconds <= 86400;
+        && request.resource.data.seconds <= 86400
+        && validString(request.resource.data.prayerId, 160)
+        && canReadPrayerId(request.resource.data.prayerId);
     }
 
     match /encouragements/{encouragementId} {
-      allow read: if signedIn();
+      allow read: if canReadPrayerId(resource.data.threadId);
       allow create: if signedIn() && notSuspended()
+        && request.resource.data.keys().hasOnly(["threadId", "authorUid", "authorName", "text", "createdAt", "updatedAt"])
         && request.resource.data.keys().hasAll(["threadId", "authorUid", "authorName", "text", "createdAt", "updatedAt"])
         && request.resource.data.authorUid == request.auth.uid
         && validString(request.resource.data.threadId, 160)
+        && canReadPrayerId(request.resource.data.threadId)
         && request.resource.data.authorName is string
         && request.resource.data.authorName.size() <= 80
         && validString(request.resource.data.text, 800)

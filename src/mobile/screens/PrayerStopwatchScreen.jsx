@@ -31,6 +31,17 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, us
   const startPause = () => setRunning((r) => !r);
   const resetTimer = () => { setRunning(false); setSeconds(0); };
 
+  if (!prayerId) {
+    return (
+      <CinematicScreen pageContent>
+        <View style={styles.container}>
+          <Text style={styles.label}>Choose a prayer first</Text>
+          <Text style={styles.emptyText}>Open a prayer request, then start the timer from its detail screen so this session can be saved accurately.</Text>
+        </View>
+      </CinematicScreen>
+    );
+  }
+
   const complete = async () => {
     if (!seconds) {
       Alert.alert('No time recorded', 'Start the timer before completing.');
@@ -77,6 +88,7 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, us
 const styles = StyleSheet.create({
   container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   label: { color: 'rgba(248,243,234,0.62)', fontSize: 16, marginBottom: 16 },
+  emptyText: { color: 'rgba(248,243,234,0.72)', fontSize: 15, lineHeight: 23, textAlign: 'center' },
   timer: { color: colors.ivory, fontSize: 64, fontWeight: '800', fontVariant: ['tabular-nums'], marginBottom: 32 },
   actions: { flexDirection: 'row', gap: 12, marginBottom: 20 },
   button: { minHeight: 52, paddingHorizontal: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.gold },

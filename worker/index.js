@@ -104,6 +104,9 @@ async function prayForRequest(env, user, prayerId) {
   if (!prayer.exists) return json({ error: 'Prayer not found' }, 404);
 
   const data = fromFirestoreFields(prayer.fields);
+  if (data.privacy === 'private' && data.authorUid !== user.uid) {
+    return json({ error: 'Prayer not found' }, 404);
+  }
   const now = new Date().toISOString();
   const prayDoc = docName(env, 'prayers', prayerId, 'prays', user.uid);
   const existingPray = await getDocument(env, prayDoc);

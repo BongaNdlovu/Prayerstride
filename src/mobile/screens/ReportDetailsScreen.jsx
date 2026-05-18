@@ -1,4 +1,4 @@
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../theme';
 import { resolveReport, dismissReport } from '../useReports';
 import { adminDeleteContent } from '../api';

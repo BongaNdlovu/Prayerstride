@@ -12,7 +12,7 @@ export default function CreateTestimonyScreen({ user, linkedPrayerId, onDone }) 
   const [prayerId, setPrayerId] = useState(linkedPrayerId || null);
   const [busy, setBusy] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
-  const { prayers } = usePrayers(true);
+  const { prayers } = usePrayers(true, { userId: user?.uid });
   const myPrayers = prayers.filter((p) => p.authorUid === user?.uid && p.status === 'active');
 
   const submit = async () => {

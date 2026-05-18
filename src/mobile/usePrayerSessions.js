@@ -53,10 +53,11 @@ export function usePrayerSessions(userId, enabled = true) {
 export async function addPrayerSession({ prayerId, title, seconds }, user) {
   if (!user) throw new Error('Please sign in before saving prayer time.');
   if (!seconds) throw new Error('Start the timer before completing a session.');
+  if (!prayerId) throw new Error('Open a real prayer request before saving prayer time.');
 
   return addDoc(collection(db, 'prayerSessions'), {
     authorUid: user.uid,
-    prayerId: prayerId || null,
+    prayerId,
     title: title || 'Prayer session',
     seconds,
     createdAt: serverTimestamp(),
