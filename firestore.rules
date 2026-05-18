@@ -105,7 +105,7 @@ service cloud.firestore {
 
     function validPrayerCreate() {
       return signedIn()
-        && request.resource.data.keys().hasOnly(["title", "body", "authorUid", "authorName", "isAnonymous", "createdAt", "updatedAt", "prayedCount", "status", "privacy", "urgent", "allowShare"])
+        && request.resource.data.keys().hasOnly(["title", "body", "authorUid", "authorName", "isAnonymous", "createdAt", "updatedAt", "prayedCount", "status", "privacy", "urgent", "allowShare", "prayerLimit"])
         && request.resource.data.keys().hasAll(["title", "body", "authorUid", "authorName", "isAnonymous", "createdAt", "updatedAt", "prayedCount", "status"])
         && request.resource.data.authorUid == request.auth.uid
         && validString(request.resource.data.title, 120)
@@ -120,13 +120,14 @@ service cloud.firestore {
         && optionalString("privacy", 24)
         && (!("privacy" in request.resource.data) || request.resource.data.privacy == null || request.resource.data.privacy in ["community", "private"])
         && optionalBool("urgent")
-        && optionalBool("allowShare");
+        && optionalBool("allowShare")
+        && (!("prayerLimit" in request.resource.data) || request.resource.data.prayerLimit in ["daily", "once"]);
     }
 
     function validPrayerAuthorUpdate() {
       return isAuthor()
         && unchanged(["authorUid", "authorName", "createdAt", "prayedCount"])
-        && changedOnly(["title", "body", "isAnonymous", "status", "updatedAt", "privacy", "urgent", "allowShare"])
+        && changedOnly(["title", "body", "isAnonymous", "status", "updatedAt", "privacy", "urgent", "allowShare", "prayerLimit"])
         && request.resource.data.status in ["active", "answered"]
         && validString(request.resource.data.title, 120)
         && validString(request.resource.data.body, 2000)
@@ -135,7 +136,8 @@ service cloud.firestore {
         && optionalString("privacy", 24)
         && (!("privacy" in request.resource.data) || request.resource.data.privacy == null || request.resource.data.privacy in ["community", "private"])
         && optionalBool("urgent")
-        && optionalBool("allowShare");
+        && optionalBool("allowShare")
+        && (!("prayerLimit" in request.resource.data) || request.resource.data.prayerLimit in ["daily", "once"]);
     }
 
     function validTestimonyCreate() {

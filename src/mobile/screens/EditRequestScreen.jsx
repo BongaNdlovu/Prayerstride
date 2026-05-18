@@ -9,6 +9,7 @@ export default function EditRequestScreen({ prayer, user, onDone }) {
   const [title, setTitle] = useState(prayer?.title || '');
   const [body, setBody] = useState(prayer?.body || '');
   const [privacy, setPrivacy] = useState(prayer?.privacy || 'community');
+  const [prayerLimit, setPrayerLimit] = useState(prayer?.prayerLimit || 'daily');
   const [busy, setBusy] = useState(false);
 
   const save = async () => {
@@ -18,7 +19,7 @@ export default function EditRequestScreen({ prayer, user, onDone }) {
     }
     setBusy(true);
     try {
-      await updatePrayer(prayer.id, { title: title.trim(), body: body.trim(), privacy });
+      await updatePrayer(prayer.id, { title: title.trim(), body: body.trim(), privacy, prayerLimit });
       if (onDone) onDone();
     } catch (error) {
       Alert.alert('Could not save', error.message);
@@ -59,6 +60,17 @@ export default function EditRequestScreen({ prayer, user, onDone }) {
             </Pressable>
           ))}
         </View>
+        <View style={styles.segmented}>
+          {[
+            ['daily', 'Daily'],
+            ['once', 'Once'],
+          ].map(([value, label]) => (
+            <Pressable key={value} onPress={() => setPrayerLimit(value)} style={[styles.segment, prayerLimit === value && styles.segmentActive]}>
+              <Text style={[styles.segmentText, prayerLimit === value && styles.segmentTextActive]}>{label}</Text>
+            </Pressable>
+          ))}
+        </View>
+        <Text style={styles.helperText}>{prayerLimit === 'once' ? 'Each person can pray for this once.' : 'Each person can pray for this once per day.'}</Text>
         <Pressable disabled={busy} onPress={save} style={styles.button}>
           <Text style={styles.buttonText}>{busy ? 'Saving...' : 'Save Changes'}</Text>
         </Pressable>
@@ -79,6 +91,7 @@ const styles = StyleSheet.create({
   segmentActive: { backgroundColor: 'rgba(200,137,43,0.22)' },
   segmentText: { color: 'rgba(248,243,234,0.62)', fontSize: 13, fontWeight: '800' },
   segmentTextActive: { color: colors.gold },
+  helperText: { marginTop: 8, color: 'rgba(248,243,234,0.56)', fontSize: 12, lineHeight: 18, textAlign: 'center' },
   button: { marginTop: 20, minHeight: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.gold },
   buttonText: { color: colors.ink, fontSize: 15, fontWeight: '800' },
   deleteButton: { marginTop: 14, minHeight: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(200,137,43,0.3)', backgroundColor: 'rgba(200,137,43,0.08)' },

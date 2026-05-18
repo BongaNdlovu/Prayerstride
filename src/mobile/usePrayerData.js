@@ -25,6 +25,7 @@ function mapPrayer(docSnap) {
     prayedCount: data.prayedCount || 0,
     status: data.status || 'active',
     privacy: data.privacy || 'community',
+    prayerLimit: data.prayerLimit || 'daily',
     urgent: Boolean(data.urgent),
     allowShare: data.allowShare !== false,
     createdAt: data.createdAt,
@@ -137,6 +138,7 @@ export async function addPrayer(data, user) {
     prayedCount: 0,
     status: 'active',
     privacy: data.privacy || 'community',
+    prayerLimit: data.prayerLimit || 'daily',
     urgent: Boolean(data.urgent ?? data.urgency),
     allowShare: data.allowShare !== false,
   });
@@ -149,6 +151,7 @@ export async function updatePrayer(prayerId, data) {
     body: data.body || data.text,
     isAnonymous: Boolean(data.isAnonymous ?? data.anonymous),
     privacy: data.privacy || 'community',
+    prayerLimit: data.prayerLimit || 'daily',
     urgent: Boolean(data.urgent ?? data.urgency),
     allowShare: data.allowShare !== false,
     updatedAt: serverTimestamp(),

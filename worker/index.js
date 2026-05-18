@@ -107,11 +107,16 @@ async function prayForRequest(env, user, prayerId) {
   if (data.privacy === 'private' && data.authorUid !== user.uid) {
     return json({ error: 'Prayer not found' }, 404);
   }
+  if (data.authorUid === user.uid) {
+    return json({ error: 'You cannot pray for your own prayer request.' }, 403);
+  }
   const now = new Date().toISOString();
   const dayKey = now.slice(0, 10);
-  const prayDoc = docName(env, 'prayers', prayerId, 'prays', `${user.uid}_${dayKey}`);
+  const prayerLimit = data.prayerLimit === 'once' ? 'once' : 'daily';
+  const prayDocId = prayerLimit === 'once' ? user.uid : `${user.uid}_${dayKey}`;
+  const prayDoc = docName(env, 'prayers', prayerId, 'prays', prayDocId);
   const existingPray = await getDocument(env, prayDoc);
-  if (existingPray.exists) return json({ ok: true, duplicate: true, dayKey });
+  if (existingPray.exists) return json({ ok: true, duplicate: true, dayKey, prayerLimit });
   await enforceCooldown(env, user.uid, 'pray', 1);
 
   const writes = [
@@ -122,6 +127,7 @@ async function prayForRequest(env, user, prayerId) {
           uid: user.uid,
           dayKey,
           prayerId,
+          prayerLimit,
           authorUid: data.authorUid || null,
           createdAt: now,
         }),
@@ -150,7 +156,7 @@ async function prayForRequest(env, user, prayerId) {
   }
 
   const result = await firestoreCommit(env, writes, { allowAlreadyExists: true });
-  if (result.alreadyExists) return json({ ok: true, duplicate: true, dayKey });
+  if (result.alreadyExists) return json({ ok: true, duplicate: true, dayKey, prayerLimit });
 
   if (data.authorUid && data.authorUid !== user.uid && prefs.prayerActivity !== false && prefs.pushEnabled !== false) {
     await sendPushToUser(env, data.authorUid, {
@@ -160,7 +166,7 @@ async function prayForRequest(env, user, prayerId) {
     });
   }
 
-  return json({ ok: true, duplicate: false, dayKey });
+  return json({ ok: true, duplicate: false, dayKey, prayerLimit });
 }
 
 async function reactToTestimony(env, user, testimonyId, reaction) {

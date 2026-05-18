@@ -24,7 +24,9 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
   }, [prayer.id]);
 
   const todayKey = () => new Date().toISOString().slice(0, 10);
-  const prayedStorageKey = (dayKey = todayKey()) => `prayed:${prayer.id}:${dayKey}`;
+  const prayedStorageKey = (dayKey = todayKey(), limit = prayer.prayerLimit || 'daily') => (
+    limit === 'once' ? `prayed:${prayer.id}:once` : `prayed:${prayer.id}:${dayKey}`
+  );
 
   const loadBookmark = async () => {
     try {
@@ -58,12 +60,16 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
   };
 
   const pray = async () => {
+    if (isOwner) {
+      Alert.alert('Your request', 'You cannot pray for your own prayer request.');
+      return;
+    }
     if (prayed) return;
     setPrayed(true);
     try {
       const result = await prayForRequest(prayer.id);
       const dayKey = result.dayKey || todayKey();
-      await AsyncStorage.setItem(prayedStorageKey(dayKey), 'true');
+      await AsyncStorage.setItem(prayedStorageKey(dayKey, result.prayerLimit), 'true');
       setPrayerCountDelta(result.duplicate ? 0 : 1);
       if (onRefresh) onRefresh();
     } catch (error) {
@@ -155,8 +161,10 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
         </View>
 
         <View style={styles.actionsRow}>
-          <Pressable onPress={pray} style={[styles.actionButton, prayed && styles.actionButtonDisabled]} disabled={prayed}>
-            <Text style={styles.actionButtonText}>{prayed ? 'Prayed Today' : "I'll Pray"}</Text>
+          <Pressable onPress={pray} style={[styles.actionButton, (prayed || isOwner) && styles.actionButtonDisabled]} disabled={prayed || isOwner}>
+            <Text style={styles.actionButtonText}>
+              {isOwner ? 'Your Request' : prayed ? (prayer.prayerLimit === 'once' ? 'Already Prayed' : 'Prayed Today') : "I'll Pray"}
+            </Text>
           </Pressable>
           <Pressable onPress={toggleBookmark} style={styles.iconButton}>
             <Text style={styles.iconText}>{bookmarked ? '★' : '☆'}</Text>
