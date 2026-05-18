@@ -2,15 +2,11 @@
   "expo": {
     "name": "PrayerStride",
     "slug": "prayerstride",
-    "scheme": "prayerstride",
     "version": "1.0.0",
-    "icon": "./assets/icon.png",
     "platforms": [
       "ios",
       "android"
     ],
-    "orientation": "portrait",
-    "userInterfaceStyle": "light",
     "assetBundlePatterns": [
       "assets/icon.png",
       "assets/adaptive-icon.png",
@@ -18,28 +14,9 @@
       "src/assets/cinematic-prayer-scenes.jpg",
       "src/assets/compressed-scenes/*.jpg"
     ],
-    "ios": {
-      "supportsTablet": false,
-      "bundleIdentifier": "com.prayerstride.app"
-    },
-    "android": {
-      "package": "com.lift.prayer",
-      "googleServicesFile": "./google-services.json",
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#082A4A"
-      },
-      "permissions": [
-        "POST_NOTIFICATIONS"
-      ]
-    },
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": [
-      "expo-router",
-      "expo-notifications"
-    ],
     "extra": {
       "eas": {
         "projectId": "b9037650-d868-4974-be17-28e248d5669c"

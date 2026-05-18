@@ -2,8 +2,7 @@
 node_modules/
 dist/
 .expo/
-.gradle-user-home/
-.gradle-user-home-check/
+.gradle-user-home*/
 android/.gradle/
 android/app/.cxx/
 android/app/build/

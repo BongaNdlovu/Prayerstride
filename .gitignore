@@ -5,6 +5,7 @@ node_modules/
 dist/
 functions/lib/
 .expo/
+.gradle-user-home*/
 
 # Environment files
 .env
