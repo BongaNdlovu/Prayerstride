@@ -38,12 +38,13 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "4b845a6a-494d-4868-adaa-fcbd80519edd"
-      }
+        "projectId": "b9037650-d868-4974-be17-28e248d5669c"
+      },
+      "router": {}
     },
     "experiments": {
       "typedRoutes": false
     },
-    "owner": "shakhi"
+    "owner": "platemaestros-organization"
   }
 }
