@@ -43,12 +43,16 @@ import PrayerStopwatchScreen from '../src/mobile/screens/PrayerStopwatchScreen';
 import PrivacyPolicyScreen from '../src/mobile/screens/PrivacyPolicyScreen';
 import ProfileScreen from '../src/mobile/screens/ProfileScreen';
 import QuickActionsScreen from '../src/mobile/screens/QuickActionsScreen';
+import ReminderSetupScreen from '../src/mobile/screens/ReminderSetupScreen';
 import RemindersScreen from '../src/mobile/screens/RemindersScreen';
 import ReportDetailsScreen from '../src/mobile/screens/ReportDetailsScreen';
 import ResetPasswordScreen from '../src/mobile/screens/ResetPasswordScreen';
 import SettingsScreen from '../src/mobile/screens/SettingsScreen';
+import SplashScreen from '../src/mobile/screens/SplashScreen';
+import StayConnectedScreen from '../src/mobile/screens/StayConnectedScreen';
 import SupportDonationScreen from '../src/mobile/screens/SupportDonationScreen';
 import TermsOfServiceScreen from '../src/mobile/screens/TermsOfServiceScreen';
+import WelcomeScreen from '../src/mobile/screens/WelcomeScreen';
 
 
 const CinematicScroll = CinematicScreen;
@@ -106,11 +110,26 @@ export default function MobileApp() {
 
 function renderScreen(screen, params, user, suspended, suspendedReason, signIn, register, signOut, resetPassword, goFn, backFn) {
   if (!user) {
+    if (screen === 'splash') {
+      return <SplashScreen onReady={() => goFn('welcome')} />;
+    }
+    if (screen === 'welcome') {
+      return <WelcomeScreen onContinue={() => goFn('reminderSetup')} onCreateAccount={() => goFn('signIn')} />;
+    }
+    if (screen === 'reminderSetup') {
+      return <ReminderSetupScreen onContinue={() => goFn('stayConnected')} onSkip={() => goFn('stayConnected')} />;
+    }
+    if (screen === 'stayConnected') {
+      return <StayConnectedScreen onContinue={() => goFn('signIn')} />;
+    }
     if (screen === 'resetPassword') {
       return <ResetPasswordScreen onResetPassword={resetPassword} onBack={() => backFn('signIn')} />;
     }
     if (screen === 'createAccount') {
       return <AuthScreen mode="register" onSignIn={signIn} onRegister={register} onResetPassword={() => goFn('resetPassword')} />;
+    }
+    if (screen === 'signIn') {
+      return <AuthScreen mode="signIn" onSignIn={signIn} onRegister={register} onResetPassword={() => goFn('resetPassword')} />;
     }
     return <AuthScreen mode="signIn" onSignIn={signIn} onRegister={register} onResetPassword={() => goFn('resetPassword')} />;
   }
@@ -127,7 +146,7 @@ function renderScreen(screen, params, user, suspended, suspendedReason, signIn, 
     case 'praise': return <PraiseScreen onOpenTestimony={(t) => goFn('praiseDetail', { testimony: t })} />;
     case 'myStats': return <MyStatsScreen user={user} />;
     case 'profile': return <ProfileScreen user={user} signOut={signOut} go={goFn} />;
-    case 'detail': return <PrayerDetailScreen prayer={params.prayer} onBack={() => backFn('home')} />;
+    case 'detail': return <PrayerDetailScreen prayer={params.prayer} user={user} onBack={() => backFn('home')} go={goFn} />;
     case 'praiseDetail': return <PraiseDetailScreen testimony={params.testimony} onBack={() => backFn('praise')} />;
     case 'createTestimony': return <CreateTestimonyScreen user={user} linkedPrayerId={params.prayerId} onDone={() => backFn('praise')} />;
     case 'editRequest': return <EditRequestScreen prayer={params.prayer} user={user} onDone={() => backFn('myPrayers')} />;

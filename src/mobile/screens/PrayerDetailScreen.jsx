@@ -1,21 +1,121 @@
-import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors } from '../theme';
 import { prayForRequest } from '../api';
+import { markAnswered } from '../usePrayerData';
+import { submitReport } from '../useReports';
+import { useEncouragements, addEncouragement } from '../useEncouragements';
 import CinematicScreen from '../components/CinematicScreen';
 import PageHero from '../components/PageHero';
+import EncouragementThread from '../components/EncouragementThread';
 
-export default function PrayerDetailScreen({ prayer, onBack }) {
+export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh }) {
   const [prayed, setPrayed] = useState(false);
+  const [bookmarked, setBookmarked] = useState(false);
+  const [showActions, setShowActions] = useState(false);
+  const { comments, loading: commentsLoading } = useEncouragements(prayer.id);
+  const isOwner = user && prayer.authorUid === user.uid;
+
+  useEffect(() => {
+    loadBookmark();
+  }, [prayer.id]);
+
+  const loadBookmark = async () => {
+    try {
+      const key = `bookmark:prayer:${prayer.id}`;
+      const saved = await AsyncStorage.getItem(key);
+      setBookmarked(saved === 'true');
+    } catch (error) {
+      console.warn('Failed to load bookmark', error);
+    }
+  };
+
+  const toggleBookmark = async () => {
+    try {
+      const key = `bookmark:prayer:${prayer.id}`;
+      const newValue = !bookmarked;
+      await AsyncStorage.setItem(key, String(newValue));
+      setBookmarked(newValue);
+    } catch (error) {
+      Alert.alert('Could not save bookmark', error.message);
+    }
+  };
 
   const pray = async () => {
     if (prayed) return;
     setPrayed(true);
     try {
       await prayForRequest(prayer.id);
+      if (onRefresh) onRefresh();
     } catch (error) {
       setPrayed(false);
       Alert.alert('Prayer not saved', error.message);
+    }
+  };
+
+  const handleReport = () => {
+    Alert.alert(
+      'Report Prayer',
+      'Why are you reporting this prayer?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Inappropriate content',
+          onPress: () => submitReportIfSignedIn('Inappropriate content'),
+        },
+        {
+          text: 'Spam',
+          onPress: () => submitReportIfSignedIn('Spam'),
+        },
+        {
+          text: 'Other',
+          onPress: () => submitReportIfSignedIn('User submitted report'),
+        },
+      ],
+    );
+  };
+
+  const submitReportIfSignedIn = async (reason) => {
+    if (!user) {
+      Alert.alert('Sign in required', 'Please sign in to report content.');
+      return;
+    }
+    try {
+      await submitReport(prayer.id, 'prayer', reason, user);
+      Alert.alert('Report submitted', 'Thank you for helping keep PrayerStride safe.');
+    } catch (error) {
+      Alert.alert('Could not submit report', error.message);
+    }
+  };
+
+  const handleMarkAnswered = async () => {
+    if (!isOwner) return;
+    Alert.alert(
+      'Mark as Answered',
+      'Has God answered this prayer?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Yes, mark answered',
+          onPress: async () => {
+            try {
+              await markAnswered(prayer.id);
+              Alert.alert('Prayer marked answered', 'You can now share a testimony.');
+              if (go) go('createTestimony', { prayerId: prayer.id });
+              if (onRefresh) onRefresh();
+            } catch (error) {
+              Alert.alert('Could not update', error.message);
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const handleTimer = () => {
+    if (go) {
+      go('prayerStopwatch', { prayerId: prayer.id, title: prayer.title });
     }
   };
 
@@ -24,14 +124,61 @@ export default function PrayerDetailScreen({ prayer, onBack }) {
       <Pressable onPress={onBack} style={styles.backButton}>
         <Text style={styles.backText}>Back</Text>
       </Pressable>
-      <PageHero scene="chapel" eyebrow="Prayer Request" title={prayer.title} subtitle={prayer.authorName} compact />
-      <View style={styles.card}>
-        <Text style={styles.body}>{prayer.body}</Text>
-        <Text style={styles.meta}>{prayer.prayedCount + (prayed ? 1 : 0)} people praying</Text>
-      </View>
-      <Pressable onPress={pray} style={styles.button}>
-        <Text style={styles.buttonText}>{prayed ? 'You Prayed' : "I'll Pray"}</Text>
-      </Pressable>
+      <ScrollView>
+        <PageHero scene="chapel" eyebrow="Prayer Request" title={prayer.title} subtitle={prayer.authorName} compact />
+        <View style={styles.card}>
+          <Text style={styles.body}>{prayer.body}</Text>
+          <Text style={styles.meta}>{prayer.prayedCount + (prayed ? 1 : 0)} people praying</Text>
+          {prayer.createdAt && (
+            <Text style={styles.meta}>{new Date(prayer.createdAt.seconds * 1000).toLocaleDateString()}</Text>
+          )}
+          {prayer.urgent && <Text style={styles.urgent}>Urgent</Text>}
+          {prayer.private && <Text style={styles.private}>Private</Text>}
+        </View>
+
+        <View style={styles.actionsRow}>
+          <Pressable onPress={pray} style={[styles.actionButton, prayed && styles.actionButtonDisabled]} disabled={prayed}>
+            <Text style={styles.actionButtonText}>{prayed ? 'You Prayed' : "I'll Pray"}</Text>
+          </Pressable>
+          <Pressable onPress={toggleBookmark} style={styles.iconButton}>
+            <Text style={styles.iconText}>{bookmarked ? '★' : '☆'}</Text>
+          </Pressable>
+          <Pressable onPress={handleTimer} style={styles.iconButton}>
+            <Text style={styles.iconText}>⏱</Text>
+          </Pressable>
+          <Pressable onPress={() => setShowActions(!showActions)} style={styles.iconButton}>
+            <Text style={styles.iconText}>⋯</Text>
+          </Pressable>
+        </View>
+
+        {showActions && (
+          <View style={styles.moreActions}>
+            <Pressable onPress={handleReport} style={styles.moreActionButton}>
+              <Text style={styles.moreActionText}>Report</Text>
+            </Pressable>
+            {isOwner && (
+              <>
+                <Pressable onPress={handleMarkAnswered} style={styles.moreActionButton}>
+                  <Text style={styles.moreActionText}>Mark Answered</Text>
+                </Pressable>
+                {go && (
+                  <Pressable onPress={() => go('editRequest', { prayer })} style={styles.moreActionButton}>
+                    <Text style={styles.moreActionText}>Edit</Text>
+                  </Pressable>
+                )}
+              </>
+            )}
+          </View>
+        )}
+
+        <EncouragementThread
+          threadId={prayer.id}
+          comments={comments}
+          loading={commentsLoading}
+          user={user}
+          onRefresh={onRefresh}
+        />
+      </ScrollView>
     </CinematicScreen>
   );
 }
@@ -42,6 +189,15 @@ const styles = StyleSheet.create({
   card: { borderWidth: 1, borderColor: 'rgba(248,243,234,0.16)', backgroundColor: 'rgba(248,243,234,0.11)', borderRadius: 24, padding: 18 },
   body: { marginTop: 12, color: 'rgba(248,243,234,0.72)', fontSize: 14, lineHeight: 23 },
   meta: { flexShrink: 1, color: 'rgba(248,243,234,0.55)', fontSize: 12, marginTop: 12 },
-  button: { marginTop: 20, minHeight: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.gold },
-  buttonText: { color: colors.ink, fontSize: 15, fontWeight: '800' },
+  urgent: { marginTop: 8, color: '#ef4444', fontSize: 12, fontWeight: '700' },
+  private: { marginTop: 4, color: 'rgba(248,243,234,0.5)', fontSize: 12, fontWeight: '600' },
+  actionsRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 20 },
+  actionButton: { flex: 1, minHeight: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.gold },
+  actionButtonDisabled: { opacity: 0.5 },
+  actionButtonText: { color: colors.ink, fontSize: 15, fontWeight: '800' },
+  iconButton: { width: 52, height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(248,243,234,0.16)', backgroundColor: 'rgba(248,243,234,0.08)' },
+  iconText: { fontSize: 24, color: colors.gold },
+  moreActions: { marginTop: 12, borderWidth: 1, borderColor: 'rgba(248,243,234,0.16)', borderRadius: 16, overflow: 'hidden' },
+  moreActionButton: { paddingVertical: 14, paddingHorizontal: 18, borderBottomWidth: 1, borderBottomColor: 'rgba(248,243,234,0.08)' },
+  moreActionText: { color: colors.ivory, fontSize: 15, fontWeight: '600' },
 });

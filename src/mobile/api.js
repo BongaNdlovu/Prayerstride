@@ -2,7 +2,7 @@ import { auth } from './firebase';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || '';
 
-async function apiFetch(path, options = {}) {
+export async function apiFetch(path, options = {}) {
   const token = await auth.currentUser?.getIdToken();
   if (!token) throw new Error('You must be signed in.');
 
@@ -20,10 +20,10 @@ async function apiFetch(path, options = {}) {
   return data;
 }
 
-export function registerDeviceToken(token, platform = 'android') {
+export function registerDevice(payload) {
   return apiFetch('/api/devices/register', {
     method: 'POST',
-    body: JSON.stringify({ token, platform }),
+    body: JSON.stringify(payload),
   });
 }
 

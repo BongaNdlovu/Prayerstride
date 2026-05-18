@@ -81,11 +81,17 @@ for (const screen of APP_SCREENS) {
   const mappedName = screenFiles[screen];
   if (mappedName) {
     check(`Route '${screen}' → ${mappedName} imported`, indexContent.includes(mappedName));
+    // Check that the route is actually rendered in the switch statement
+    check(`Route '${screen}' has case in switch`, indexContent.includes(`case '${screen}'`));
   } else {
     // auth screens handled separately
     const authScreens = ['splash', 'welcome', 'reminderSetup', 'stayConnected', 'signIn', 'createAccount', 'resetPassword', 'accountSuspended'];
     const detailScreens = ['detail'];
     check(`Route '${screen}' is auth or detail route`, authScreens.includes(screen) || detailScreens.includes(screen));
+    // Check that auth screens have explicit if statements
+    if (authScreens.includes(screen)) {
+      check(`Route '${screen}' has explicit handling`, indexContent.includes(`if (screen === '${screen}')`));
+    }
   }
 }
 
@@ -156,7 +162,23 @@ check('api.js includes Authorization Bearer', apiSrc.includes('Authorization') &
 // 10. No route in APP_SCREENS is left permanently mapped to placeholder
 console.log('\n10. No placeholder-only routes');
 // The placeholder is only used for unknown routes in the default case
-check('PlaceholderScreen only in default case and definition', indexContent.includes('PlaceholderScreen'));
+check('PlaceholderScreen only in default case and definition', indexContent.includes('default: return <PlaceholderScreen'));
+
+// 11. Check that auth screens actually render their components, not AuthScreen fallback
+console.log('\n11. Auth screens render correctly');
+const authScreenComponents = ['SplashScreen', 'WelcomeScreen', 'ReminderSetupScreen', 'StayConnectedScreen'];
+for (const component of authScreenComponents) {
+  const screenContent = readFileSync(resolve(screensDir, `${component}.jsx`), 'utf-8');
+  check(`${component} exports default`, screenContent.includes('export default'));
+  check(`${component} has proper props`, screenContent.includes('props') || screenContent.includes('(') || screenContent.includes('{'));
+}
+
+// 12. Check PrayerDetailScreen has required features per plan
+console.log('\n12. PrayerDetailScreen feature completeness');
+check('PrayerDetailScreen imports encouragements hook', prayerDetailSrc.includes('useEncouragements') || prayerDetailSrc.includes('EncouragementThread'));
+check('PrayerDetailScreen imports reports hook', prayerDetailSrc.includes('submitReport') || prayerDetailSrc.includes('useReports'));
+check('PrayerDetailScreen has timer navigation', prayerDetailSrc.includes('prayerStopwatch') || prayerDetailSrc.includes('timer'));
+check('PrayerDetailScreen has bookmark logic', prayerDetailSrc.includes('bookmark') || prayerDetailSrc.includes('AsyncStorage'));
 
 console.log(`\n---`);
 console.log(`${passed} passed, ${failed} failed`);

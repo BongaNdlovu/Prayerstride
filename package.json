@@ -29,7 +29,7 @@
     "test:performance": "vitest run src/test/performance",
     "test:data": "vitest run src/test/data",
     "test:all": "npm run test:unit && npm run test:integration && npm run test:performance && npm run test:data",
-    "test:restored": "npm run test && node scripts/restored-feature-smoke.mjs"
+    "test:restored": "npm run test:all && node scripts/restored-feature-smoke.mjs && npx expo export --platform android"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.4",
