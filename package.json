@@ -28,7 +28,8 @@
     "test:integration": "vitest run src/test/integration",
     "test:performance": "vitest run src/test/performance",
     "test:data": "vitest run src/test/data",
-    "test:all": "npm run test:unit && npm run test:integration && npm run test:performance && npm run test:data"
+    "test:all": "npm run test:unit && npm run test:integration && npm run test:performance && npm run test:data",
+    "test:restored": "npm run test && node scripts/restored-feature-smoke.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.4",

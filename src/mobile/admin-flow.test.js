@@ -1,0 +1,50 @@
+import { describe, expect, it } from 'vitest';
+
+describe('admin flow', () => {
+  it('AdminDashboardScreen imports useIsAdmin', async () => {
+    const source = await import('./screens/AdminDashboardScreen.jsx?raw');
+    expect(source.default).toMatch(/useIsAdmin/);
+  });
+
+  it('AdminDashboardScreen imports report/user hooks', async () => {
+    const source = await import('./screens/AdminDashboardScreen.jsx?raw');
+    expect(source.default).toMatch(/useReports/);
+    expect(source.default).toMatch(/useUsers/);
+  });
+
+  it('AdminDashboardScreen imports moderation API helpers', async () => {
+    const source = await import('./screens/AdminDashboardScreen.jsx?raw');
+    expect(source.default).toMatch(/adminDeleteContent/);
+    expect(source.default).toMatch(/adminSuspendUser/);
+    expect(source.default).toMatch(/adminDeleteAccount/);
+  });
+
+  it('ReportDetailsScreen imports resolve/dismiss helpers', async () => {
+    const source = await import('./screens/ReportDetailsScreen.jsx?raw');
+    expect(source.default).toMatch(/resolveReport/);
+    expect(source.default).toMatch(/dismissReport/);
+  });
+
+  it('Admin screens use Alert.alert for destructive actions', async () => {
+    const sources = await Promise.all([
+      import('./screens/AdminDashboardScreen.jsx?raw'),
+      import('./screens/ReportDetailsScreen.jsx?raw'),
+    ]);
+    for (const { default: src } of sources) {
+      expect(src).toMatch(/Alert\.alert/);
+      expect(src).not.toMatch(/window\.confirm/);
+    }
+  });
+
+  it('Admin source includes non-admin gate logic', async () => {
+    const source = await import('./screens/AdminDashboardScreen.jsx?raw');
+    expect(source.default).toMatch(/isAdmin/);
+    expect(source.default).toMatch(/denied/);
+  });
+
+  it('Admin and suspended hooks are separate', async () => {
+    const source = await import('./useIsAdmin.js?raw');
+    expect(source.default).toMatch(/export function useIsAdmin/);
+    expect(source.default).toMatch(/export function useSuspendedStatus/);
+  });
+});

@@ -16,3 +16,23 @@ export const shadow = {
   shadowRadius: 24,
   elevation: 6,
 };
+
+export const glass = {
+  backgroundColor: 'rgba(248,243,234,0.11)',
+  borderColor: 'rgba(248,243,234,0.16)',
+  borderWidth: 1,
+};
+
+export const cinematicScreen = {
+  flex: 1,
+  backgroundColor: '#080b13',
+};
+
+export const scenes = {
+  dawn: require('../assets/compressed-scenes/1.jpg'),
+  bible: require('../assets/compressed-scenes/2.jpg'),
+  community: require('../assets/compressed-scenes/3.jpg'),
+  chapel: require('../assets/compressed-scenes/4.jpg'),
+  answered: require('../assets/compressed-scenes/5.jpg'),
+  texture: require('../assets/compressed-scenes/6.jpg'),
+};
