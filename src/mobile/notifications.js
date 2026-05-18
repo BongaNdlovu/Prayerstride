@@ -2,7 +2,7 @@ import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import { registerDeviceToken } from './api';
+import { registerDevice } from './api';
 
 try {
   Notifications.setNotificationHandler({
@@ -36,5 +36,5 @@ export async function registerForPushNotifications() {
 
   const projectId = Constants.expoConfig?.extra?.eas?.projectId || Constants.easConfig?.projectId;
   const token = await Notifications.getDevicePushTokenAsync({ projectId });
-  await registerDeviceToken(token.data, Platform.OS);
+  await registerDevice({ token: token.data, platform: Platform.OS });
 }

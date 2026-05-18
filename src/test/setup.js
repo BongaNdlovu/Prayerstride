@@ -34,6 +34,17 @@ vi.mock('../lib/firebase', () => ({
   db: {},
 }));
 
+vi.mock('../mobile/firebase', () => ({
+  app: {},
+  auth: {
+    currentUser: {
+      getIdToken: vi.fn(async () => 'test-token'),
+    },
+  },
+  db: {},
+  storage: {},
+}));
+
 vi.mock('../contexts/AuthContext.jsx', () => ({
   useAuth: () => mockAuthState,
 }));

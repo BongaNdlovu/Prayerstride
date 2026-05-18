@@ -8,6 +8,7 @@ vi.mock('react-native', () => ({
   View: ({ children, testID }) => <div data-testid={testID}>{children}</div>,
   Text: ({ children, testID }) => <span data-testid={testID}>{children}</span>,
   Pressable: ({ children, onPress, testID }) => <button data-testid={testID} onClick={onPress}>{children}</button>,
+  ScrollView: ({ children, testID }) => <div data-testid={testID}>{children}</div>,
   StyleSheet: { create: (styles) => styles },
   SafeAreaView: ({ children }) => <div>{children}</div>,
   ActivityIndicator: () => <div data-testid="activity-indicator">Loading</div>,

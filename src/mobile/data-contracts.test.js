@@ -3,7 +3,8 @@ import { describe, expect, it } from 'vitest';
 describe('data contracts', () => {
   it('api.js exports expected helpers', async () => {
     const source = await import('./api.js?raw');
-    expect(source.default).toMatch(/export function registerDeviceToken/);
+    expect(source.default).toMatch(/export async function apiFetch/);
+    expect(source.default).toMatch(/export function registerDevice/);
     expect(source.default).toMatch(/export function prayForRequest/);
     expect(source.default).toMatch(/export function reactToTestimony/);
     expect(source.default).toMatch(/export function adminDeleteContent/);

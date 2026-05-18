@@ -41,6 +41,7 @@ const screenFiles = {
   praise: 'PraiseScreen',
   praiseDetail: 'PraiseDetailScreen',
   prayerStopwatch: 'PrayerStopwatchScreen',
+  accountSuspended: 'AccountSuspendedScreen',
   privacyPolicy: 'PrivacyPolicyScreen',
   profile: 'ProfileScreen',
   quickActions: 'QuickActionsScreen',
@@ -85,7 +86,7 @@ for (const screen of APP_SCREENS) {
     check(`Route '${screen}' has case in switch`, indexContent.includes(`case '${screen}'`));
   } else {
     // auth screens handled separately
-    const authScreens = ['splash', 'welcome', 'reminderSetup', 'stayConnected', 'signIn', 'createAccount', 'resetPassword', 'accountSuspended'];
+    const authScreens = ['splash', 'welcome', 'reminderSetup', 'stayConnected', 'signIn', 'createAccount', 'resetPassword'];
     const detailScreens = ['detail'];
     check(`Route '${screen}' is auth or detail route`, authScreens.includes(screen) || detailScreens.includes(screen));
     // Check that auth screens have explicit if statements
