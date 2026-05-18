@@ -16,6 +16,15 @@
     },
     "apk": {
       "distribution": "internal",
+      "env": {
+        "ORG_GRADLE_PROJECT_reactNativeArchitectures": "arm64-v8a"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "apkUniversal": {
+      "distribution": "internal",
       "android": {
         "buildType": "apk"
       }

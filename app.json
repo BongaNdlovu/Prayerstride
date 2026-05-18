@@ -12,7 +12,8 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "assetBundlePatterns": [
-      "**/*"
+      "assets/*",
+      "src/assets/**/*"
     ],
     "ios": {
       "supportsTablet": false,
