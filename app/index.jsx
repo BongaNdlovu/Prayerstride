@@ -1,17 +1,19 @@
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
+  BackHandler,
   Pressable,
   SafeAreaView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { ChevronLeft } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, LogOut } from 'lucide-react-native';
 import { useAuth } from '../src/mobile/AuthProvider';
 import { colors } from '../src/mobile/theme';
 import { registerForPushNotifications } from '../src/mobile/notifications';
-import { back, createNavState, go, reset } from '../src/mobile/navigation';
+import { back, createNavState, forward, go, reset } from '../src/mobile/navigation';
 import { useSuspendedStatus } from '../src/mobile/useIsAdmin';
 import BottomTabs from '../src/mobile/components/BottomTabs';
 import CinematicScreen from '../src/mobile/components/CinematicScreen';
@@ -90,33 +92,96 @@ export default function MobileApp() {
     if (AUTH_ROUTES.includes(screen) || screen === 'splash') setNav(reset('home'));
   }, [user, loading, suspended]);
 
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (loading || nav.screen === 'splash') return false;
+      setNav((prev) => back(prev, user ? 'home' : 'signIn'));
+      return true;
+    });
+
+    return () => subscription.remove();
+  }, [loading, nav.screen, user]);
+
   if (loading) return <Centered label="Preparing PrayerStride..." />;
 
   const screen = nav.screen;
   const params = nav.params || {};
   const isMainTab = MAIN_TAB_ROUTES.includes(screen);
+  const canGoBack = nav.history.length > 0 || (user && screen !== 'home');
+  const canGoForward = (nav.future || []).length > 0;
 
   const handleGo = (s, p) => setNav((prev) => go(prev, s, p));
   const handleBack = (fallback) => setNav((prev) => back(prev, fallback || 'home'));
+  const handleForward = () => setNav((prev) => forward(prev));
+  const handleExit = () => {
+    Alert.alert('Exit PrayerStride', 'Close the app now?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Exit',
+        style: 'destructive',
+        onPress: () => {
+          if (BackHandler.exitApp) {
+            BackHandler.exitApp();
+            return;
+          }
+          Alert.alert('Exit unavailable', 'Use your device controls to close the app.');
+        },
+      },
+    ]);
+  };
 
   const content = renderScreen(screen, params, user, suspended, suspendedReason, signIn, register, signOut, resetPassword, handleGo, handleBack);
 
   return (
     <SafeAreaView style={styles.shell}>
       <View style={styles.appBody}>{content}</View>
-      {!isMainTab && user && screen !== 'accountSuspended' && (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-          onPress={() => handleBack('home')}
-          style={styles.floatingBack}
-        >
-          <ChevronLeft size={24} color={colors.ivory} />
-          <Text style={styles.floatingBackText}>Back</Text>
-        </Pressable>
+      {screen !== 'splash' && (
+        <NavigationControls
+          canGoBack={canGoBack}
+          canGoForward={canGoForward}
+          bottomOffset={isMainTab ? 86 : 18}
+          onBack={() => handleBack('home')}
+          onForward={handleForward}
+          onExit={handleExit}
+        />
       )}
       {isMainTab && <BottomTabs active={screen} onChange={handleGo} />}
     </SafeAreaView>
+  );
+}
+
+function NavigationControls({ canGoBack, canGoForward, bottomOffset, onBack, onForward, onExit }) {
+  return (
+    <View style={[styles.navControls, { bottom: bottomOffset }]}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Go back"
+        disabled={!canGoBack}
+        onPress={onBack}
+        style={[styles.navButton, !canGoBack && styles.navButtonDisabled]}
+      >
+        <ChevronLeft size={21} color={colors.ivory} />
+        <Text style={styles.navButtonText}>Back</Text>
+      </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Go forward"
+        disabled={!canGoForward}
+        onPress={onForward}
+        style={[styles.iconNavButton, !canGoForward && styles.navButtonDisabled]}
+      >
+        <ChevronRight size={21} color={colors.ivory} />
+      </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Exit app"
+        onPress={onExit}
+        style={styles.exitButton}
+      >
+        <LogOut size={19} color={colors.gold} />
+        <Text style={styles.exitButtonText}>Exit</Text>
+      </Pressable>
+    </View>
   );
 }
 
@@ -215,22 +280,26 @@ function Centered({ label }) {
 const styles = StyleSheet.create({
   shell: { flex: 1, backgroundColor: colors.ink },
   appBody: { flex: 1, backgroundColor: colors.ink },
-  floatingBack: {
+  navControls: {
     position: 'absolute',
-    top: 14,
-    left: 14,
+    left: 16,
     zIndex: 20,
-    minHeight: 42,
-    paddingHorizontal: 12,
+    minHeight: 46,
+    padding: 4,
     borderRadius: 999,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
     borderWidth: 1,
     borderColor: 'rgba(248,243,234,0.2)',
-    backgroundColor: 'rgba(8,11,19,0.74)',
+    backgroundColor: 'rgba(8,11,19,0.86)',
   },
-  floatingBackText: { color: colors.ivory, fontSize: 13, fontWeight: '800' },
+  navButton: { minHeight: 38, paddingHorizontal: 11, borderRadius: 999, flexDirection: 'row', alignItems: 'center', gap: 2, backgroundColor: 'rgba(248,243,234,0.1)' },
+  iconNavButton: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(248,243,234,0.1)' },
+  exitButton: { minHeight: 38, paddingHorizontal: 11, borderRadius: 999, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(248,243,234,0.1)' },
+  navButtonDisabled: { opacity: 0.36 },
+  navButtonText: { color: colors.ivory, fontSize: 13, fontWeight: '800' },
+  exitButtonText: { color: colors.gold, fontSize: 13, fontWeight: '800' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.ink },
   centeredText: { marginTop: 12, color: colors.ivory, fontWeight: '700' },
   glassBackButton: { alignSelf: 'flex-start', marginTop: 16, marginBottom: 4, paddingVertical: 8, paddingRight: 16 },
