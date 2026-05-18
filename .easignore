@@ -1,0 +1,22 @@
+# Dependencies and build output
+node_modules/
+dist/
+.expo/
+.gradle-user-home/
+.gradle-user-home-check/
+android/.gradle/
+android/app/.cxx/
+android/app/build/
+
+# Local logs and test artifacts
+*.log
+artifacts/
+
+# Development-only image artifacts
+/1.png
+/2.png
+/3.png
+/4.png
+/5.png
+/6.png
+/src/assets/cinematic-prayer-scenes.png

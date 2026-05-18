@@ -17,7 +17,7 @@ const assert = (condition, message) => {
   if (!condition) failures.push(message);
 };
 
-assert(existsSync(join(root, 'src', 'assets', 'cinematic-prayer-scenes.png')), 'Cinematic prayer scene asset is missing.');
+assert(existsSync(join(root, 'src', 'assets', 'cinematic-prayer-scenes.jpg')), 'Cinematic prayer scene asset is missing.');
 assert(css.includes('overflow-x: hidden'), 'Global CSS should guard against horizontal overflow.');
 assert(app.includes('h-dvh w-full overflow-hidden'), 'Mobile app shell should be viewport-bound and overflow-hidden.');
 assert(splash.includes('overflow-x-hidden'), 'Splash screen should explicitly prevent horizontal clipping.');
