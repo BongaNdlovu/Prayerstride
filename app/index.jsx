@@ -7,6 +7,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { ChevronLeft } from 'lucide-react-native';
 import { useAuth } from '../src/mobile/AuthProvider';
 import { colors } from '../src/mobile/theme';
 import { registerForPushNotifications } from '../src/mobile/notifications';
@@ -103,6 +104,17 @@ export default function MobileApp() {
   return (
     <SafeAreaView style={styles.shell}>
       <View style={styles.appBody}>{content}</View>
+      {!isMainTab && user && screen !== 'accountSuspended' && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          onPress={() => handleBack('home')}
+          style={styles.floatingBack}
+        >
+          <ChevronLeft size={24} color={colors.ivory} />
+          <Text style={styles.floatingBackText}>Back</Text>
+        </Pressable>
+      )}
       {isMainTab && <BottomTabs active={screen} onChange={handleGo} />}
     </SafeAreaView>
   );
@@ -203,6 +215,22 @@ function Centered({ label }) {
 const styles = StyleSheet.create({
   shell: { flex: 1, backgroundColor: colors.ink },
   appBody: { flex: 1, backgroundColor: colors.ink },
+  floatingBack: {
+    position: 'absolute',
+    top: 14,
+    left: 14,
+    zIndex: 20,
+    minHeight: 42,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(248,243,234,0.2)',
+    backgroundColor: 'rgba(8,11,19,0.74)',
+  },
+  floatingBackText: { color: colors.ivory, fontSize: 13, fontWeight: '800' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.ink },
   centeredText: { marginTop: 12, color: colors.ivory, fontWeight: '700' },
   glassBackButton: { alignSelf: 'flex-start', marginTop: 16, marginBottom: 4, paddingVertical: 8, paddingRight: 16 },

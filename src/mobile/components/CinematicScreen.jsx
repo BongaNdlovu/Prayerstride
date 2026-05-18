@@ -15,7 +15,11 @@ export default function CinematicScreen({ children, scroll = true, pageContent =
 
   return (
     <View style={styles.screen}>
-      <ScrollView contentContainerStyle={contentStyle}>
+      <ScrollView
+        contentContainerStyle={contentStyle}
+        showsVerticalScrollIndicator
+        persistentScrollbar
+      >
         {children}
       </ScrollView>
     </View>

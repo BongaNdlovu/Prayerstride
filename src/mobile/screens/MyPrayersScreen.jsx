@@ -16,9 +16,8 @@ export default function MyPrayersScreen({ user, onOpenPrayer }) {
 
   const data = tab === 'Answered' ? answered : active;
   const tabs = ['Active', 'Answered'];
-
-  return (
-    <CinematicScreen>
+  const header = (
+    <>
       <PageHero scene="bible" eyebrow="My Prayers" title="Your prayer walk" subtitle="Track your requests and answered prayers." compact />
       <View style={styles.tabRow}>
         {tabs.map((t) => (
@@ -27,12 +26,20 @@ export default function MyPrayersScreen({ user, onOpenPrayer }) {
           </Pressable>
         ))}
       </View>
+    </>
+  );
+
+  return (
+    <CinematicScreen scroll={false}>
       <FlatList
         data={data}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
+        ListHeaderComponent={header}
         ListEmptyComponent={<EmptyState label={tab === 'Answered' ? 'No answered prayers yet.' : 'No active prayers.'} />}
         renderItem={({ item }) => <PrayerCard prayer={item} onPress={() => onOpenPrayer(item)} variant="glass" />}
+        showsVerticalScrollIndicator
+        persistentScrollbar
       />
     </CinematicScreen>
   );
@@ -44,5 +51,5 @@ const styles = StyleSheet.create({
   tabActive: { borderColor: colors.gold, backgroundColor: 'rgba(200,137,43,0.18)' },
   tabText: { color: 'rgba(248,243,234,0.62)', fontSize: 13, fontWeight: '700' },
   tabTextActive: { color: colors.gold },
-  list: { paddingHorizontal: 16, paddingBottom: 120, gap: 12 },
+  list: { paddingBottom: 120, gap: 12 },
 });
