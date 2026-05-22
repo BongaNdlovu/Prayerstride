@@ -1,21 +1,28 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { colors } from '../theme';
-import { mockLesson } from '../../data/mockData';
+import { useGuideLesson } from '../useContentCollections';
 import CinematicScreen from '../components/CinematicScreen';
 import PageHero from '../components/PageHero';
+import AsyncState from '../components/AsyncState';
 
-export default function LessonReaderScreen() {
+export default function LessonReaderScreen({ guideId, lessonId }) {
+  const { lesson, loading, error } = useGuideLesson(guideId, lessonId, true);
+
   return (
     <CinematicScreen pageContent>
-      <PageHero scene="bible" eyebrow={`Day ${mockLesson.day} of ${mockLesson.totalDays}`} title={mockLesson.title} subtitle={mockLesson.reference} compact />
-      <View style={styles.card}>
-        <Text style={styles.verse}>{mockLesson.verse}</Text>
-        <Text style={styles.body}>{mockLesson.body}</Text>
-        <View style={styles.reflectionCard}>
-          <Text style={styles.reflectionLabel}>Reflection</Text>
-          <Text style={styles.reflectionText}>{mockLesson.reflection}</Text>
+      <PageHero scene="bible" eyebrow={lesson ? `Day ${lesson.day || 1}${lesson.totalDays ? ` of ${lesson.totalDays}` : ''}` : 'Lesson'} title={lesson?.title || 'Lesson Reader'} subtitle={lesson?.reference || 'Open a published study lesson.'} compact />
+      <AsyncState loading={loading} error={error} empty={!loading && !error && !lesson} emptyLabel="This lesson is not available.">
+        <View style={styles.card}>
+          {lesson?.verse ? <Text style={styles.verse}>{lesson.verse}</Text> : null}
+          <Text style={styles.body}>{lesson?.body || 'No lesson body has been published yet.'}</Text>
+          {lesson?.reflection ? (
+            <View style={styles.reflectionCard}>
+              <Text style={styles.reflectionLabel}>Reflection</Text>
+              <Text style={styles.reflectionText}>{lesson.reflection}</Text>
+            </View>
+          ) : null}
         </View>
-      </View>
+      </AsyncState>
     </CinematicScreen>
   );
 }

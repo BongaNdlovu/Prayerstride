@@ -230,6 +230,11 @@ service cloud.firestore {
       allow update: if isSelf(uid) && validUserUpdate() && notSuspended();
       allow delete: if false;
 
+      match /following/{followingId} {
+        allow read: if isSelf(uid);
+        allow write: if false;
+      }
+
       match /devices/{deviceId} {
         allow read, write: if false;
       }
@@ -365,6 +370,21 @@ service cloud.firestore {
       allow read: if signedIn()
         && (resource.data.status == "active" || isAdmin());
       allow create, update, delete: if false;
+    }
+
+    match /devotions/{devotionId} {
+      allow read: if signedIn() && resource.data.status == "active";
+      allow write: if false;
+    }
+
+    match /studyGuides/{guideId} {
+      allow read: if signedIn() && resource.data.status == "active";
+      allow write: if false;
+
+      match /lessons/{lessonId} {
+        allow read: if signedIn() && resource.data.status == "active";
+        allow write: if false;
+      }
     }
   }
 }

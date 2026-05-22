@@ -131,6 +131,18 @@ const announcementsSource = readFileSync(resolve(screensDir, 'AnnouncementsScree
 check('Announcements uses useAnnouncements', announcementsSource.includes('useAnnouncements'));
 check('Announcements does not import mockData', !announcementsSource.includes('mockData'));
 
+[
+  'AchievementsScreen.jsx',
+  'DevotionsScreen.jsx',
+  'FollowingScreen.jsx',
+  'GuideDetailScreen.jsx',
+  'LessonReaderScreen.jsx',
+  'RemindersScreen.jsx',
+].forEach((file) => {
+  const source = readFileSync(resolve(screensDir, file), 'utf-8');
+  check(`${file} does not import mockData`, !source.includes('mockData'));
+});
+
 // 5. Notification settings screen imports Firestore settings hook
 console.log('\n5. Notification settings');
 const notifSettingsSrc = readFileSync(resolve(screensDir, 'NotificationSettingsScreen.jsx'), 'utf-8');

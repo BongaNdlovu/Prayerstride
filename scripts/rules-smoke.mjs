@@ -52,6 +52,46 @@ async function seedFixtures() {
       createdAt: new Date(),
       relatedId: null,
     });
+
+    await db.doc('users/user-a/following/following-a').set({
+      displayName: 'Followed User',
+      handle: '@followed',
+      createdAt: new Date(),
+    });
+
+    await db.doc('devotions/devotion-a').set({
+      title: 'Published devotion',
+      reference: 'Psalm 23',
+      status: 'active',
+      order: 1,
+    });
+
+    await db.doc('devotions/devotion-archived').set({
+      title: 'Archived devotion',
+      reference: 'Psalm 24',
+      status: 'archived',
+      order: 2,
+    });
+
+    await db.doc('studyGuides/guide-a').set({
+      title: 'Published guide',
+      status: 'active',
+      order: 1,
+    });
+
+    await db.doc('studyGuides/guide-a/lessons/lesson-a').set({
+      title: 'Published lesson',
+      body: 'Lesson body',
+      status: 'active',
+      day: 1,
+    });
+
+    await db.doc('studyGuides/guide-a/lessons/lesson-archived').set({
+      title: 'Archived lesson',
+      body: 'Old lesson',
+      status: 'archived',
+      day: 2,
+    });
   });
 }
 
@@ -194,6 +234,29 @@ async function runTests() {
     updatedAt: new Date(),
   }));
   await assertFails(bDb.doc('notificationSettings/user-a').get());
+
+  await assertSucceeds(aDb.doc('users/user-a/following/following-a').get());
+  await assertFails(bDb.doc('users/user-a/following/following-a').get());
+  await assertFails(aDb.doc('users/user-a/following/following-new').set({
+    displayName: 'Client write',
+    createdAt: new Date(),
+  }));
+  await assertSucceeds(aDb.doc('devotions/devotion-a').get());
+  await assertFails(aDb.doc('devotions/devotion-archived').get());
+  await assertFails(aDb.doc('devotions/devotion-new').set({
+    title: 'Client devotion',
+    status: 'active',
+    order: 3,
+  }));
+  await assertSucceeds(aDb.doc('studyGuides/guide-a').get());
+  await assertSucceeds(aDb.doc('studyGuides/guide-a/lessons/lesson-a').get());
+  await assertFails(aDb.doc('studyGuides/guide-a/lessons/lesson-archived').get());
+  await assertFails(aDb.doc('studyGuides/guide-a/lessons/lesson-new').set({
+    title: 'Client lesson',
+    body: 'Nope',
+    status: 'active',
+    day: 3,
+  }));
 
   const eventRef = aDb.collection('calendarEvents').doc('event-a');
   await assertSucceeds(eventRef.set({

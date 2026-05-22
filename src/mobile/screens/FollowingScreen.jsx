@@ -1,31 +1,41 @@
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../theme';
-import { mockFollowing } from '../../data/mockData';
+import { useFollowing } from '../useContentCollections';
 import CinematicScreen from '../components/CinematicScreen';
 import PageHero from '../components/PageHero';
 import EmptyState from '../components/EmptyState';
+import AsyncState from '../components/AsyncState';
 
-export default function FollowingScreen() {
+export default function FollowingScreen({ user }) {
+  const { following, loading, error } = useFollowing(user?.uid, true);
+
   return (
     <CinematicScreen>
       <PageHero scene="community" eyebrow="Community" title="Following" subtitle="People and groups you follow." compact />
-      <FlatList
-        data={mockFollowing}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
-        ListEmptyComponent={<EmptyState label="Not following anyone yet." />}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{(item.name || 'U').slice(0, 1)}</Text>
+      <AsyncState
+        loading={loading}
+        error={error}
+        empty={!loading && !error && following.length === 0}
+        emptyLabel="Not following anyone yet."
+      >
+        <FlatList
+          data={following}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.list}
+          ListEmptyComponent={<EmptyState label="Not following anyone yet." />}
+          renderItem={({ item }) => (
+            <View style={styles.card}>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>{(item.displayName || item.name || 'U').slice(0, 1)}</Text>
+              </View>
+              <View style={styles.info}>
+                <Text style={styles.name}>{item.displayName || item.name || item.handle || 'Follower'}</Text>
+                <Text style={styles.title}>{item.subtitle || item.title || item.handle || 'Community member'}</Text>
+              </View>
             </View>
-            <View style={styles.info}>
-              <Text style={styles.name}>{item.name}</Text>
-              <Text style={styles.title}>{item.title}</Text>
-            </View>
-          </View>
-        )}
-      />
+          )}
+        />
+      </AsyncState>
     </CinematicScreen>
   );
 }

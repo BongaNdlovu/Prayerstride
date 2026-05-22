@@ -1,59 +1,59 @@
-import { useState, useEffect } from 'react';
-import { FlatList, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { FlatList, StyleSheet, Switch, Text, View } from 'react-native';
 import { colors } from '../theme';
-import { mockReminders } from '../../data/mockData';
+import { useNotificationSettings, updateNotificationSettings } from '../useNotificationSettings';
 import CinematicScreen from '../components/CinematicScreen';
 import PageHero from '../components/PageHero';
 import EmptyState from '../components/EmptyState';
+import AsyncState from '../components/AsyncState';
 
-const STORAGE_KEY = 'reminder-toggles';
+const REMINDER_SETTINGS = [
+  { id: 'prayerActivity', title: 'Prayer activity', schedule: 'When someone prays or responds' },
+  { id: 'testimonyReactions', title: 'Testimony reactions', schedule: 'When the community celebrates with you' },
+  { id: 'pushEnabled', title: 'Push reminders', schedule: 'Device notifications for prayer moments' },
+];
 
-export default function RemindersScreen() {
-  const [toggles, setToggles] = useState({});
-
-  useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY).then((value) => {
-      if (value) setToggles(JSON.parse(value));
-    }).catch(() => {});
-  }, []);
+export default function RemindersScreen({ user }) {
+  const { settings, loading } = useNotificationSettings(user?.uid, true);
+  const data = REMINDER_SETTINGS.map((item) => ({
+    ...item,
+    enabled: settings[item.id] === true,
+  }));
 
   const toggle = async (id, value) => {
-    const next = { ...toggles, [id]: value };
-    setToggles(next);
-    try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    } catch {}
+    if (!user?.uid) return;
+    await updateNotificationSettings(user.uid, {
+      prayerActivity: settings.prayerActivity === true,
+      testimonyReactions: settings.testimonyReactions === true,
+      pushEnabled: settings.pushEnabled === true,
+      [id]: value,
+    });
   };
-
-  const data = mockReminders.map((r) => ({
-    ...r,
-    enabled: toggles[`reminder-toggle:${r.id}`] !== undefined ? toggles[`reminder-toggle:${r.id}`] : r.enabled,
-  }));
 
   return (
     <CinematicScreen>
       <PageHero scene="community" eyebrow="Habits" title="Reminders" subtitle="Stay consistent with prayer reminders." compact />
-      <FlatList
-        data={data}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
-        ListEmptyComponent={<EmptyState label="No reminders set." />}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <View style={styles.info}>
-              <Text style={styles.title}>{item.title}</Text>
-              <Text style={styles.meta}>{item.time ? `${item.time} - ` : ''}{item.schedule}</Text>
+      <AsyncState loading={loading} empty={!loading && data.length === 0} emptyLabel="No reminders set.">
+        <FlatList
+          data={data}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.list}
+          ListEmptyComponent={<EmptyState label="No reminders set." />}
+          renderItem={({ item }) => (
+            <View style={styles.card}>
+              <View style={styles.info}>
+                <Text style={styles.title}>{item.title}</Text>
+                <Text style={styles.meta}>{item.schedule}</Text>
+              </View>
+              <Switch
+                value={item.enabled}
+                onValueChange={(v) => toggle(item.id, v)}
+                trackColor={{ false: 'rgba(248,243,234,0.2)', true: colors.gold }}
+                thumbColor={item.enabled ? colors.ink : colors.ivory}
+              />
             </View>
-            <Switch
-              value={item.enabled}
-              onValueChange={(v) => toggle(`reminder-toggle:${item.id}`, v)}
-              trackColor={{ false: 'rgba(248,243,234,0.2)', true: colors.gold }}
-              thumbColor={item.enabled ? colors.ink : colors.ivory}
-            />
-          </View>
-        )}
-      />
+          )}
+        />
+      </AsyncState>
     </CinematicScreen>
   );
 }

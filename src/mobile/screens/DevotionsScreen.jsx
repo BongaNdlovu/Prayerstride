@@ -1,27 +1,37 @@
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../theme';
-import { mockDevotions } from '../../data/mockData';
+import { useDevotions } from '../useContentCollections';
 import CinematicScreen from '../components/CinematicScreen';
 import PageHero from '../components/PageHero';
 import EmptyState from '../components/EmptyState';
+import AsyncState from '../components/AsyncState';
 
 export default function DevotionsScreen({ go }) {
+  const { devotions, loading, error } = useDevotions(true);
+
   return (
     <CinematicScreen>
       <PageHero scene="bible" eyebrow="Devotion" title="Daily Devotions" subtitle="Read, reflect, and grow in faith." compact />
-      <FlatList
-        data={mockDevotions}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
-        ListEmptyComponent={<EmptyState label="No devotions available." />}
-        renderItem={({ item }) => (
-          <Pressable onPress={() => go('guideDetail', { guideId: item.id })} style={styles.card}>
-            <Text style={styles.title}>{item.title}</Text>
-            <Text style={styles.ref}>{item.reference}</Text>
-            <Text style={styles.date}>{item.date}{item.day ? ` - ${item.day}` : ''}</Text>
-          </Pressable>
-        )}
-      />
+      <AsyncState
+        loading={loading}
+        error={error}
+        empty={!loading && !error && devotions.length === 0}
+        emptyLabel="No devotions available."
+      >
+        <FlatList
+          data={devotions}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.list}
+          ListEmptyComponent={<EmptyState label="No devotions available." />}
+          renderItem={({ item }) => (
+            <Pressable onPress={() => go('guideDetail', { guideId: item.guideId || item.id })} style={styles.card}>
+              <Text style={styles.title}>{item.title}</Text>
+              <Text style={styles.ref}>{item.reference || item.subtitle || 'Daily reading'}</Text>
+              <Text style={styles.date}>{item.dateLabel || item.date || ''}{item.day ? ` - Day ${item.day}` : ''}</Text>
+            </Pressable>
+          )}
+        />
+      </AsyncState>
     </CinematicScreen>
   );
 }

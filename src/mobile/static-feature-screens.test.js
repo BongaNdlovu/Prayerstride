@@ -37,13 +37,24 @@ describe('static feature screens', () => {
     expect(source.default).toMatch(/prayerStopwatch/);
   });
 
-  it('Reminders screen uses AsyncStorage', async () => {
+  it('Reminders screen uses persisted notification settings', async () => {
     const source = await import('./screens/RemindersScreen.jsx?raw');
-    expect(source.default).toMatch(/AsyncStorage/);
+    expect(source.default).toMatch(/useNotificationSettings/);
+    expect(source.default).not.toMatch(/AsyncStorage/);
   });
 
   it('real-data screens do not import mockData', async () => {
-    const screens = ['AnnouncementsScreen', 'CalendarScreen', 'HomeScreen'];
+    const screens = [
+      'AchievementsScreen',
+      'AnnouncementsScreen',
+      'CalendarScreen',
+      'DevotionsScreen',
+      'FollowingScreen',
+      'GuideDetailScreen',
+      'HomeScreen',
+      'LessonReaderScreen',
+      'RemindersScreen',
+    ];
     for (const name of screens) {
       const source = await import(`./screens/${name}.jsx?raw`);
       expect(source.default).not.toMatch(/mockData/);
