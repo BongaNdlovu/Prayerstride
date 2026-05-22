@@ -67,3 +67,24 @@ export function deleteOwnAccount() {
     method: 'DELETE',
   });
 }
+
+export function adminCreateAnnouncement(payload) {
+  return apiFetch('/api/admin/announcements/create', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function adminUpdateAnnouncement(payload) {
+  return apiFetch('/api/admin/announcements/update', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function adminArchiveAnnouncement(announcementId) {
+  return apiFetch('/api/admin/announcements/archive', {
+    method: 'POST',
+    body: JSON.stringify({ announcementId }),
+  });
+}

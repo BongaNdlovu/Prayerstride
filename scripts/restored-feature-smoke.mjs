@@ -15,7 +15,7 @@ const APP_SCREENS = [
   'following', 'announcements', 'devotions', 'guideDetail', 'lessonReader',
   'calendar', 'myStats', 'answeredPrayers', 'myPrayers', 'achievements', 'reminderSettings',
   'profile', 'settings', 'notifications', 'notificationSettings', 'support', 'helpCenter',
-  'privacyPolicy', 'termsOfService', 'adminDashboard', 'reportDetails', 'accountSuspended',
+  'privacyPolicy', 'termsOfService', 'about', 'copyright', 'adminDashboard', 'reportDetails', 'accountSuspended',
 ];
 
 const screenFiles = {
@@ -49,6 +49,8 @@ const screenFiles = {
   reportDetails: 'ReportDetailsScreen',
   support: 'SupportDonationScreen',
   termsOfService: 'TermsOfServiceScreen',
+  about: 'AboutScreen',
+  copyright: 'CopyrightScreen',
   settings: 'SettingsScreen',
 };
 
@@ -62,6 +64,7 @@ const mobileFiles = [
   'AuthProvider', 'api', 'firebase', 'navigation', 'notifications', 'theme',
   'usePrayerData', 'usePrayerSessions', 'useEncouragements', 'useReports',
   'useUsers', 'useNotifications', 'useNotificationSettings', 'useIsAdmin',
+  'useCalendarEvents', 'useAnnouncements',
   'prayerFormHelpers',
 ];
 
@@ -117,6 +120,16 @@ check('Admin imports useIsAdmin', adminSource.includes('useIsAdmin'));
 check('Admin imports useReports', adminSource.includes('useReports'));
 check('Admin imports adminDeleteContent', adminSource.includes('adminDeleteContent'));
 check('Admin imports adminSuspendUser', adminSource.includes('adminSuspendUser'));
+check('Admin imports adminCreateAnnouncement', adminSource.includes('adminCreateAnnouncement'));
+check('Admin imports adminArchiveAnnouncement', adminSource.includes('adminArchiveAnnouncement'));
+
+const calendarSource = readFileSync(resolve(screensDir, 'CalendarScreen.jsx'), 'utf-8');
+check('Calendar uses useCalendarEvents', calendarSource.includes('useCalendarEvents'));
+check('Calendar does not import mockData', !calendarSource.includes('mockData'));
+
+const announcementsSource = readFileSync(resolve(screensDir, 'AnnouncementsScreen.jsx'), 'utf-8');
+check('Announcements uses useAnnouncements', announcementsSource.includes('useAnnouncements'));
+check('Announcements does not import mockData', !announcementsSource.includes('mockData'));
 
 // 5. Notification settings screen imports Firestore settings hook
 console.log('\n5. Notification settings');

@@ -18,6 +18,17 @@ assert(!worker.includes("Access-Control-Allow-Origin', env.CORS_ORIGIN || '*'"),
 assert(!worker.includes('runFirestoreQuery'), 'Unused runFirestoreQuery helper should be removed.');
 assert(worker.includes("status >= 500 ? 'Unexpected server error'"), 'Worker should hide raw internal errors from clients.');
 
+assert(worker.includes('adminCreateAnnouncement'), 'Worker should implement adminCreateAnnouncement handler.');
+assert(worker.includes('adminUpdateAnnouncement'), 'Worker should implement adminUpdateAnnouncement handler.');
+assert(worker.includes('adminArchiveAnnouncement'), 'Worker should implement adminArchiveAnnouncement handler.');
+assert(worker.includes('adminCreateAnnouncement'), 'Worker should implement adminCreateAnnouncement handler.');
+assert(worker.includes('adminUpdateAnnouncement'), 'Worker should implement adminUpdateAnnouncement handler.');
+assert(worker.includes('adminArchiveAnnouncement'), 'Worker should implement adminArchiveAnnouncement handler.');
+assert(worker.includes('validateAnnouncementFields'), 'Worker should validate announcement required fields.');
+assert(worker.includes('requireAdmin'), 'Worker announcement routes should require admin access.');
+assert(worker.includes("status: 'archived'"), 'Worker should support archiving announcements.');
+assert(worker.includes("return json({ error:"), 'Worker should return JSON error responses.');
+
 if (failures.length) {
   console.error('Worker smoke test failed:');
   for (const failure of failures) console.error(`- ${failure}`);

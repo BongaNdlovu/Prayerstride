@@ -16,9 +16,15 @@ export default function TermsOfServiceScreen() {
         {'\n\n'}
         3. Privacy: Respect the privacy of others. Do not share personal information about other members without their consent.
         {'\n\n'}
-        4. Account Responsibility: You are responsible for maintaining the confidentiality of your account credentials.
+        4. Account Responsibility: You are responsible for maintaining the confidentiality of your account credentials and for activity under your account.
         {'\n\n'}
-        5. Termination: We reserve the right to suspend or terminate accounts that violate these terms.
+        5. Community Updates: Official announcements may be published by authorized administrators. Do not impersonate staff or publish misleading global updates.
+        {'\n\n'}
+        6. Personal Calendar Data: Events and bookmarks you create are for your own planning. Do not attempt to access or modify another member&apos;s calendar data.
+        {'\n\n'}
+        7. Termination: We reserve the right to suspend or terminate accounts that violate these terms.
+        {'\n\n'}
+        8. Changes: These terms may be updated as the app evolves. Continued use after updates means you accept the revised terms.
       </Text>
     </CinematicScreen>
   );

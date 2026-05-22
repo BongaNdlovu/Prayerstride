@@ -75,6 +75,53 @@ service cloud.firestore {
         || (request.resource.data[key] is list && request.resource.data[key].size() <= 10);
     }
 
+    function validDateKey(value) {
+      return value is string && value.size() == 10;
+    }
+
+    function optionalTimestamp(key) {
+      return !(key in request.resource.data)
+        || request.resource.data[key] == null
+        || request.resource.data[key] is timestamp;
+    }
+
+    function validCalendarEventCreate() {
+      return signedIn()
+        && notSuspended()
+        && request.resource.data.ownerUid == request.auth.uid
+        && validString(request.resource.data.title, 120)
+        && validDateKey(request.resource.data.dateKey)
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp
+        && optionalString("notes", 500)
+        && optionalTimestamp("startsAt")
+        && optionalTimestamp("endsAt");
+    }
+
+    function validCalendarEventUpdate() {
+      return signedIn()
+        && notSuspended()
+        && resource.data.ownerUid == request.auth.uid
+        && request.resource.data.ownerUid == request.auth.uid
+        && validString(request.resource.data.title, 120)
+        && validDateKey(request.resource.data.dateKey)
+        && request.resource.data.updatedAt is timestamp
+        && optionalString("notes", 500)
+        && optionalTimestamp("startsAt")
+        && optionalTimestamp("endsAt");
+    }
+
+    function validCalendarBookmarkCreate(bookmarkId) {
+      return signedIn()
+        && notSuspended()
+        && request.resource.data.keys().hasOnly(["ownerUid", "dateKey", "createdAt"])
+        && request.resource.data.keys().hasAll(["ownerUid", "dateKey", "createdAt"])
+        && request.resource.data.ownerUid == request.auth.uid
+        && bookmarkId == request.auth.uid + "_" + request.resource.data.dateKey
+        && validDateKey(request.resource.data.dateKey)
+        && request.resource.data.createdAt is timestamp;
+    }
+
     function validUserCreate(uid) {
       return isSelf(uid)
         && request.resource.data.keys().hasOnly(["uid", "email", "displayName", "role", "owner", "createdAt", "photoURL", "handle", "bio"])
@@ -171,6 +218,12 @@ service cloud.firestore {
         && optionalTags("tags");
     }
 
+    function validSessionPrayerLink() {
+      return request.resource.data.prayerId == null
+        || (validString(request.resource.data.prayerId, 160)
+        && canReadPrayerId(request.resource.data.prayerId));
+    }
+
     match /users/{uid} {
       allow read: if isSelf(uid) || isAdmin();
       allow create: if validUserCreate(uid) && notSuspended();
@@ -237,8 +290,7 @@ service cloud.firestore {
         && request.resource.data.seconds > 0
         && request.resource.data.seconds <= 86400
         && request.resource.data.createdAt is timestamp
-        && validString(request.resource.data.prayerId, 160)
-        && canReadPrayerId(request.resource.data.prayerId);
+        && validSessionPrayerLink();
       allow update, delete: if signedIn() && notSuspended()
         && resource.data.authorUid == request.auth.uid
         && unchanged(["authorUid", "createdAt"])
@@ -247,8 +299,7 @@ service cloud.firestore {
         && request.resource.data.seconds is number
         && request.resource.data.seconds > 0
         && request.resource.data.seconds <= 86400
-        && validString(request.resource.data.prayerId, 160)
-        && canReadPrayerId(request.resource.data.prayerId);
+        && validSessionPrayerLink();
     }
 
     match /encouragements/{encouragementId} {
@@ -294,6 +345,26 @@ service cloud.firestore {
         && optionalBool("pushEnabled")
         && (!("updatedAt" in request.resource.data) || request.resource.data.updatedAt is timestamp);
       allow delete: if false;
+    }
+
+    match /calendarEvents/{eventId} {
+      allow read: if signedIn() && resource.data.ownerUid == request.auth.uid;
+      allow create: if validCalendarEventCreate();
+      allow update: if validCalendarEventUpdate();
+      allow delete: if signedIn() && notSuspended() && resource.data.ownerUid == request.auth.uid;
+    }
+
+    match /calendarBookmarks/{bookmarkId} {
+      allow read: if signedIn() && resource.data.ownerUid == request.auth.uid;
+      allow create: if validCalendarBookmarkCreate(bookmarkId);
+      allow update: if false;
+      allow delete: if signedIn() && notSuspended() && resource.data.ownerUid == request.auth.uid;
+    }
+
+    match /announcements/{announcementId} {
+      allow read: if signedIn()
+        && (resource.data.status == "active" || isAdmin());
+      allow create, update, delete: if false;
     }
   }
 }

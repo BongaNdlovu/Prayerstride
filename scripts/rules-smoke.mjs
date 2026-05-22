@@ -1,4 +1,5 @@
 import { assertFails, assertSucceeds, initializeTestEnvironment } from '@firebase/rules-unit-testing';
+import { Timestamp } from 'firebase/firestore';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
@@ -111,6 +112,9 @@ async function runTests() {
   await assertFails(bDb.collection('prayers').doc('prayer-a').delete());
   await assertSucceeds(adminDb.collection('prayers').doc('prayer-a').delete());
 
+  const linkedPrayerRef = aDb.collection('prayers').doc('prayer-linked');
+  await assertSucceeds(linkedPrayerRef.set(prayerDoc()));
+
   const testimonyRef = aDb.collection('testimonies').doc('testimony-a');
   await assertSucceeds(testimonyRef.set(testimonyDoc()));
   await assertFails(testimonyRef.update({ amen: 99 }));
@@ -146,7 +150,7 @@ async function runTests() {
   await assertFails(bDb.collection('notifications').doc('notification-a').get());
 
   await assertSucceeds(aDb.collection('encouragements').doc('encouragement-a').set({
-    threadId: 'prayer-a',
+    threadId: 'prayer-linked',
     authorUid: 'user-a',
     authorName: 'User A',
     text: 'Praying with you.',
@@ -154,7 +158,7 @@ async function runTests() {
     updatedAt: new Date(),
   }));
   await assertFails(aDb.collection('encouragements').doc('encouragement-b').set({
-    threadId: 'prayer-a',
+    threadId: 'prayer-linked',
     authorUid: 'user-a',
     authorName: 'User A',
     text: '',
@@ -166,6 +170,13 @@ async function runTests() {
     authorUid: 'user-a',
     title: 'Morning prayer',
     seconds: 120,
+    prayerId: 'prayer-linked',
+    createdAt: new Date(),
+  }));
+  await assertSucceeds(aDb.collection('prayerSessions').doc('session-unlinked').set({
+    authorUid: 'user-a',
+    title: 'Quiet prayer',
+    seconds: 60,
     prayerId: null,
     createdAt: new Date(),
   }));
@@ -183,6 +194,77 @@ async function runTests() {
     updatedAt: new Date(),
   }));
   await assertFails(bDb.doc('notificationSettings/user-a').get());
+
+  const eventRef = aDb.collection('calendarEvents').doc('event-a');
+  await assertSucceeds(eventRef.set({
+    ownerUid: 'user-a',
+    title: 'Morning prayer',
+    notes: 'Quiet time',
+    dateKey: '2026-05-22',
+    createdAt: Timestamp.now(),
+    updatedAt: Timestamp.now(),
+  }));
+  await assertFails(bDb.collection('calendarEvents').doc('event-a').get());
+  await assertFails(bDb.collection('calendarEvents').doc('event-a').update({ title: 'Hacked' }));
+  await assertSucceeds(eventRef.update({
+    title: 'Evening prayer',
+    notes: 'Quiet time',
+    dateKey: '2026-05-23',
+    updatedAt: Timestamp.now(),
+  }));
+
+  const bookmarkRef = aDb.collection('calendarBookmarks').doc('user-a_2026-05-22');
+  await assertSucceeds(bookmarkRef.set({
+    ownerUid: 'user-a',
+    dateKey: '2026-05-22',
+    createdAt: Timestamp.now(),
+  }));
+  await assertFails(aDb.collection('calendarBookmarks').doc('user-b_2026-05-22').set({
+    ownerUid: 'user-a',
+    dateKey: '2026-05-22',
+    createdAt: Timestamp.now(),
+  }));
+  await assertFails(bDb.collection('calendarBookmarks').doc('user-a_2026-05-22').delete());
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await context.firestore().doc('announcements/announcement-a').set({
+      title: 'Community Night',
+      body: 'Join us this week.',
+      category: 'events',
+      startsAt: new Date(),
+      endsAt: null,
+      status: 'active',
+      createdByUid: 'admin-user',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    await context.firestore().doc('announcements/announcement-archived').set({
+      title: 'Archived item',
+      body: 'Old update',
+      category: 'updates',
+      startsAt: new Date(),
+      endsAt: null,
+      status: 'archived',
+      createdByUid: 'admin-user',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+  });
+
+  await assertSucceeds(aDb.collection('announcements').doc('announcement-a').get());
+  await assertFails(aDb.collection('announcements').doc('announcement-archived').get());
+  await assertSucceeds(adminDb.collection('announcements').doc('announcement-archived').get());
+  await assertFails(aDb.collection('announcements').doc('announcement-new').set({
+    title: 'Blocked',
+    body: 'Client write',
+    category: 'updates',
+    startsAt: new Date(),
+    status: 'active',
+    createdByUid: 'user-a',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  }));
+  await assertFails(adminDb.collection('announcements').doc('announcement-a').update({ title: 'Hacked' }));
 
   console.log('All rules smoke tests passed.');
 }

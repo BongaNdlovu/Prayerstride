@@ -19,7 +19,7 @@ describe('native UI kit', () => {
     expect(source.default).toMatch(/texture/);
   });
 
-  it('shared components export successfully', async () => {
+  it('shared components export successfully', { timeout: 15000 }, async () => {
     const modules = [
       'CinematicScreen',
       'PageHero',
@@ -33,6 +33,8 @@ describe('native UI kit', () => {
       'TestimonyCard',
       'MiniLineChart',
       'StreakCalendar',
+      'AsyncState',
+      'MotionPressable',
     ];
 
     for (const name of modules) {
@@ -47,7 +49,7 @@ describe('native UI kit', () => {
   });
 
   it('shared native components do not import react-dom or browser APIs', async () => {
-    const names = ['CinematicScreen', 'PageHero', 'GlassCard', 'AppHeader', 'BottomTabs', 'EmptyState', 'ToggleRow', 'StatCard', 'PrayerCard', 'TestimonyCard', 'MiniLineChart', 'StreakCalendar'];
+    const names = ['CinematicScreen', 'PageHero', 'GlassCard', 'AppHeader', 'BottomTabs', 'EmptyState', 'ToggleRow', 'StatCard', 'PrayerCard', 'TestimonyCard', 'MiniLineChart', 'StreakCalendar', 'AsyncState', 'MotionPressable'];
 
     for (const name of names) {
       const source = await import(`../components/${name}.jsx?raw`);

@@ -14,6 +14,23 @@ describe('profile settings', () => {
     const source = await import('./screens/EditProfileScreen.jsx?raw');
     expect(source.default).toMatch(/updateProfile/);
     expect(source.default).toMatch(/updateDoc/);
+    expect(source.default).toMatch(/expo-image-picker/);
+    expect(source.default).toMatch(/changePassword/);
+    expect(source.default).toMatch(/resetPassword/);
+    expect(source.default).toMatch(/handle/);
+  });
+
+  it('SettingsScreen links to about and copyright routes', async () => {
+    const source = await import('./screens/SettingsScreen.jsx?raw');
+    expect(source.default).toMatch(/about/);
+    expect(source.default).toMatch(/copyright/);
+  });
+
+  it('Admin dashboard uses Worker announcement APIs only', async () => {
+    const source = await import('./screens/AdminDashboardScreen.jsx?raw');
+    expect(source.default).toMatch(/adminCreateAnnouncement/);
+    expect(source.default).toMatch(/adminArchiveAnnouncement/);
+    expect(source.default).not.toMatch(/collection\(db, ['"]announcements['"]\)/);
   });
 
   it('NotificationsScreen imports notification hook', async () => {

@@ -5,12 +5,14 @@ import { useReports, resolveReport, dismissReport } from '../useReports';
 import { useUsers } from '../useUsers';
 import { usePrayers, useTestimonies } from '../usePrayerData';
 import { useIsAdmin } from '../useIsAdmin';
-import { adminDeleteContent, adminSuspendUser, adminDeleteAccount } from '../api';
+import { adminArchiveAnnouncement, adminCreateAnnouncement, adminDeleteContent, adminDeleteAccount, adminSuspendUser, adminUpdateAnnouncement } from '../api';
+import { useAnnouncements } from '../useAnnouncements';
 import CinematicScreen from '../components/CinematicScreen';
 import PageHero from '../components/PageHero';
 import EmptyState from '../components/EmptyState';
 
-const TABS = ['Overview', 'Reports', 'Members', 'Content'];
+const TABS = ['Overview', 'Reports', 'Members', 'Content', 'Announcements'];
+const ANNOUNCEMENT_CATEGORIES = ['events', 'prayer', 'updates'];
 
 export default function AdminDashboardScreen({ user, go }) {
   const { isAdmin } = useIsAdmin(user);
@@ -18,6 +20,7 @@ export default function AdminDashboardScreen({ user, go }) {
   const { users } = useUsers(true);
   const { prayers } = usePrayers(isAdmin, { includeAll: isAdmin });
   const { testimonies } = useTestimonies(isAdmin);
+  const { announcements } = useAnnouncements(isAdmin, { includeArchived: true });
   const [tab, setTab] = useState('Overview');
 
   if (!isAdmin) {
@@ -44,6 +47,7 @@ export default function AdminDashboardScreen({ user, go }) {
       {tab === 'Reports' && <ReportsList reports={reports} go={go} onResolve={resolveReport} onDismiss={dismissReport} />}
       {tab === 'Members' && <MembersList users={users} currentUid={user?.uid} onSuspend={adminSuspendUser} onDelete={adminDeleteAccount} />}
       {tab === 'Content' && <ContentList prayers={prayers} testimonies={testimonies} onDelete={adminDeleteContent} />}
+      {tab === 'Announcements' && <AnnouncementsAdminList announcements={announcements} />}
     </CinematicScreen>
   );
 }
@@ -126,6 +130,101 @@ function MembersList({ users, currentUid, onSuspend, onDelete }) {
                 </Pressable>
               </View>
             ) : null}
+          </View>
+        )}
+      />
+    </View>
+  );
+}
+
+function AnnouncementsAdminList({ announcements }) {
+  const [title, setTitle] = useState('');
+  const [body, setBody] = useState('');
+  const [category, setCategory] = useState('events');
+  const [startsAt, setStartsAt] = useState(new Date().toISOString());
+  const [editingId, setEditingId] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  const saveAnnouncement = async () => {
+    if (!title.trim() || !body.trim()) {
+      Alert.alert('Missing fields', 'Title and body are required.');
+      return;
+    }
+    setBusy(true);
+    try {
+      if (editingId) {
+        await adminUpdateAnnouncement({
+          announcementId: editingId,
+          title: title.trim(),
+          body: body.trim(),
+          category,
+          startsAt,
+        });
+      } else {
+        await adminCreateAnnouncement({
+          title: title.trim(),
+          body: body.trim(),
+          category,
+          startsAt,
+        });
+      }
+      setTitle('');
+      setBody('');
+      setCategory('events');
+      setStartsAt(new Date().toISOString());
+      setEditingId(null);
+      Alert.alert('Saved', 'Announcement saved.');
+    } catch (error) {
+      Alert.alert('Could not save', error.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const archiveAnnouncement = async (announcementId) => {
+    try {
+      await adminArchiveAnnouncement(announcementId);
+      if (editingId === announcementId) setEditingId(null);
+    } catch (error) {
+      Alert.alert('Could not archive', error.message);
+    }
+  };
+
+  return (
+    <View style={styles.section}>
+      <TextInput value={title} onChangeText={setTitle} placeholder="Announcement title" style={styles.searchInput} placeholderTextColor="rgba(248,243,234,0.56)" />
+      <TextInput value={body} onChangeText={setBody} placeholder="Announcement body" multiline style={[styles.searchInput, { minHeight: 90 }]} placeholderTextColor="rgba(248,243,234,0.56)" />
+      <TextInput value={startsAt} onChangeText={setStartsAt} placeholder="Starts at ISO timestamp" style={styles.searchInput} placeholderTextColor="rgba(248,243,234,0.56)" />
+      <View style={styles.tabRow}>
+        {ANNOUNCEMENT_CATEGORIES.map((value) => (
+          <Pressable key={value} onPress={() => setCategory(value)} style={[styles.tab, category === value && styles.tabActive]}>
+            <Text style={[styles.tabText, category === value && styles.tabTextActive]}>{value}</Text>
+          </Pressable>
+        ))}
+      </View>
+      <Pressable disabled={busy} onPress={saveAnnouncement} style={styles.actionBtn}>
+        <Text style={styles.actionText}>{busy ? 'Saving...' : editingId ? 'Update Announcement' : 'Create Announcement'}</Text>
+      </Pressable>
+      <FlatList
+        data={announcements}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.list}
+        ListEmptyComponent={<EmptyState label="No announcements yet." />}
+        renderItem={({ item }) => (
+          <View style={styles.card}>
+            <Text style={styles.badge}>{item.status}</Text>
+            <Text style={styles.cardReason}>{item.title}</Text>
+            <Text style={styles.memberEmail}>{item.categoryLabel} · {item.displayDate}</Text>
+            <View style={styles.cardActions}>
+              <Pressable onPress={() => { setEditingId(item.id); setTitle(item.title); setBody(item.body); setCategory(item.category); setStartsAt(item.startsAt || new Date().toISOString()); }} style={styles.actionBtnOutline}>
+                <Text style={styles.actionTextOutline}>Edit</Text>
+              </Pressable>
+              {item.status === 'active' ? (
+                <Pressable onPress={() => archiveAnnouncement(item.id)} style={styles.actionBtnDanger}>
+                  <Text style={styles.actionTextDanger}>Archive</Text>
+                </Pressable>
+              ) : null}
+            </View>
           </View>
         )}
       />

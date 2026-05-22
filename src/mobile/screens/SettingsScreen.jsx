@@ -1,4 +1,5 @@
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text } from 'react-native';
+import MotionPressable from '../components/MotionPressable';
 import { colors } from '../theme';
 import { deleteOwnAccount } from '../api';
 import CinematicScreen from '../components/CinematicScreen';
@@ -6,8 +7,10 @@ import PageHero from '../components/PageHero';
 
 const ITEMS = [
   { label: 'Notification Settings', route: 'notificationSettings' },
+  { label: 'About PrayerStride', route: 'about' },
   { label: 'Privacy Policy', route: 'privacyPolicy' },
   { label: 'Terms of Service', route: 'termsOfService' },
+  { label: 'Copyright', route: 'copyright' },
   { label: 'Help Center', route: 'helpCenter' },
   { label: 'Support / Donation', route: 'support' },
 ];
@@ -31,14 +34,14 @@ export default function SettingsScreen({ go, signOut }) {
     <CinematicScreen pageContent>
       <PageHero scene="community" eyebrow="Settings" title="Manage your account" subtitle="Notifications, privacy, and account controls." compact />
       {ITEMS.map((item) => (
-        <Pressable key={item.route} onPress={() => go(item.route)} style={styles.menuItem}>
+        <MotionPressable key={item.route} onPress={() => go(item.route)} style={styles.menuItem}>
           <Text style={styles.menuText}>{item.label}</Text>
           <Text style={styles.menuArrow}>›</Text>
-        </Pressable>
+        </MotionPressable>
       ))}
-      <Pressable onPress={deleteAccount} style={styles.deleteButton}>
+      <MotionPressable onPress={deleteAccount} style={styles.deleteButton}>
         <Text style={styles.deleteText}>Delete Account</Text>
-      </Pressable>
+      </MotionPressable>
     </CinematicScreen>
   );
 }

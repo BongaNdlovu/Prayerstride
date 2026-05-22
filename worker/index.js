@@ -71,6 +71,24 @@ async function handleApi(request, env, url, requestId) {
     return adminDeleteAccount(env, user, body);
   }
 
+  match = url.pathname.match(/^\/api\/admin\/announcements\/create$/);
+  if (match && request.method === 'POST') {
+    await requireAdmin(env, user);
+    return adminCreateAnnouncement(env, user, body);
+  }
+
+  match = url.pathname.match(/^\/api\/admin\/announcements\/update$/);
+  if (match && request.method === 'POST') {
+    await requireAdmin(env, user);
+    return adminUpdateAnnouncement(env, user, body);
+  }
+
+  match = url.pathname.match(/^\/api\/admin\/announcements\/archive$/);
+  if (match && request.method === 'POST') {
+    await requireAdmin(env, user);
+    return adminArchiveAnnouncement(env, user, body);
+  }
+
   match = url.pathname.match(/^\/api\/account$/);
   if (match && request.method === 'DELETE') {
     return deleteOwnAccount(env, user);
@@ -283,6 +301,99 @@ async function adminSuspendUser(env, user, body) {
 
   await firestoreCommit(env, writes);
   return json({ ok: true });
+}
+
+const ANNOUNCEMENT_CATEGORIES = ['events', 'prayer', 'updates'];
+
+function validateAnnouncementFields(body, requireId = false) {
+  const missing = [];
+  if (requireId && !body.announcementId) missing.push('announcementId');
+  if (!body.title) missing.push('title');
+  if (!body.body) missing.push('body');
+  if (!body.category) missing.push('category');
+  if (!body.startsAt) missing.push('startsAt');
+  if (missing.length) return { error: `Missing ${missing.join(', ')}` };
+  if (!ANNOUNCEMENT_CATEGORIES.includes(body.category)) {
+    return { error: 'category must be events, prayer, or updates' };
+  }
+  return null;
+}
+
+async function adminCreateAnnouncement(env, user, body) {
+  await requireAdmin(env, user);
+  const validationError = validateAnnouncementFields(body);
+  if (validationError) return json(validationError, 400);
+
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  await firestoreCommit(env, [{
+    update: {
+      name: docName(env, 'announcements', id),
+      fields: toFirestoreFields({
+        title: String(body.title).slice(0, 120),
+        body: String(body.body).slice(0, 2000),
+        category: body.category,
+        startsAt: body.startsAt,
+        endsAt: body.endsAt || null,
+        status: 'active',
+        createdByUid: user.uid,
+        createdAt: now,
+        updatedAt: now,
+      }),
+    },
+  }]);
+  return json({ ok: true, announcementId: id });
+}
+
+async function adminUpdateAnnouncement(env, user, body) {
+  await requireAdmin(env, user);
+  const validationError = validateAnnouncementFields(body, true);
+  if (validationError) return json(validationError, 400);
+
+  const announcement = await getDocument(env, docName(env, 'announcements', body.announcementId));
+  if (!announcement.exists) return json({ error: 'Announcement not found' }, 404);
+
+  const now = new Date().toISOString();
+  const data = fromFirestoreFields(announcement.fields);
+  await firestoreCommit(env, [{
+    update: {
+      name: announcement.name,
+      fields: toFirestoreFields({
+        title: String(body.title).slice(0, 120),
+        body: String(body.body).slice(0, 2000),
+        category: body.category,
+        startsAt: body.startsAt,
+        endsAt: body.endsAt || null,
+        status: data.status || 'active',
+        createdByUid: data.createdByUid,
+        createdAt: data.createdAt,
+        updatedAt: now,
+      }),
+    },
+  }]);
+  return json({ ok: true, announcementId: body.announcementId });
+}
+
+async function adminArchiveAnnouncement(env, user, body) {
+  await requireAdmin(env, user);
+  if (!body.announcementId) return json({ error: 'Missing announcementId' }, 400);
+
+  const announcement = await getDocument(env, docName(env, 'announcements', body.announcementId));
+  if (!announcement.exists) return json({ error: 'Announcement not found' }, 404);
+
+  const data = fromFirestoreFields(announcement.fields);
+  const now = new Date().toISOString();
+  await firestoreCommit(env, [{
+    update: {
+      name: announcement.name,
+      fields: toFirestoreFields({
+        ...data,
+        status: 'archived',
+        updatedAt: now,
+      }),
+    },
+  }]);
+  return json({ ok: true, announcementId: body.announcementId, status: 'archived' });
 }
 
 async function adminDeleteAccount(env, user, body) {

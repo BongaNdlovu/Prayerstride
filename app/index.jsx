@@ -55,6 +55,8 @@ import SplashScreen from '../src/mobile/screens/SplashScreen';
 import StayConnectedScreen from '../src/mobile/screens/StayConnectedScreen';
 import SupportDonationScreen from '../src/mobile/screens/SupportDonationScreen';
 import TermsOfServiceScreen from '../src/mobile/screens/TermsOfServiceScreen';
+import AboutScreen from '../src/mobile/screens/AboutScreen';
+import CopyrightScreen from '../src/mobile/screens/CopyrightScreen';
 import WelcomeScreen from '../src/mobile/screens/WelcomeScreen';
 
 
@@ -242,7 +244,9 @@ function renderScreen(screen, params, user, suspended, suspendedReason, signIn, 
     case 'devotions': return <DevotionsScreen go={goFn} />;
     case 'guideDetail': return <GuideDetailScreen go={goFn} back={() => backFn('devotions')} />;
     case 'lessonReader': return <LessonReaderScreen />;
-    case 'calendar': return <CalendarScreen />;
+    case 'calendar': return <CalendarScreen user={user} />;
+    case 'about': return <AboutScreen />;
+    case 'copyright': return <CopyrightScreen />;
     case 'reminderSettings': return <RemindersScreen />;
     case 'achievements': return <AchievementsScreen />;
     case 'quickActions': return <QuickActionsScreen go={goFn} />;

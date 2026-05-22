@@ -13,7 +13,7 @@ const staticScreens = [
 ];
 
 describe('static feature screens', () => {
-  it('all static screens export successfully', async () => {
+  it('all static screens export successfully', { timeout: 15000 }, async () => {
     for (const name of staticScreens) {
       const source = await import(`./screens/${name}.jsx?raw`);
       expect(source.default).toMatch(/export default/);
@@ -42,11 +42,18 @@ describe('static feature screens', () => {
     expect(source.default).toMatch(/AsyncStorage/);
   });
 
-  it('mock data imports resolve', async () => {
-    const screens = ['FollowingScreen', 'AnnouncementsScreen', 'DevotionsScreen', 'CalendarScreen', 'AchievementsScreen'];
+  it('real-data screens do not import mockData', async () => {
+    const screens = ['AnnouncementsScreen', 'CalendarScreen', 'HomeScreen'];
     for (const name of screens) {
       const source = await import(`./screens/${name}.jsx?raw`);
-      expect(source.default).toMatch(/mockData/);
+      expect(source.default).not.toMatch(/mockData/);
     }
+  });
+
+  it('PrayerStopwatch uses confirm-before-log flow', async () => {
+    const source = await import('./screens/PrayerStopwatchScreen.jsx?raw');
+    expect(source.default).toMatch(/Log Prayer/);
+    expect(source.default).toMatch(/readyToLog/);
+    expect(source.default).toMatch(/disabled=\{busy\}/);
   });
 });

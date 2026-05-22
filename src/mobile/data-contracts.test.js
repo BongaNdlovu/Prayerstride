@@ -10,7 +10,11 @@ describe('data contracts', () => {
     expect(source.default).toMatch(/export function adminDeleteContent/);
     expect(source.default).toMatch(/export function adminSuspendUser/);
     expect(source.default).toMatch(/export function adminDeleteAccount/);
+    expect(source.default).toMatch(/export function adminCreateAnnouncement/);
+    expect(source.default).toMatch(/export function adminUpdateAnnouncement/);
+    expect(source.default).toMatch(/export function adminArchiveAnnouncement/);
     expect(source.default).toMatch(/export function deleteOwnAccount/);
+    expect(source.default).not.toMatch(/addDoc\(collection\(db, ['"]announcements['"]\)/);
   });
 
   it('apiFetch includes Firebase ID token attachment', async () => {
@@ -71,6 +75,38 @@ describe('data contracts', () => {
     expect(source.default).toMatch(/export async function updateNotificationSettings/);
   });
 
+  it('useCalendarEvents exports real calendar contract helpers', async () => {
+    const source = await import('./useCalendarEvents.js?raw');
+    expect(source.default).toMatch(/export function useCalendarEvents/);
+    expect(source.default).toMatch(/export async function createCalendarEvent/);
+    expect(source.default).toMatch(/export async function updateCalendarEvent/);
+    expect(source.default).toMatch(/export async function deleteCalendarEvent/);
+    expect(source.default).toMatch(/export async function bookmarkDate/);
+    expect(source.default).toMatch(/export async function unbookmarkDate/);
+    expect(source.default).toMatch(/ownerUid/);
+    expect(source.default).toMatch(/dateKey/);
+    expect(source.default).toMatch(/calendarEvents/);
+    expect(source.default).toMatch(/calendarBookmarks/);
+  });
+
+  it('useAnnouncements exports read-only announcement hook', async () => {
+    const source = await import('./useAnnouncements.js?raw');
+    expect(source.default).toMatch(/export function useAnnouncements/);
+    expect(source.default).toMatch(/status/);
+    expect(source.default).toMatch(/startsAt/);
+    expect(source.default).toMatch(/category/);
+    expect(source.default).not.toMatch(/mockAnnouncements/);
+    expect(source.default).not.toMatch(/type: 'Events'/);
+    expect(source.default).not.toMatch(/date: 'May/);
+  });
+
+  it('AuthProvider exposes password management helpers', async () => {
+    const source = await import('./AuthProvider.jsx?raw');
+    expect(source.default).toMatch(/changePassword/);
+    expect(source.default).toMatch(/resetPassword/);
+    expect(source.default).toMatch(/reauthenticateWithCredential/);
+  });
+
   it('useIsAdmin has separate admin and suspended hooks', async () => {
     const source = await import('./useIsAdmin.js?raw');
     expect(source.default).toMatch(/export function useIsAdmin/);
@@ -88,6 +124,8 @@ describe('data contracts', () => {
       import('./useNotifications.js?raw'),
       import('./useNotificationSettings.js?raw'),
       import('./useIsAdmin.js?raw'),
+      import('./useCalendarEvents.js?raw'),
+      import('./useAnnouncements.js?raw'),
     ]);
 
     for (const { default: source } of sources) {

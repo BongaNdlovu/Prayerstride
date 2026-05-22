@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, StyleSheet, Text, TextInput, View } from 'react-native';
 import { colors } from '../theme';
 import { addPrayer } from '../usePrayerData';
 import { addPrayerSession } from '../usePrayerSessions';
 import CinematicScreen from '../components/CinematicScreen';
+import MotionPressable from '../components/MotionPressable';
 
 function formatTime(totalSeconds) {
   const h = Math.floor(totalSeconds / 3600);
@@ -16,6 +17,7 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, us
   const [running, setRunning] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [readyToLog, setReadyToLog] = useState(false);
   const [privateTitle, setPrivateTitle] = useState('');
   const intervalRef = useRef(null);
   const isDirectPrivateSession = !prayerId;
@@ -32,12 +34,23 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, us
     return () => clearInterval(intervalRef.current);
   }, [running]);
 
-  const startPause = () => setRunning((r) => !r);
-  const resetTimer = () => { setRunning(false); setSeconds(0); };
+  const startPause = () => {
+    setRunning((wasRunning) => {
+      const next = !wasRunning;
+      if (!next && seconds > 0) setReadyToLog(true);
+      return next;
+    });
+  };
 
-  const complete = async () => {
+  const resetTimer = () => {
+    setRunning(false);
+    setSeconds(0);
+    setReadyToLog(false);
+  };
+
+  const logPrayer = async () => {
     if (!seconds) {
-      Alert.alert('No time recorded', 'Start the timer before completing.');
+      Alert.alert('No time recorded', 'Start the timer before logging prayer time.');
       return;
     }
     if (isDirectPrivateSession && !privateTitle.trim()) {
@@ -60,6 +73,7 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, us
       await addPrayerSession({ prayerId: sessionPrayerId, title: sessionTitle, seconds }, user);
       setSeconds(0);
       setPrivateTitle('');
+      setReadyToLog(false);
       if (onDone) onDone();
       Alert.alert('Session saved', isDirectPrivateSession ? 'Your private prayer session has been recorded.' : 'Your prayer time has been recorded.');
     } catch (error) {
@@ -78,7 +92,7 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, us
             <TextInput
               value={privateTitle}
               onChangeText={setPrivateTitle}
-              editable={!running && seconds === 0}
+              editable={!running && seconds === 0 && !readyToLog}
               placeholder="What are you praying about?"
               placeholderTextColor="rgba(248,243,234,0.5)"
               style={styles.input}
@@ -88,19 +102,19 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, us
         ) : null}
         <Text style={styles.timer}>{formatTime(seconds)}</Text>
         <View style={styles.actions}>
-          <Pressable onPress={startPause} style={styles.button}>
+          <MotionPressable onPress={startPause} style={styles.button}>
             <Text style={styles.buttonText}>{running ? 'Pause' : seconds ? 'Resume' : 'Start'}</Text>
-          </Pressable>
+          </MotionPressable>
           {seconds > 0 && !running ? (
-            <Pressable onPress={resetTimer} style={styles.outlineButton}>
+            <MotionPressable onPress={resetTimer} style={styles.outlineButton}>
               <Text style={styles.outlineText}>Reset</Text>
-            </Pressable>
+            </MotionPressable>
           ) : null}
         </View>
-        {seconds > 0 && !running ? (
-          <Pressable disabled={busy} onPress={complete} style={[styles.button, styles.completeButton]}>
-            <Text style={styles.buttonText}>{busy ? 'Saving...' : 'Complete & Save'}</Text>
-          </Pressable>
+        {readyToLog && !running && seconds > 0 ? (
+          <MotionPressable disabled={busy} onPress={logPrayer} style={[styles.button, styles.logButton]}>
+            <Text style={styles.buttonText}>{busy ? 'Saving...' : 'Log Prayer'}</Text>
+          </MotionPressable>
         ) : null}
       </View>
     </CinematicScreen>
@@ -108,15 +122,15 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, us
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  label: { color: 'rgba(248,243,234,0.62)', fontSize: 16, marginBottom: 16 },
+  container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, paddingBottom: 120 },
+  label: { color: 'rgba(248,243,234,0.62)', fontSize: 16, marginBottom: 16, textAlign: 'center' },
   input: { width: '100%', minHeight: 52, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(248,243,234,0.16)', backgroundColor: 'rgba(248,243,234,0.1)', paddingHorizontal: 16, color: colors.ivory, fontSize: 15, marginBottom: 10 },
   privateNote: { color: 'rgba(248,243,234,0.58)', fontSize: 12, lineHeight: 18, textAlign: 'center', marginBottom: 20 },
-  timer: { color: colors.ivory, fontSize: 64, fontWeight: '800', fontVariant: ['tabular-nums'], marginBottom: 32 },
-  actions: { flexDirection: 'row', gap: 12, marginBottom: 20 },
+  timer: { color: colors.ivory, fontSize: 56, fontWeight: '800', fontVariant: ['tabular-nums'], marginBottom: 32 },
+  actions: { flexDirection: 'row', gap: 12, marginBottom: 20, flexWrap: 'wrap', justifyContent: 'center' },
   button: { minHeight: 52, paddingHorizontal: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.gold },
   buttonText: { color: colors.ink, fontSize: 15, fontWeight: '800' },
   outlineButton: { minHeight: 52, paddingHorizontal: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(248,243,234,0.2)' },
   outlineText: { color: 'rgba(248,243,234,0.72)', fontSize: 15, fontWeight: '700' },
-  completeButton: { marginTop: 12, backgroundColor: colors.ivory },
+  logButton: { marginTop: 12, backgroundColor: colors.ivory, width: '100%', maxWidth: 280 },
 });

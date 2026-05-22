@@ -1,11 +1,14 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import {
   createUserWithEmailAndPassword,
+  EmailAuthProvider,
   onAuthStateChanged,
+  reauthenticateWithCredential,
   sendEmailVerification,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
+  updatePassword,
   updateProfile,
 } from '@firebase/auth';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
@@ -57,6 +60,15 @@ export function AuthProvider({ children }) {
     },
     async resetPassword(email) {
       return sendPasswordResetEmail(auth, email);
+    },
+    async changePassword(currentPassword, newPassword) {
+      const currentUser = auth.currentUser;
+      if (!currentUser?.email) throw new Error('No email is linked to this account.');
+      if (!currentPassword || !newPassword) throw new Error('Enter your current and new password.');
+      if (newPassword.length < 6) throw new Error('New password must be at least 6 characters.');
+      const credential = EmailAuthProvider.credential(currentUser.email, currentPassword);
+      await reauthenticateWithCredential(currentUser, credential);
+      return updatePassword(currentUser, newPassword);
     },
   }), [user, loading]);
 
