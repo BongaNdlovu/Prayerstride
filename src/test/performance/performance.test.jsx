@@ -101,11 +101,13 @@ describe('Performance Tests', () => {
 
   describe('Re-render Performance', () => {
     it('should handle rapid state updates without performance degradation', () => {
+      const signOut = vi.fn();
+      const go = vi.fn();
       const { rerender } = render(
         <ProfileScreen
           user={{ uid: 'test', displayName: 'Test User', email: 'test@example.com' }}
-          signOut={vi.fn()}
-          go={vi.fn()}
+          signOut={signOut}
+          go={go}
         />
       );
 
@@ -115,8 +117,8 @@ describe('Performance Tests', () => {
         rerender(
           <ProfileScreen
             user={{ uid: 'test', displayName: `Test User ${i}`, email: 'test@example.com' }}
-            signOut={vi.fn()}
-            go={vi.fn()}
+            signOut={signOut}
+            go={go}
           />
         );
       }
