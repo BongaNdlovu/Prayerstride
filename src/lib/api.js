@@ -67,3 +67,7 @@ export function deleteOwnAccount() {
     method: 'DELETE',
   });
 }
+
+export function getSpiritualEngagementMetrics(days = 30) {
+  return apiFetch(`/api/admin/spiritual-engagement?days=${encodeURIComponent(days)}`);
+}

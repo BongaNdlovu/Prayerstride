@@ -89,6 +89,13 @@ async function handleApi(request, env, url, requestId) {
     return adminArchiveAnnouncement(env, user, body);
   }
 
+  match = url.pathname.match(/^\/api\/admin\/spiritual-engagement$/);
+  if (match && request.method === 'GET') {
+    await requireAdmin(env, user);
+    const days = Math.min(Number(url.searchParams.get('days')) || 30, 90);
+    return spiritualEngagementMetrics(env, user, days);
+  }
+
   match = url.pathname.match(/^\/api\/account$/);
   if (match && request.method === 'DELETE') {
     return deleteOwnAccount(env, user);
@@ -630,6 +637,250 @@ async function getNotificationSettings(env, uid) {
   if (!uid) return {};
   const settings = await getDocument(env, docName(env, 'notificationSettings', uid));
   return settings.exists ? fromFirestoreFields(settings.fields) : {};
+}
+
+async function runCollectionGroupQuery(env, collectionId, filters = [], orderByFields = [], selectFields = []) {
+  const accessToken = await getGoogleAccessToken(env);
+  const structuredQuery = {
+    from: [{ collectionId, allDescendants: true }],
+  };
+
+  if (selectFields.length > 0) {
+    structuredQuery.select = {
+      fields: selectFields.map((fieldPath) => ({ fieldPath })),
+    };
+  }
+
+  if (filters.length > 0) {
+    if (filters.length === 1) {
+      structuredQuery.where = filters[0];
+    } else {
+      structuredQuery.where = { compositeFilter: { op: 'AND', filters } };
+    }
+  }
+
+  if (orderByFields.length > 0) {
+    structuredQuery.orderBy = orderByFields;
+  }
+
+  const body = { structuredQuery };
+
+  const response = await fetch(
+    `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents:runQuery`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    },
+  );
+
+  if (!response.ok) {
+    const result = await response.json().catch(() => ({}));
+    throw new Error(result.error?.message || 'Collection-group query failed');
+  }
+
+  const results = await response.json();
+  return (results || [])
+    .filter((r) => r.document)
+    .map((r) => ({
+      name: r.document.name,
+      fields: r.document.fields || {},
+    }));
+}
+
+async function spiritualEngagementMetrics(env, user, days) {
+  const now = new Date();
+  const cutoff = new Date(now.getTime() - days * 86400000);
+  const cutoffISO = cutoff.toISOString();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 86400000).toISOString();
+  const fourteenDaysAgo = new Date(now.getTime() - 14 * 86400000).toISOString();
+  const eightDaysAgo = new Date(now.getTime() - 8 * 86400000).toISOString();
+
+  // 1. Query all prayers created in the window (collection-group on prayers)
+  const prayerDocs = await runCollectionGroupQuery(env, 'prayers', [
+    {
+      fieldFilter: {
+        field: { fieldPath: 'createdAt' },
+        op: 'GREATER_THAN_OR_EQUAL',
+        value: { timestampValue: cutoffISO },
+      },
+    },
+  ], [
+    { field: { fieldPath: 'createdAt' }, direction: 'DESCENDING' },
+  ], ['authorUid', 'createdAt', 'prayedCount']);
+
+  const prayers = prayerDocs.map((d) => ({
+    id: d.name.split('/').pop(),
+    ...fromFirestoreFields(d.fields),
+  }));
+
+  // 2. Query all pray actions in the window (collection-group on prays)
+  const prayDocs = await runCollectionGroupQuery(env, 'prays', [
+    {
+      fieldFilter: {
+        field: { fieldPath: 'createdAt' },
+        op: 'GREATER_THAN_OR_EQUAL',
+        value: { timestampValue: cutoffISO },
+      },
+    },
+  ], [
+    { field: { fieldPath: 'createdAt' }, direction: 'DESCENDING' },
+  ], ['uid', 'prayerId', 'authorUid', 'createdAt']);
+
+  const prays = prayDocs.map((d) => ({
+    id: d.name.split('/').pop(),
+    prayerId: d.name.split('/documents/')[1]?.split('/prays/')[0]?.split('/').pop() || '',
+    ...fromFirestoreFields(d.fields),
+  }));
+
+  // -- Metric 1: Prayer request activity by day --
+  const activityByDay = {};
+  for (const p of prayers) {
+    let day;
+    try {
+      day = (p.createdAt || '').slice(0, 10);
+    } catch { continue; }
+    if (!day) continue;
+    activityByDay[day] = (activityByDay[day] || 0) + 1;
+  }
+  const activityByDaySorted = Object.entries(activityByDay)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([day, count]) => ({ day, count }));
+
+  // -- Metric 2: Prayer response rate --
+  const prayedPrayerIds = new Set(prays.map((p) => p.prayerId).filter(Boolean));
+  const requestCount = prayers.length;
+  const respondedCount = prayers.filter((p) => prayedPrayerIds.has(p.id)).length;
+  const responseRate = requestCount > 0 ? Math.round((respondedCount / requestCount) * 100) : 0;
+
+  // -- Metric 3: Engagement density (prayers per request) --
+  const totalPrayActions = prays.length;
+  const density = requestCount > 0 ? parseFloat((totalPrayActions / requestCount).toFixed(2)) : 0;
+
+  // -- Metric 4: Active praying users in the last 7 days --
+  const activePrayingUserIds = new Set();
+  for (const p of prays) {
+    if (p.createdAt && p.createdAt >= sevenDaysAgo) {
+      activePrayingUserIds.add(p.uid);
+    }
+  }
+  const activePrayingUsers = activePrayingUserIds.size;
+
+  // -- Metric 5: Reciprocity --
+  const requestAuthorIds = new Set(prayers.map((p) => p.authorUid).filter(Boolean));
+  const prayUserIds = new Set(prays.map((p) => p.uid).filter(Boolean));
+  const requestOnly = [...requestAuthorIds].filter((uid) => !prayUserIds.has(uid)).length;
+  const prayOnly = [...prayUserIds].filter((uid) => !requestAuthorIds.has(uid)).length;
+  const both = [...requestAuthorIds].filter((uid) => prayUserIds.has(uid)).length;
+
+  // -- Metric 6: Time-to-first-prayer (median and average in minutes) --
+  const prayByPrayer = {};
+  for (const p of prays) {
+    if (!p.prayerId) continue;
+    if (!prayByPrayer[p.prayerId] || (p.createdAt && p.createdAt < prayByPrayer[p.prayerId])) {
+      prayByPrayer[p.prayerId] = p.createdAt;
+    }
+  }
+
+  const timeDeltas = [];
+  for (const p of prayers) {
+    const firstPray = prayByPrayer[p.id];
+    if (!firstPray || !p.createdAt) continue;
+    try {
+      const created = new Date(p.createdAt).getTime();
+      const first = new Date(firstPray).getTime();
+      if (Number.isFinite(created) && Number.isFinite(first) && first >= created) {
+        timeDeltas.push((first - created) / 60000);
+      }
+    } catch {}
+  }
+
+  let medianTimeToFirstPrayer = null;
+  let averageTimeToFirstPrayer = null;
+  if (timeDeltas.length > 0) {
+    const sorted = [...timeDeltas].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    medianTimeToFirstPrayer = sorted.length % 2 === 0
+      ? Math.round((sorted[mid - 1] + sorted[mid]) / 2)
+      : Math.round(sorted[mid]);
+    averageTimeToFirstPrayer = Math.round(sorted.reduce((s, v) => s + v, 0) / sorted.length);
+  }
+
+  // -- Metric 7: 7-day engagement retention --
+  const activityByUser = {};
+  for (const p of prayers) {
+    if (p.authorUid) {
+      if (!activityByUser[p.authorUid]) activityByUser[p.authorUid] = { created: new Set(), prayed: new Set() };
+      try {
+        const day = (p.createdAt || '').slice(0, 10);
+        if (day) activityByUser[p.authorUid].created.add(day);
+      } catch {}
+    }
+  }
+  for (const p of prays) {
+    if (p.uid) {
+      if (!activityByUser[p.uid]) activityByUser[p.uid] = { created: new Set(), prayed: new Set() };
+      try {
+        const day = (p.createdAt || '').slice(0, 10);
+        if (day) activityByUser[p.uid].prayed.add(day);
+      } catch {}
+    }
+  }
+
+  const isActiveInRange = (user, startISO, endISO) => {
+    const act = activityByUser[user];
+    if (!act) return false;
+    const start = startISO.slice(0, 10);
+    const end = endISO.slice(0, 10);
+    for (const day of [...act.created, ...act.prayed]) {
+      if (day >= start && day <= end) return true;
+    }
+    return false;
+  };
+
+  let retentionCount = 0;
+  let retentionEligible = 0;
+  const todayStr = now.toISOString().slice(0, 10);
+  const eightDaysAgoStr = eightDaysAgo.slice(0, 10);
+  const fourteenDaysAgoStr = fourteenDaysAgo.slice(0, 10);
+  const sevenDaysAgoStr = sevenDaysAgo.slice(0, 10);
+
+  for (const uid of Object.keys(activityByUser)) {
+    if (isActiveInRange(uid, fourteenDaysAgoStr, eightDaysAgoStr)) {
+      retentionEligible++;
+      if (isActiveInRange(uid, sevenDaysAgoStr, todayStr)) {
+        retentionCount++;
+      }
+    }
+  }
+
+  const retentionRate = retentionEligible > 0 ? Math.round((retentionCount / retentionEligible) * 100) : 0;
+
+  return json({
+    ok: true,
+    window: { days, cutoff: cutoffISO, generatedAt: now.toISOString() },
+    metrics: {
+      requestCount,
+      respondedCount,
+      responseRate,
+      totalPrayActions,
+      density,
+      activePrayingUsers7d: activePrayingUsers,
+      requestOnly,
+      prayOnly,
+      both,
+      medianTimeToFirstPrayerMinutes: medianTimeToFirstPrayer,
+      averageTimeToFirstPrayerMinutes: averageTimeToFirstPrayer,
+      retentionRate,
+      retentionEligible,
+      retentionCount,
+      activityByDay: activityByDaySorted,
+    },
+    groupingAvailable: false,
+  });
 }
 
 async function enforceCooldown(env, uid, action, seconds) {

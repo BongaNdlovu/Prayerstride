@@ -29,6 +29,19 @@ assert(worker.includes('requireAdmin'), 'Worker announcement routes should requi
 assert(worker.includes("status: 'archived'"), 'Worker should support archiving announcements.');
 assert(worker.includes("return json({ error:"), 'Worker should return JSON error responses.');
 
+assert(worker.includes('spiritual-engagement'), 'Worker should implement spiritual-engagement endpoint.');
+assert(worker.includes('spiritualEngagementMetrics'), 'Worker should implement spiritualEngagementMetrics function.');
+assert(worker.includes('runCollectionGroupQuery'), 'Worker should have collection-group query helper.');
+assert(worker.includes('allDescendants: true'), 'Collection-group query should use allDescendants.');
+assert(worker.includes('responseRate'), 'Engagement metrics should include responseRate.');
+assert(worker.includes('activePrayingUsers7d'), 'Engagement metrics should include activePrayingUsers7d.');
+assert(worker.includes('requestOnly'), 'Engagement metrics should include reciprocity requestOnly.');
+assert(worker.includes('prayOnly'), 'Engagement metrics should include reciprocity prayOnly.');
+assert(worker.includes('retentionRate'), 'Engagement metrics should include retentionRate.');
+assert(worker.includes('groupingAvailable'), 'Engagement metrics should include groupingAvailable.');
+assert(!worker.includes('metricTitle') && !worker.includes('metricBody'), 'Engagement endpoint must not expose prayer content.');
+assert(worker.includes('requireAdmin(env, user)') || worker.includes('requireAdmin('), 'Spiritual engagement endpoint must require admin.');
+
 if (failures.length) {
   console.error('Worker smoke test failed:');
   for (const failure of failures) console.error(`- ${failure}`);

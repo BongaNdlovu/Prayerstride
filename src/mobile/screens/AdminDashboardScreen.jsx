@@ -1,17 +1,17 @@
-import { useState } from 'react';
-import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { colors } from '../theme';
 import { useReports, resolveReport, dismissReport } from '../useReports';
 import { useUsers } from '../useUsers';
 import { usePrayers, useTestimonies } from '../usePrayerData';
 import { useIsAdmin } from '../useIsAdmin';
-import { adminArchiveAnnouncement, adminCreateAnnouncement, adminDeleteContent, adminDeleteAccount, adminSuspendUser, adminUpdateAnnouncement } from '../api';
+import { adminArchiveAnnouncement, adminCreateAnnouncement, adminDeleteContent, adminDeleteAccount, adminSuspendUser, adminUpdateAnnouncement, getSpiritualEngagementMetrics } from '../api';
 import { useAnnouncements } from '../useAnnouncements';
 import CinematicScreen from '../components/CinematicScreen';
 import PageHero from '../components/PageHero';
 import EmptyState from '../components/EmptyState';
 
-const TABS = ['Overview', 'Reports', 'Members', 'Content', 'Announcements'];
+const TABS = ['Overview', 'Reports', 'Members', 'Content', 'Announcements', 'Analytics'];
 const ANNOUNCEMENT_CATEGORIES = ['events', 'prayer', 'updates'];
 
 export default function AdminDashboardScreen({ user, go }) {
@@ -48,7 +48,128 @@ export default function AdminDashboardScreen({ user, go }) {
       {tab === 'Members' && <MembersList users={users} currentUid={user?.uid} onSuspend={adminSuspendUser} onDelete={adminDeleteAccount} />}
       {tab === 'Content' && <ContentList prayers={prayers} testimonies={testimonies} onDelete={adminDeleteContent} />}
       {tab === 'Announcements' && <AnnouncementsAdminList announcements={announcements} />}
+      {tab === 'Analytics' && <AnalyticsPanel user={user} />}
     </CinematicScreen>
+  );
+}
+
+function AnalyticsPanel({ user }) {
+  const [metrics, setMetrics] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    getSpiritualEngagementMetrics(30)
+      .then(setMetrics)
+      .catch((err) => setError(err.message || 'Failed to load analytics'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={styles.section}>
+        <ActivityIndicator color={colors.gold} />
+        <Text style={styles.loadingText}>Loading analytics...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.section}>
+        <Text style={styles.errorText}>{error}</Text>
+        <Pressable onPress={() => { setLoading(true); setError(''); getSpiritualEngagementMetrics(30).then(setMetrics).catch((err) => setError(err.message || 'Failed')).finally(() => setLoading(false)); }} style={styles.retryButton}>
+          <Text style={styles.retryText}>Retry</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  if (!metrics?.metrics) return <EmptyState label="No analytics data available." />;
+
+  const m = metrics.metrics;
+
+  return (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>Spiritual Engagement</Text>
+      <Text style={styles.sectionSubtitle}>Last {metrics.window?.days || 30} days</Text>
+
+      <View style={styles.statsGrid}>
+        <View style={styles.statCard}>
+          <Text style={styles.statValue}>{m.requestCount}</Text>
+          <Text style={styles.statLabel}>Prayer Requests</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Text style={styles.statValue}>{m.responseRate}%</Text>
+          <Text style={styles.statLabel}>Response Rate</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Text style={styles.statValue}>{m.density}</Text>
+          <Text style={styles.statLabel}>Prayers per Request</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Text style={styles.statValue}>{m.activePrayingUsers7d}</Text>
+          <Text style={styles.statLabel}>Active Praying Users (7d)</Text>
+        </View>
+      </View>
+
+      <View style={styles.statsGrid}>
+        <View style={styles.statCard}>
+          <Text style={styles.statValue}>{m.requestOnly}</Text>
+          <Text style={styles.statLabel}>Request Only</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Text style={styles.statValue}>{m.prayOnly}</Text>
+          <Text style={styles.statLabel}>Pray Only</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Text style={styles.statValue}>{m.both}</Text>
+          <Text style={styles.statLabel}>Both</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Text style={styles.statValue}>{m.retentionRate}%</Text>
+          <Text style={styles.statLabel}>7-Day Retention</Text>
+        </View>
+      </View>
+
+      <View style={styles.statsGrid}>
+        <View style={styles.statCard}>
+          <Text style={styles.statValue}>{m.averageTimeToFirstPrayerMinutes ?? '-'}</Text>
+          <Text style={styles.statLabel}>Avg Time to First Prayer (min)</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Text style={styles.statValue}>{m.medianTimeToFirstPrayerMinutes ?? '-'}</Text>
+          <Text style={styles.statLabel}>Median Time to First Prayer (min)</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Text style={styles.statValue}>{m.retentionEligible}</Text>
+          <Text style={styles.statLabel}>Retention Eligible</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Text style={styles.statValue}>{m.totalPrayActions}</Text>
+          <Text style={styles.statLabel}>Total Pray Actions</Text>
+        </View>
+      </View>
+
+      {m.activityByDay && m.activityByDay.length > 0 ? (
+        <View style={styles.chartCard}>
+          <Text style={styles.chartTitle}>Request Activity (30 days)</Text>
+          <View style={styles.chartBars}>
+            {m.activityByDay.map((entry) => {
+              const maxCount = Math.max(...m.activityByDay.map((e) => e.count), 1);
+              const height = Math.max(4, (entry.count / maxCount) * 80);
+              return (
+                <View key={entry.day} style={styles.barWrap}>
+                  <Text style={styles.barValue}>{entry.count}</Text>
+                  <View style={[styles.bar, { height }]} />
+                  <Text style={styles.barLabel}>{entry.day.slice(5)}</Text>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+      ) : null}
+    </View>
   );
 }
 
@@ -292,4 +413,17 @@ const styles = StyleSheet.create({
   memberName: { color: colors.ivory, fontSize: 15, fontWeight: '700' },
   memberEmail: { color: 'rgba(248,243,234,0.55)', fontSize: 12, marginTop: 2 },
   memberRole: { color: colors.gold, fontSize: 11, fontWeight: '800', marginTop: 6, textTransform: 'uppercase' },
+  loadingText: { color: 'rgba(248,243,234,0.5)', fontSize: 13, textAlign: 'center', marginTop: 12 },
+  errorText: { color: colors.gold, fontSize: 14, textAlign: 'center', marginBottom: 12 },
+  retryButton: { minHeight: 40, paddingHorizontal: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.gold, alignSelf: 'center' },
+  retryText: { color: colors.ink, fontSize: 13, fontWeight: '800' },
+  sectionTitle: { color: colors.ivory, fontSize: 18, fontWeight: '800', marginBottom: 4 },
+  sectionSubtitle: { color: 'rgba(248,243,234,0.4)', fontSize: 11, marginBottom: 16 },
+  chartCard: { borderWidth: 1, borderColor: 'rgba(248,243,234,0.12)', borderRadius: 16, padding: 14, backgroundColor: 'rgba(248,243,234,0.05)', marginTop: 14 },
+  chartTitle: { color: 'rgba(248,243,234,0.5)', fontSize: 11, fontWeight: '700', marginBottom: 12 },
+  chartBars: { flexDirection: 'row', alignItems: 'flex-end', gap: 3, minHeight: 110 },
+  barWrap: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 2 },
+  barValue: { color: 'rgba(248,243,234,0.4)', fontSize: 9, fontWeight: '700' },
+  bar: { width: '100%', maxWidth: 20, borderRadius: 4, backgroundColor: colors.gold, minHeight: 2 },
+  barLabel: { color: 'rgba(248,243,234,0.35)', fontSize: 8, marginTop: 2 },
 });

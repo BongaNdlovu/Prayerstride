@@ -68,6 +68,10 @@ export function deleteOwnAccount() {
   });
 }
 
+export function getSpiritualEngagementMetrics(days = 30) {
+  return apiFetch(`/api/admin/spiritual-engagement?days=${encodeURIComponent(days)}`);
+}
+
 export function adminCreateAnnouncement(payload) {
   return apiFetch('/api/admin/announcements/create', {
     method: 'POST',

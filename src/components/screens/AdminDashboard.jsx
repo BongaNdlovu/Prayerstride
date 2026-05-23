@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Users, FileText, AlertTriangle, ShieldCheck, HeartHandshake, Flag, Eye, CheckCircle2, Archive, Search, Trash2, Ban } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Users, FileText, AlertTriangle, ShieldCheck, HeartHandshake, Flag, Eye, CheckCircle2, Archive, Search, Trash2, Ban, BarChart3, RefreshCw } from 'lucide-react';
 import AppScreen from '../ui/AppScreen';
 import AppHeader from '../ui/AppHeader';
 import StatCard from '../ui/StatCard';
@@ -9,7 +9,7 @@ import { useIsAdmin } from '../../hooks/useIsAdmin';
 import { useUsers } from '../../hooks/useUsers';
 import { usePrayers } from '../../hooks/usePrayers';
 import { useTestimonies } from '../../hooks/useTestimonies';
-import { adminDeleteContent, adminSuspendUser, adminDeleteAccount } from '../../lib/api';
+import { adminDeleteContent, adminSuspendUser, adminDeleteAccount, getSpiritualEngagementMetrics } from '../../lib/api';
 import EmptyState from '../ui/EmptyState';
 
 const reportsRoute = 'admin:reports';
@@ -87,6 +87,7 @@ export default function AdminDashboard({ onBack, activeTab, onNavigate, onGo }) 
             { key: 'reports', label: `Reports (${openReports.length})` },
             { key: 'members', label: 'Members' },
             { key: 'content', label: 'Content' },
+            { key: 'analytics', label: 'Analytics' },
           ].map((tab) => (
             <button
               key={tab.key}
@@ -299,10 +300,134 @@ export default function AdminDashboard({ onBack, activeTab, onNavigate, onGo }) 
           </div>
         )}
 
+        {activeTabFilter === 'analytics' && (
+          <AnalyticsPanel />
+        )}
+
         <div className="rounded-2xl border border-slate-200 bg-white/70 p-4 text-xs leading-5 text-slate-500">
           Admin moderation actions (content deletion, user suspension) are now available via the server-enforced Worker endpoints.
         </div>
       </div>
     </AppScreen>
+  );
+}
+
+function AnalyticsPanel() {
+  const [metrics, setMetrics] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const loadMetrics = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      setMetrics(await getSpiritualEngagementMetrics(30));
+    } catch (err) {
+      setError(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadMetrics();
+  }, []);
+
+  if (loading) {
+    return (
+      <Card className="p-5 text-center">
+        <BarChart3 size={28} className="mx-auto text-gold" />
+        <p className="mt-3 text-sm text-slate-600">Loading analytics...</p>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="p-5 text-center">
+        <p className="text-sm text-red-600">{error.message || 'Failed to load analytics.'}</p>
+        <button onClick={loadMetrics} className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl bg-navy px-4 py-2 text-xs font-semibold text-white">
+          <RefreshCw size={14} />
+          Retry
+        </button>
+      </Card>
+    );
+  }
+
+  const data = metrics?.metrics;
+  if (!data) {
+    return <EmptyState icon={BarChart3} title="No analytics yet" subtitle="Spiritual engagement metrics will appear after prayer activity begins." />;
+  }
+
+  const timeToFirstPrayer = data.medianTimeToFirstPrayerMinutes == null
+    ? '-'
+    : `${data.medianTimeToFirstPrayerMinutes}m`;
+
+  const maxActivity = Math.max(...(data.activityByDay || []).map((item) => item.count), 1);
+
+  return (
+    <div className="space-y-4">
+      <Card className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase text-gold">Hidden analytics</p>
+            <h3 className="mt-1 font-serif text-xl text-navy">Spiritual Engagement</h3>
+            <p className="mt-1 text-xs leading-5 text-slate-500">Behavioral participation only. No prayer content is shown.</p>
+          </div>
+          <button onClick={loadMetrics} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sand text-navy" aria-label="Refresh analytics">
+            <RefreshCw size={16} />
+          </button>
+        </div>
+      </Card>
+
+      <div className="grid grid-cols-2 gap-3">
+        <StatCard icon={FileText} value={data.requestCount.toLocaleString()} label="Prayer Requests" />
+        <StatCard icon={HeartHandshake} value={`${data.responseRate}%`} label="Response Rate" />
+        <StatCard icon={BarChart3} value={String(data.density)} label="Prayers / Request" />
+        <StatCard icon={Users} value={data.activePrayingUsers7d.toLocaleString()} label="Active Prayers 7d" />
+      </div>
+
+      <Card className="p-4">
+        <h3 className="font-serif text-lg text-navy">Reciprocity</h3>
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          <MiniMetric label="Request only" value={data.requestOnly} />
+          <MiniMetric label="Pray only" value={data.prayOnly} />
+          <MiniMetric label="Both" value={data.both} />
+        </div>
+      </Card>
+
+      <div className="grid grid-cols-2 gap-3">
+        <StatCard icon={AlertTriangle} value={timeToFirstPrayer} label="Median First Prayer" />
+        <StatCard icon={Archive} value={`${data.retentionRate}%`} label="Engagement Retention" />
+      </div>
+
+      {(data.activityByDay || []).length > 0 && (
+        <Card className="p-4">
+          <h3 className="font-serif text-lg text-navy">Request Activity</h3>
+          <div className="mt-4 flex min-h-[112px] items-end gap-1">
+            {data.activityByDay.map((item) => (
+              <div key={item.day} className="flex flex-1 flex-col items-center gap-1">
+                <span className="text-[10px] font-semibold text-slate-400">{item.count}</span>
+                <div
+                  className="w-full max-w-[18px] rounded-t bg-gold"
+                  style={{ height: `${Math.max(8, (item.count / maxActivity) * 78)}px` }}
+                  aria-label={`${item.day}: ${item.count} requests`}
+                />
+                <span className="text-[9px] text-slate-400">{item.day.slice(5)}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function MiniMetric({ label, value }) {
+  return (
+    <div className="rounded-xl bg-sand p-3 text-center">
+      <div className="font-serif text-xl text-navy">{Number(value || 0).toLocaleString()}</div>
+      <div className="mt-1 text-[10px] font-semibold uppercase text-slate-500">{label}</div>
+    </div>
   );
 }
