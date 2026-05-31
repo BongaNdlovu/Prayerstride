@@ -1077,15 +1077,18 @@ async function adminDeleteAccount(env, user, body) {
 }
 
 async function deleteOwnAccount(env, user, idToken) {
-  const payload = decodeJwtPayload(idToken);
-  const authTime = Number(payload.auth_time || 0);
-  if (!authTime || (Date.now() / 1000) - authTime > 300) {
-    return json({ error: 'Please sign in again before deleting your account.' }, 403);
-  }
-  return deleteUserData(env, user.uid, { selfService: true });
+  return deleteUserData(env, user.uid, { selfService: true, idToken });
 }
 
-async function deleteUserData(env, uid) {
+async function deleteUserData(env, uid, options = {}) {
+  if (options.selfService) {
+    const payload = decodeJwtPayload(options.idToken);
+    const authTime = Number(payload.auth_time || 0);
+    if (!authTime || (Date.now() / 1000) - authTime > 300) {
+      return json({ error: 'Please sign in again before deleting your account.' }, 403);
+    }
+  }
+
   const tombstoneName = docName(env, 'accountDeletionJobs', uid);
   const existing = await getDocument(env, tombstoneName);
   if (existing.exists) {
