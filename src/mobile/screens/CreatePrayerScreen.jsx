@@ -53,7 +53,7 @@ export default function CreatePrayerScreen({ user }) {
         body: body.trim(),
         privacy: privacy === 'hidden' ? 'private' : privacy,
         allowShare: privacy !== 'hidden',
-        prayerLimit: prayerLimit === 'weekly' ? 'daily' : prayerLimit,
+        prayerLimit: prayerLimit,
         isAnonymous: anonymous,
         urgent,
       }, user);

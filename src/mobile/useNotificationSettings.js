@@ -25,11 +25,9 @@ export function useNotificationSettings(userId, enabled = true) {
   return { settings, loading };
 }
 
-export async function updateNotificationSettings(userId, settings) {
+export async function updateNotificationSettings(userId, patch) {
   return setDoc(doc(db, 'notificationSettings', userId), {
-    prayerActivity: settings.prayerActivity,
-    testimonyReactions: settings.testimonyReactions,
-    pushEnabled: settings.pushEnabled,
+    ...patch,
     updatedAt: serverTimestamp(),
   }, { merge: true });
 }

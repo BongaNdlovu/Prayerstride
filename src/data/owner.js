@@ -1,6 +1,2 @@
-export const OWNER_EMAIL = 'fanelesibonge50@gmail.com';
+/** Owner display name only — admin bootstrap is handled server-side via OWNER_EMAIL secret. */
 export const OWNER_DISPLAY_NAME = 'Bonga Ndlovu';
-
-export function isOwnerEmail(email) {
-  return String(email || '').trim().toLowerCase() === OWNER_EMAIL;
-}

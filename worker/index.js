@@ -1,5 +1,27 @@
+import {
+  assertModerationAllowed,
+  parseBlocklistConfig,
+} from './moderation.js';
+import {
+  ageBandFromAge,
+  calculateAge,
+  communityAccessForAgeBand,
+  isValidEmail,
+  parseDateOfBirth,
+} from './age.js';
+import {
+  deleteAccountPageHtml,
+  guardianApprovedPageHtml,
+  guardianInvalidPageHtml,
+  htmlResponse,
+  privacyPageHtml,
+  termsPageHtml,
+} from './legal-pages.js';
+
 const FIREBASE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
-const FIREBASE_SCOPE = 'https://www.googleapis.com/auth/datastore https://www.googleapis.com/auth/firebase.messaging';
+const FIREBASE_SCOPE = 'https://www.googleapis.com/auth/datastore https://www.googleapis.com/auth/firebase.messaging https://www.googleapis.com/auth/identitytoolkit https://www.googleapis.com/auth/devstorage.read_write';
+const CURRENT_TERMS_VERSION = '2026-05-31';
+const CURRENT_PRIVACY_VERSION = '2026-05-31';
 
 export default {
   async fetch(request, env) {
@@ -15,6 +37,20 @@ export default {
     try {
       await enforceGlobalRateLimit(env, request, requestId);
 
+      if (url.pathname === '/privacy') {
+        return withCors(htmlResponse(privacyPageHtml()), env, request);
+      }
+      if (url.pathname === '/terms') {
+        return withCors(htmlResponse(termsPageHtml()), env, request);
+      }
+      if (url.pathname === '/delete-account') {
+        return withCors(htmlResponse(deleteAccountPageHtml()), env, request);
+      }
+      if (url.pathname === '/guardian/approve' && request.method === 'GET') {
+        const response = await handleGuardianApprove(env, url);
+        return withCors(response, env, request);
+      }
+
       if (url.pathname.startsWith('/api/')) {
         const response = await handleApi(request, env, url, requestId);
         log(env, 'info', { requestId, status: response.status, durationMs: Date.now() - startTime }, 'response');
@@ -29,16 +65,53 @@ export default {
       return withCors(json({ error: message }, status), env, request);
     }
   },
+  async scheduled(event, env) {
+    log(env, 'info', { cron: event.cron }, 'scheduled-start');
+    try {
+      const purged = await purgeExpiredDeletionTombstones(env);
+      log(env, 'info', { purged }, 'scheduled-tombstone-purge');
+    } catch (error) {
+      log(env, 'error', { message: error.message, stack: error.stack }, 'scheduled-error');
+    }
+  },
 };
 
 async function handleApi(request, env, url, requestId) {
   const user = await verifyFirebaseUser(request, env);
   const body = request.method === 'GET' ? {} : await request.json().catch(() => ({}));
 
-  let match = url.pathname.match(/^\/api\/devices\/register$/);
+  let match = url.pathname.match(/^\/api\/account\/bootstrap-owner$/);
+  if (match && request.method === 'POST') {
+    return bootstrapOwner(env, user);
+  }
+
+  match = url.pathname.match(/^\/api\/account\/complete-registration$/);
+  if (match && request.method === 'POST') {
+    return completeRegistration(env, user, body);
+  }
+
+  match = url.pathname.match(/^\/api\/devices\/register$/);
   if (match && request.method === 'POST') {
     await checkNotSuspended(env, user.uid);
     return registerDevice(env, user, body);
+  }
+
+  match = url.pathname.match(/^\/api\/prayers$/);
+  if (match && request.method === 'POST') {
+    await checkNotSuspended(env, user.uid);
+    return createPrayer(env, user, body);
+  }
+
+  match = url.pathname.match(/^\/api\/prayers\/([^/]+)\/update$/);
+  if (match && request.method === 'POST') {
+    await checkNotSuspended(env, user.uid);
+    return updatePrayer(env, user, decodeURIComponent(match[1]), body);
+  }
+
+  match = url.pathname.match(/^\/api\/prayers\/([^/]+)\/mark-answered$/);
+  if (match && request.method === 'POST') {
+    await checkNotSuspended(env, user.uid);
+    return markPrayerAnswered(env, user, decodeURIComponent(match[1]));
   }
 
   match = url.pathname.match(/^\/api\/prayers\/([^/]+)\/pray$/);
@@ -47,10 +120,49 @@ async function handleApi(request, env, url, requestId) {
     return prayForRequest(env, user, decodeURIComponent(match[1]));
   }
 
+  match = url.pathname.match(/^\/api\/prayers\/([^/]+)$/);
+  if (match && request.method === 'DELETE') {
+    await checkNotSuspended(env, user.uid);
+    return deletePrayer(env, user, decodeURIComponent(match[1]));
+  }
+
+  match = url.pathname.match(/^\/api\/testimonies$/);
+  if (match && request.method === 'POST') {
+    await checkNotSuspended(env, user.uid);
+    return createTestimony(env, user, body);
+  }
+
+  match = url.pathname.match(/^\/api\/testimonies\/([^/]+)\/update$/);
+  if (match && request.method === 'POST') {
+    await checkNotSuspended(env, user.uid);
+    return updateTestimony(env, user, decodeURIComponent(match[1]), body);
+  }
+
+  match = url.pathname.match(/^\/api\/testimonies\/([^/]+)$/);
+  if (match && request.method === 'DELETE') {
+    await checkNotSuspended(env, user.uid);
+    return deleteTestimony(env, user, decodeURIComponent(match[1]));
+  }
+
   match = url.pathname.match(/^\/api\/testimonies\/([^/]+)\/react$/);
   if (match && request.method === 'POST') {
     await checkNotSuspended(env, user.uid);
     return reactToTestimony(env, user, decodeURIComponent(match[1]), body.reaction);
+  }
+
+  match = url.pathname.match(/^\/api\/blocks$/);
+  if (match && request.method === 'GET') {
+    return listBlocks(env, user);
+  }
+
+  match = url.pathname.match(/^\/api\/blocks\/([^/]+)$/);
+  if (match && request.method === 'POST') {
+    await checkNotSuspended(env, user.uid);
+    return blockUser(env, user, decodeURIComponent(match[1]));
+  }
+  if (match && request.method === 'DELETE') {
+    await checkNotSuspended(env, user.uid);
+    return unblockUser(env, user, decodeURIComponent(match[1]));
   }
 
   match = url.pathname.match(/^\/api\/admin\/delete-content$/);
@@ -98,10 +210,542 @@ async function handleApi(request, env, url, requestId) {
 
   match = url.pathname.match(/^\/api\/account$/);
   if (match && request.method === 'DELETE') {
-    return deleteOwnAccount(env, user);
+    const authHeader = request.headers.get('Authorization') || '';
+    const idToken = authHeader.replace(/^Bearer\s+/i, '');
+    return deleteOwnAccount(env, user, idToken);
   }
 
   return json({ error: 'Not found' }, 404);
+}
+
+async function completeRegistration(env, user, body) {
+  if (body.termsAccepted !== true
+    || body.termsVersion !== CURRENT_TERMS_VERSION
+    || body.privacyVersion !== CURRENT_PRIVACY_VERSION) {
+    return json({ error: 'Accept the current Terms of Service and Privacy Policy to create an account.' }, 400);
+  }
+
+  const dateOfBirth = parseDateOfBirth(body.dateOfBirth);
+  if (!dateOfBirth) {
+    return json({ error: 'Enter a valid date of birth (YYYY-MM-DD).' }, 400);
+  }
+
+  const age = calculateAge(dateOfBirth);
+  const ageBand = ageBandFromAge(age);
+  if (ageBand === 'under_16') {
+    await deleteUserData(env, user.uid);
+    return json({ error: 'You must be at least 16 years old to use PrayerStride.' }, 400);
+  }
+
+  const guardianEmail = body.guardianEmail ? String(body.guardianEmail).trim().toLowerCase() : '';
+  if (ageBand === 'minor' && !isValidEmail(guardianEmail)) {
+    return json({ error: 'A parent or guardian email is required for users aged 16-17.' }, 400);
+  }
+
+  const isSeventhDayAdventist = body.isSeventhDayAdventist === true;
+  const churchName = isSeventhDayAdventist ? String(body.churchName || '').trim() : '';
+  if (isSeventhDayAdventist && (churchName.length === 0 || churchName.length > 120)) {
+    return json({ error: 'Enter the church you attend.' }, 400);
+  }
+
+  const userDoc = await getDocument(env, docName(env, 'users', user.uid));
+  if (!userDoc.exists) return json({ error: 'User profile not found.' }, 404);
+
+  const data = fromFirestoreFields(userDoc.fields);
+  if (data.dateOfBirth && data.communityAccess && data.communityAccess !== 'pending_guardian') {
+    return json({ ok: true, alreadyCompleted: true, communityAccess: data.communityAccess });
+  }
+
+  const communityAccess = communityAccessForAgeBand(ageBand);
+  const now = new Date().toISOString();
+  const writes = [{
+    update: {
+      name: userDoc.name,
+      fields: toFirestoreFields({
+        ...data,
+        dateOfBirth,
+        ageBand,
+        communityAccess,
+        guardianEmail: ageBand === 'minor' ? guardianEmail : null,
+        isSeventhDayAdventist,
+        churchName: isSeventhDayAdventist ? churchName : null,
+        termsAcceptedAt: now,
+        termsVersion: CURRENT_TERMS_VERSION,
+        privacyVersion: CURRENT_PRIVACY_VERSION,
+        registrationState: 'complete',
+        updatedAt: now,
+      }),
+    },
+  }];
+
+  if (ageBand === 'minor') {
+    const token = crypto.randomUUID();
+    const tokenId = await hashToken(token);
+    const expiresAt = new Date(Date.now() + 2 * 86400000).toISOString();
+    writes.push({
+      update: {
+        name: docName(env, 'guardianApprovals', tokenId),
+        fields: toFirestoreFields({
+          uid: user.uid,
+          guardianEmail,
+          expiresAt,
+          createdAt: now,
+        }),
+      },
+    });
+    await firestoreCommit(env, writes);
+    const guardianEmailSent = await sendGuardianApprovalEmail(env, {
+      guardianEmail,
+      token,
+      displayName: data.displayName || user.email,
+    });
+    return json({ ok: true, communityAccess, guardianEmailSent });
+  }
+
+  await firestoreCommit(env, writes);
+  return json({ ok: true, communityAccess, guardianEmailSent: false });
+}
+
+async function handleGuardianApprove(env, url) {
+  const token = url.searchParams.get('token');
+  if (!token) return htmlResponse(guardianInvalidPageHtml('This approval link is missing a token.'), 400);
+
+  const tokenId = await hashToken(token);
+  let approvalDoc = await getDocument(env, docName(env, 'guardianApprovals', tokenId));
+  // Keep links issued before token hashing usable during the transition.
+  if (!approvalDoc.exists) {
+    approvalDoc = await getDocument(env, docName(env, 'guardianApprovals', token));
+  }
+  if (!approvalDoc.exists) {
+    return htmlResponse(guardianInvalidPageHtml('This approval link is invalid or has already been used.'), 404);
+  }
+
+  const approval = fromFirestoreFields(approvalDoc.fields);
+  if (approval.expiresAt && new Date(approval.expiresAt).getTime() < Date.now()) {
+    return htmlResponse(guardianInvalidPageHtml('This approval link has expired. Ask the user to register again or contact support.'), 410);
+  }
+
+  const userDoc = await getDocument(env, docName(env, 'users', approval.uid));
+  if (!userDoc.exists) {
+    return htmlResponse(guardianInvalidPageHtml('The linked account could not be found.'), 404);
+  }
+
+  const userData = fromFirestoreFields(userDoc.fields);
+  const now = new Date().toISOString();
+  await firestoreCommit(env, [
+    {
+      update: {
+        name: userDoc.name,
+        fields: toFirestoreFields({
+          ...userData,
+          communityAccess: 'active',
+          guardianApprovedAt: now,
+          updatedAt: now,
+        }),
+      },
+    },
+    { delete: approvalDoc.name },
+  ]);
+
+  return htmlResponse(guardianApprovedPageHtml());
+}
+
+async function sendGuardianApprovalEmail(env, { guardianEmail, token, displayName }) {
+  const base = env.WORKER_PUBLIC_URL || env.CORS_ORIGIN || 'https://prayerstride.fanelesibonge50.workers.dev';
+  const link = `${base}/guardian/approve?token=${encodeURIComponent(token)}`;
+  const safeDisplayName = escapeHtml(displayName || 'A PrayerStride user');
+  const html = `
+    <p>Hello,</p>
+    <p>${safeDisplayName} registered for a community account and listed you as their parent or guardian.</p>
+    <p>Please review and approve community access:</p>
+    <p><a href="${link}">Approve PrayerStride access</a></p>
+    <p>This link expires in 48 hours. If you did not expect this email, you can ignore it.</p>
+  `;
+  return sendResendEmail(env, {
+    to: guardianEmail,
+    subject: 'Approve PrayerStride community access',
+    html,
+  });
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  })[character]);
+}
+
+async function sendResendEmail(env, { to, subject, html }) {
+  if (!env.RESEND_API_KEY) {
+    log(env, 'warn', { to, subject }, 'email-skipped-no-resend-key');
+    return false;
+  }
+  const from = env.RESEND_FROM || 'PrayerStride <onboarding@resend.dev>';
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ from, to: [to], subject, html }),
+  });
+  if (!response.ok) {
+    const result = await response.json().catch(() => ({}));
+    log(env, 'error', { to, subject, error: result.message || response.statusText }, 'resend-failed');
+    return false;
+  }
+  return true;
+}
+
+async function checkCommunityAccess(env, uid) {
+  const profile = await getUserProfile(env, uid);
+  if (profile.registrationState === 'pending_completion') {
+    throw Object.assign(
+      new Error('Complete registration before using community features.'),
+      { status: 403, publicMessage: 'Complete registration required' },
+    );
+  }
+  const access = profile.communityAccess ?? 'active';
+  if (access === 'pending_guardian') {
+    throw Object.assign(
+      new Error('Guardian approval is required before you can use community features.'),
+      { status: 403, publicMessage: 'Guardian approval required' },
+    );
+  }
+  if (access === 'blocked') {
+    throw Object.assign(
+      new Error('Community features are not available for this account.'),
+      { status: 403, publicMessage: 'Community access unavailable' },
+    );
+  }
+}
+
+async function recipientBlockedActor(env, recipientUid, actorUid) {
+  if (!recipientUid || !actorUid || recipientUid === actorUid) return false;
+  const blockDoc = await getDocument(env, docName(env, 'blocks', `${recipientUid}_${actorUid}`));
+  return blockDoc.exists;
+}
+
+async function bootstrapOwner(env, user) {
+  const ownerEmail = String(env.OWNER_EMAIL || '').trim().toLowerCase();
+  if (!ownerEmail) {
+    return json({ error: 'Owner bootstrap is not configured.' }, 503);
+  }
+  if (!user.email || user.email.toLowerCase() !== ownerEmail) {
+    return json({ error: 'Not authorized.' }, 403);
+  }
+  if (!user.emailVerified) {
+    return json({ error: 'Verify your email before claiming owner access.' }, 403);
+  }
+
+  const userDoc = await getDocument(env, docName(env, 'users', user.uid));
+  if (!userDoc.exists) return json({ error: 'User profile not found.' }, 404);
+
+  const data = fromFirestoreFields(userDoc.fields);
+  if (data.role === 'admin' && data.owner === true) {
+    return json({ ok: true, alreadyAdmin: true });
+  }
+
+  await firestoreCommit(env, [{
+    update: {
+      name: userDoc.name,
+      fields: toFirestoreFields({
+        ...data,
+        role: 'admin',
+        owner: true,
+        updatedAt: new Date().toISOString(),
+      }),
+    },
+  }]);
+
+  return json({ ok: true, alreadyAdmin: false });
+}
+
+async function getUserProfile(env, uid) {
+  const userDoc = await getDocument(env, docName(env, 'users', uid));
+  return userDoc.exists ? fromFirestoreFields(userDoc.fields) : {};
+}
+
+function resolveAuthorName(profile, user, isAnonymous) {
+  if (isAnonymous) return 'Anonymous';
+  return profile.displayName || user.email || 'PrayerStride member';
+}
+
+function moderationBlocklist(env) {
+  return parseBlocklistConfig(env.MODERATION_BLOCKLIST);
+}
+
+async function userIsAdmin(env, user) {
+  const userDoc = await getDocument(env, docName(env, 'users', user.uid));
+  if (!userDoc.exists) return false;
+  return fromFirestoreFields(userDoc.fields).role === 'admin';
+}
+
+async function loadAuthorContent(env, collection, contentId, user, { adminAllowed = true } = {}) {
+  const contentDoc = await getDocument(env, docName(env, collection, contentId));
+  if (!contentDoc.exists) {
+    throw Object.assign(new Error('Content not found'), { status: 404, publicMessage: 'Content not found' });
+  }
+  const data = fromFirestoreFields(contentDoc.fields);
+  if (data.authorUid !== user.uid) {
+    if (!adminAllowed || !(await userIsAdmin(env, user))) {
+      throw Object.assign(new Error('Forbidden'), { status: 403, publicMessage: 'You cannot modify this content.' });
+    }
+  }
+  return { contentDoc, data };
+}
+
+async function canAccessPrayer(env, prayerId, user) {
+  const prayer = await getDocument(env, docName(env, 'prayers', prayerId));
+  if (!prayer.exists) return false;
+  const data = fromFirestoreFields(prayer.fields);
+  if (data.privacy === 'private' && data.authorUid !== user.uid && !(await userIsAdmin(env, user))) {
+    return false;
+  }
+  return true;
+}
+
+async function createPrayer(env, user, body) {
+  await checkCommunityAccess(env, user.uid);
+  if (!body.title || !body.body) return json({ error: 'Missing title or body' }, 400);
+  assertModerationAllowed({ title: body.title, body: body.body }, moderationBlocklist(env));
+
+  const profile = await getUserProfile(env, user.uid);
+  const isAnonymous = Boolean(body.isAnonymous ?? body.anonymous);
+  const prayerLimit = ['daily', 'once', 'weekly'].includes(body.prayerLimit) ? body.prayerLimit : 'daily';
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+
+  await firestoreCommit(env, [{
+    update: {
+      name: docName(env, 'prayers', id),
+      fields: toFirestoreFields({
+        title: String(body.title).trim().slice(0, 120),
+        body: String(body.body).trim().slice(0, 2000),
+        authorUid: user.uid,
+        authorName: resolveAuthorName(profile, user, isAnonymous),
+        isAnonymous,
+        createdAt: now,
+        updatedAt: now,
+        prayedCount: 0,
+        status: 'active',
+        privacy: body.privacy === 'private' ? 'private' : 'community',
+        prayerLimit,
+        urgent: Boolean(body.urgent ?? body.urgency),
+        allowShare: body.allowShare !== false,
+      }),
+    },
+  }]);
+
+  return json({ ok: true, prayerId: id });
+}
+
+async function updatePrayer(env, user, prayerId, body) {
+  const { contentDoc, data } = await loadAuthorContent(env, 'prayers', prayerId, user);
+  const title = body.title != null ? String(body.title).trim() : data.title;
+  const prayerBody = body.body != null ? String(body.body).trim() : (body.text != null ? String(body.text).trim() : data.body);
+  if (!title || !prayerBody) return json({ error: 'Missing title or body' }, 400);
+  assertModerationAllowed({ title, body: prayerBody }, moderationBlocklist(env));
+
+  const profile = await getUserProfile(env, user.uid);
+  const isAnonymous = body.isAnonymous != null ? Boolean(body.isAnonymous ?? body.anonymous) : data.isAnonymous;
+  const prayerLimit = body.prayerLimit != null
+    ? (['daily', 'once', 'weekly'].includes(body.prayerLimit) ? body.prayerLimit : data.prayerLimit || 'daily')
+    : (data.prayerLimit || 'daily');
+  const now = new Date().toISOString();
+
+  await firestoreCommit(env, [{
+    update: {
+      name: contentDoc.name,
+      fields: toFirestoreFields({
+        ...data,
+        title: title.slice(0, 120),
+        body: prayerBody.slice(0, 2000),
+        authorName: resolveAuthorName(profile, user, isAnonymous),
+        isAnonymous,
+        privacy: body.privacy != null ? (body.privacy === 'private' ? 'private' : 'community') : (data.privacy || 'community'),
+        prayerLimit,
+        urgent: body.urgent != null ? Boolean(body.urgent ?? body.urgency) : Boolean(data.urgent),
+        allowShare: body.allowShare != null ? body.allowShare !== false : data.allowShare !== false,
+        updatedAt: now,
+      }),
+    },
+  }]);
+
+  return json({ ok: true, prayerId });
+}
+
+async function markPrayerAnswered(env, user, prayerId) {
+  const { contentDoc, data } = await loadAuthorContent(env, 'prayers', prayerId, user);
+  await firestoreCommit(env, [{
+    update: {
+      name: contentDoc.name,
+      fields: toFirestoreFields({
+        ...data,
+        status: 'answered',
+        updatedAt: new Date().toISOString(),
+      }),
+    },
+  }]);
+  return json({ ok: true, prayerId });
+}
+
+async function deletePrayer(env, user, prayerId) {
+  const { contentDoc } = await loadAuthorContent(env, 'prayers', prayerId, user);
+  await firestoreCommit(env, [{ delete: contentDoc.name }]);
+  return json({ ok: true, prayerId });
+}
+
+async function createTestimony(env, user, body) {
+  await checkCommunityAccess(env, user.uid);
+  const title = body.title != null ? String(body.title).trim() : '';
+  const testimonyBody = body.body != null ? String(body.body).trim() : (body.text != null ? String(body.text).trim() : '');
+  if (!title || !testimonyBody) return json({ error: 'Missing title or body' }, 400);
+  assertModerationAllowed({ title, body: testimonyBody }, moderationBlocklist(env));
+
+  const profile = await getUserProfile(env, user.uid);
+  const isAnonymous = Boolean(body.isAnonymous);
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const prayerId = body.prayerId || null;
+
+  const testimonyFields = {
+    title: title.slice(0, 120),
+    body: testimonyBody.slice(0, 2400),
+    authorUid: user.uid,
+    authorName: resolveAuthorName(profile, user, isAnonymous),
+    isAnonymous,
+    createdAt: now,
+    updatedAt: now,
+    amen: 0,
+    praiseGod: 0,
+    prayerId,
+    shared: Boolean(body.shared),
+    tags: Array.isArray(body.tags) ? body.tags.slice(0, 10) : [],
+  };
+
+  const writes = [{
+    update: {
+      name: docName(env, 'testimonies', id),
+      fields: toFirestoreFields(testimonyFields),
+    },
+  }];
+
+  if (prayerId) {
+    const prayerDoc = await getDocument(env, docName(env, 'prayers', prayerId));
+    if (!prayerDoc.exists) return json({ error: 'Linked prayer not found' }, 404);
+    const prayerData = fromFirestoreFields(prayerDoc.fields);
+    if (prayerData.authorUid !== user.uid && !(await userIsAdmin(env, user))) {
+      return json({ error: 'You can only link your own prayer requests.' }, 403);
+    }
+    writes.push({
+      update: {
+        name: prayerDoc.name,
+        fields: toFirestoreFields({
+          ...prayerData,
+          status: 'answered',
+          updatedAt: now,
+        }),
+      },
+    });
+  }
+
+  await firestoreCommit(env, writes);
+  return json({ ok: true, testimonyId: id });
+}
+
+async function updateTestimony(env, user, testimonyId, body) {
+  const { contentDoc, data } = await loadAuthorContent(env, 'testimonies', testimonyId, user);
+  const title = body.title != null ? String(body.title).trim() : data.title;
+  const testimonyBody = body.body != null ? String(body.body).trim() : (body.text != null ? String(body.text).trim() : data.body);
+  if (!title || !testimonyBody) return json({ error: 'Missing title or body' }, 400);
+  assertModerationAllowed({ title, body: testimonyBody }, moderationBlocklist(env));
+
+  const profile = await getUserProfile(env, user.uid);
+  const isAnonymous = body.isAnonymous != null ? Boolean(body.isAnonymous) : data.isAnonymous;
+  const now = new Date().toISOString();
+
+  await firestoreCommit(env, [{
+    update: {
+      name: contentDoc.name,
+      fields: toFirestoreFields({
+        ...data,
+        title: title.slice(0, 120),
+        body: testimonyBody.slice(0, 2400),
+        authorName: resolveAuthorName(profile, user, isAnonymous),
+        isAnonymous,
+        shared: body.shared != null ? Boolean(body.shared) : Boolean(data.shared),
+        tags: Array.isArray(body.tags) ? body.tags.slice(0, 10) : (data.tags || []),
+        updatedAt: now,
+      }),
+    },
+  }]);
+
+  return json({ ok: true, testimonyId });
+}
+
+async function deleteTestimony(env, user, testimonyId) {
+  const { contentDoc } = await loadAuthorContent(env, 'testimonies', testimonyId, user);
+  await firestoreCommit(env, [{ delete: contentDoc.name }]);
+  return json({ ok: true, testimonyId });
+}
+
+async function listBlocks(env, user) {
+  const docs = await listDocuments(env, docName(env, 'blocks'));
+  const blockedUids = docs
+    .map((document) => fromFirestoreFields(document.fields))
+    .filter((item) => item.blockerUid === user.uid)
+    .map((item) => item.blockedUid)
+    .filter(Boolean);
+  return json({ ok: true, blockedUids });
+}
+
+async function blockUser(env, user, blockedUid) {
+  if (!blockedUid) return json({ error: 'Missing user id' }, 400);
+  if (blockedUid === user.uid) return json({ error: 'You cannot block yourself.' }, 400);
+
+  const target = await getDocument(env, docName(env, 'users', blockedUid));
+  if (!target.exists) return json({ error: 'User not found' }, 404);
+
+  const blockId = `${user.uid}_${blockedUid}`;
+  const now = new Date().toISOString();
+  await firestoreCommit(env, [{
+    update: {
+      name: docName(env, 'blocks', blockId),
+      fields: toFirestoreFields({
+        blockerUid: user.uid,
+        blockedUid,
+        createdAt: now,
+      }),
+    },
+  }]);
+
+  return json({ ok: true, blockedUid });
+}
+
+async function unblockUser(env, user, blockedUid) {
+  if (!blockedUid) return json({ error: 'Missing user id' }, 400);
+  const blockId = `${user.uid}_${blockedUid}`;
+  const blockDoc = await getDocument(env, docName(env, 'blocks', blockId));
+  if (!blockDoc.exists) return json({ ok: true, removed: false });
+  if (fromFirestoreFields(blockDoc.fields).blockerUid !== user.uid) {
+    return json({ error: 'Forbidden' }, 403);
+  }
+  await firestoreCommit(env, [{ delete: blockDoc.name }]);
+  return json({ ok: true, removed: true });
+}
+
+function isoWeekKey(isoDate) {
+  const date = new Date(isoDate);
+  const utc = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  const day = utc.getUTCDay() || 7;
+  utc.setUTCDate(utc.getUTCDate() + 4 - day);
+  const yearStart = new Date(Date.UTC(utc.getUTCFullYear(), 0, 1));
+  const week = Math.ceil((((utc - yearStart) / 86400000) + 1) / 7);
+  return `${utc.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
 }
 
 async function registerDevice(env, user, body) {
@@ -125,6 +769,7 @@ async function registerDevice(env, user, body) {
 }
 
 async function prayForRequest(env, user, prayerId) {
+  await checkCommunityAccess(env, user.uid);
   const prayer = await getDocument(env, docName(env, 'prayers', prayerId));
   if (!prayer.exists) return json({ error: 'Prayer not found' }, 404);
 
@@ -137,11 +782,16 @@ async function prayForRequest(env, user, prayerId) {
   }
   const now = new Date().toISOString();
   const dayKey = now.slice(0, 10);
-  const prayerLimit = data.prayerLimit === 'once' ? 'once' : 'daily';
-  const prayDocId = prayerLimit === 'once' ? user.uid : `${user.uid}_${dayKey}`;
+  const weekKey = isoWeekKey(now);
+  const prayerLimit = ['once', 'weekly'].includes(data.prayerLimit) ? data.prayerLimit : 'daily';
+  const prayDocId = prayerLimit === 'once'
+    ? user.uid
+    : prayerLimit === 'weekly'
+      ? `${user.uid}_${weekKey}`
+      : `${user.uid}_${dayKey}`;
   const prayDoc = docName(env, 'prayers', prayerId, 'prays', prayDocId);
   const existingPray = await getDocument(env, prayDoc);
-  if (existingPray.exists) return json({ ok: true, duplicate: true, dayKey, prayerLimit });
+  if (existingPray.exists) return json({ ok: true, duplicate: true, dayKey, weekKey, prayerLimit });
   await enforceCooldown(env, user.uid, 'pray', 1);
 
   const writes = [
@@ -171,7 +821,11 @@ async function prayForRequest(env, user, prayerId) {
   ];
 
   const prefs = await getNotificationSettings(env, data.authorUid);
-  if (data.authorUid && data.authorUid !== user.uid && prefs.prayerActivity !== false) {
+  const notifyAllowed = data.authorUid
+    && data.authorUid !== user.uid
+    && prefs.prayerActivity !== false
+    && !(await recipientBlockedActor(env, data.authorUid, user.uid));
+  if (notifyAllowed) {
     writes.push(notificationWrite(env, data.authorUid, {
       type: 'prayer_prayed',
       message: 'Someone prayed for your request.',
@@ -181,9 +835,9 @@ async function prayForRequest(env, user, prayerId) {
   }
 
   const result = await firestoreCommit(env, writes, { allowAlreadyExists: true });
-  if (result.alreadyExists) return json({ ok: true, duplicate: true, dayKey, prayerLimit });
+  if (result.alreadyExists) return json({ ok: true, duplicate: true, dayKey, weekKey, prayerLimit });
 
-  if (data.authorUid && data.authorUid !== user.uid && prefs.prayerActivity !== false && prefs.pushEnabled !== false) {
+  if (notifyAllowed && prefs.pushEnabled !== false) {
     await sendPushToUser(env, data.authorUid, {
       title: 'PrayerStride',
       body: 'Someone prayed for your request.',
@@ -191,10 +845,11 @@ async function prayForRequest(env, user, prayerId) {
     });
   }
 
-  return json({ ok: true, duplicate: false, dayKey, prayerLimit });
+  return json({ ok: true, duplicate: false, dayKey, weekKey, prayerLimit });
 }
 
 async function reactToTestimony(env, user, testimonyId, reaction) {
+  await checkCommunityAccess(env, user.uid);
   if (!['praiseGod', 'amen'].includes(reaction)) {
     return json({ error: 'Unsupported reaction' }, 400);
   }
@@ -234,7 +889,11 @@ async function reactToTestimony(env, user, testimonyId, reaction) {
   ];
 
   const prefs = await getNotificationSettings(env, data.authorUid);
-  if (data.authorUid && data.authorUid !== user.uid && prefs.testimonyReactions !== false) {
+  const notifyAllowed = data.authorUid
+    && data.authorUid !== user.uid
+    && prefs.testimonyReactions !== false
+    && !(await recipientBlockedActor(env, data.authorUid, user.uid));
+  if (notifyAllowed) {
     writes.push(notificationWrite(env, data.authorUid, {
       type: 'testimony_reaction',
       message,
@@ -247,7 +906,7 @@ async function reactToTestimony(env, user, testimonyId, reaction) {
   const result = await firestoreCommit(env, writes, { allowAlreadyExists: true });
   if (result.alreadyExists) return json({ ok: true, duplicate: true });
 
-  if (data.authorUid && data.authorUid !== user.uid && prefs.testimonyReactions !== false && prefs.pushEnabled !== false) {
+  if (notifyAllowed && prefs.pushEnabled !== false) {
     await sendPushToUser(env, data.authorUid, {
       title: 'PrayerStride',
       body: message,
@@ -263,10 +922,10 @@ async function adminDeleteContent(env, user, body) {
   if (!body.targetId || !body.targetType) {
     return json({ error: 'Missing targetId or targetType' }, 400);
   }
-  if (!['prayer', 'testimony', 'encouragement'].includes(body.targetType)) {
-    return json({ error: 'targetType must be prayer, testimony, or encouragement' }, 400);
+  if (!['prayer', 'testimony'].includes(body.targetType)) {
+    return json({ error: 'targetType must be prayer or testimony' }, 400);
   }
-  const collectionMap = { prayer: 'prayers', testimony: 'testimonies', encouragement: 'encouragements' };
+  const collectionMap = { prayer: 'prayers', testimony: 'testimonies' };
   const collection = collectionMap[body.targetType] || body.targetType + 's';
   const targetDoc = await getDocument(env, docName(env, collection, body.targetId));
   if (!targetDoc.exists) return json({ error: 'Content not found' }, 404);
@@ -417,34 +1076,95 @@ async function adminDeleteAccount(env, user, body) {
   return deleteUserData(env, body.targetUid);
 }
 
-async function deleteOwnAccount(env, user) {
-  return deleteUserData(env, user.uid);
+async function deleteOwnAccount(env, user, idToken) {
+  const payload = decodeJwtPayload(idToken);
+  const authTime = Number(payload.auth_time || 0);
+  if (!authTime || (Date.now() / 1000) - authTime > 300) {
+    return json({ error: 'Please sign in again before deleting your account.' }, 403);
+  }
+  return deleteUserData(env, user.uid, { selfService: true });
 }
 
 async function deleteUserData(env, uid) {
+  const tombstoneName = docName(env, 'accountDeletionJobs', uid);
+  const existing = await getDocument(env, tombstoneName);
+  if (existing.exists) {
+    const job = fromFirestoreFields(existing.fields);
+    if (job.status === 'complete') return json({ ok: true, alreadyDeleted: true });
+  }
+
+  const now = new Date().toISOString();
+  const priorAttempts = existing.exists ? (fromFirestoreFields(existing.fields).attempts || 0) : 0;
+  await firestoreCommit(env, [{
+    update: {
+      name: tombstoneName,
+      fields: toFirestoreFields({
+        uid,
+        status: 'in_progress',
+        startedAt: existing.exists ? fromFirestoreFields(existing.fields).startedAt || now : now,
+        updatedAt: now,
+        attempts: priorAttempts + 1,
+        lastError: null,
+      }),
+    },
+  }]);
+
+  try {
+    const writes = await collectUserDeletionWrites(env, uid);
+    await commitInChunks(env, writes);
+    await deleteStoragePrefix(env, `avatars/${uid}/`);
+    await deleteFirebaseAuthUser(env, uid);
+    await firestoreCommit(env, [{
+      update: {
+        name: tombstoneName,
+        fields: toFirestoreFields({
+          uid,
+          status: 'complete',
+          startedAt: existing.exists ? fromFirestoreFields(existing.fields).startedAt || now : now,
+          completedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          purgeAfter: new Date(Date.now() + 30 * 86400000).toISOString(),
+        }),
+      },
+    }]);
+    return json({ ok: true });
+  } catch (error) {
+    await firestoreCommit(env, [{
+      update: {
+        name: tombstoneName,
+        fields: toFirestoreFields({
+          uid,
+          status: 'failed',
+          updatedAt: new Date().toISOString(),
+          lastError: error.message,
+          attempts: priorAttempts + 1,
+        }),
+      },
+    }]);
+    throw Object.assign(new Error('Account deletion failed. Please try again or contact support.'), {
+      status: 500,
+      publicMessage: 'Account deletion failed. Please try again or contact support.',
+    });
+  }
+}
+
+async function collectUserDeletionWrites(env, uid) {
   const userDoc = await getDocument(env, docName(env, 'users', uid));
-  if (!userDoc.exists) return json({ error: 'User not found' }, 404);
+  if (!userDoc.exists) throw Object.assign(new Error('User not found'), { status: 404 });
 
   const writes = [{ delete: userDoc.name }];
 
   const processCollection = async (collectionName, matchField) => {
-    try {
-      const docs = await listDocuments(env, docName(env, collectionName));
-      for (const d of docs) {
-        const data = fromFirestoreFields(d.fields || {});
-        if (matchField(data)) {
-          writes.push({ delete: d.name });
-          if (collectionName === 'prayers' || collectionName === 'testimonies') {
-            const subName = collectionName === 'prayers' ? 'prays' : 'reactions';
-            try {
-              const subs = await listDocuments(env, docName(env, collectionName, dataId(d), subName));
-              for (const s of subs) writes.push({ delete: s.name });
-            } catch {}
-          }
-        }
+    const docs = await listDocuments(env, docName(env, collectionName));
+    for (const d of docs) {
+      const data = fromFirestoreFields(d.fields || {});
+      if (!matchField(data, d)) continue;
+      writes.push({ delete: d.name });
+      if (collectionName === 'prayers' || collectionName === 'testimonies') {
+        const subName = collectionName === 'prayers' ? 'prays' : 'reactions';
+        const subs = await listDocuments(env, docName(env, collectionName, dataId(d), subName));
+        for (const s of subs) writes.push({ delete: s.name });
       }
-    } catch (err) {
-      log(env, 'warn', { uid, collection: collectionName, error: err.message }, 'deleteUserData:list-failed');
     }
   };
 
@@ -452,24 +1172,122 @@ async function deleteUserData(env, uid) {
   await processCollection('testimonies', (d) => d.authorUid === uid);
   await processCollection('encouragements', (d) => d.authorUid === uid);
   await processCollection('prayerSessions', (d) => d.authorUid === uid);
+  await processCollection('calendarEvents', (d) => d.ownerUid === uid);
+  await processCollection('calendarBookmarks', (d) => d.ownerUid === uid);
   await processCollection('notifications', (d) => d.recipientUid === uid || d.actorUid === uid);
   await processCollection('reports', (d) => d.reportedByUid === uid || d.targetId === uid);
+  await processCollection('blocks', (d, doc) => d.blockerUid === uid || d.blockedUid === uid || doc.name.endsWith(`_${uid}`) || doc.name.startsWith(`${uid}_`));
 
-  try {
-    const apiDocs = await listDocuments(env, docName(env, 'apiRateLimits'));
-    for (const d of apiDocs) {
-      const data = fromFirestoreFields(d.fields || {});
-      if (data.uid === uid) writes.push({ delete: d.name });
-    }
-  } catch {}
+  const apiDocs = await listDocuments(env, docName(env, 'apiRateLimits'));
+  for (const d of apiDocs) {
+    const data = fromFirestoreFields(d.fields || {});
+    if (data.uid === uid) writes.push({ delete: d.name });
+  }
 
   const deviceDocs = await listDocuments(env, docName(env, 'users', uid, 'devices'));
   for (const d of deviceDocs) writes.push({ delete: d.name });
 
-  writes.push({ delete: docName(env, 'notificationSettings', uid) });
+  const followingDocs = await listDocuments(env, docName(env, 'users', uid, 'following'));
+  for (const d of followingDocs) writes.push({ delete: d.name });
 
-  await firestoreCommit(env, writes);
-  return json({ ok: true });
+  writes.push({ delete: docName(env, 'notificationSettings', uid) });
+  return writes;
+}
+
+async function commitInChunks(env, writes, chunkSize = 400) {
+  for (let i = 0; i < writes.length; i += chunkSize) {
+    await firestoreCommit(env, writes.slice(i, i + chunkSize));
+  }
+}
+
+async function deleteFirebaseAuthUser(env, uid) {
+  const accessToken = await getGoogleAccessToken(env);
+  const response = await fetch(`https://identitytoolkit.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/accounts:delete`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ localId: uid, targetProjectId: env.FIREBASE_PROJECT_ID }),
+  });
+  if (!response.ok) {
+    const result = await response.json().catch(() => ({}));
+    throw new Error(result.error?.message || 'Auth deletion failed');
+  }
+}
+
+async function deleteStoragePrefix(env, prefix) {
+  const bucket = env.FIREBASE_STORAGE_BUCKET;
+  if (!bucket) {
+    log(env, 'warn', { prefix }, 'storage-delete-skipped-no-bucket');
+    return 0;
+  }
+
+  const accessToken = await getGoogleAccessToken(env);
+  let pageToken = '';
+  let deleted = 0;
+
+  do {
+    const url = new URL(`https://storage.googleapis.com/storage/v1/b/${encodeURIComponent(bucket)}/o`);
+    url.searchParams.set('prefix', prefix);
+    url.searchParams.set('maxResults', '100');
+    if (pageToken) url.searchParams.set('pageToken', pageToken);
+
+    const listResponse = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!listResponse.ok) {
+      const result = await listResponse.json().catch(() => ({}));
+      throw new Error(result.error?.message || 'Storage list failed');
+    }
+
+    const listResult = await listResponse.json();
+    const items = listResult.items || [];
+    for (const item of items) {
+      const deleteResponse = await fetch(
+        `https://storage.googleapis.com/storage/v1/b/${encodeURIComponent(bucket)}/o/${encodeURIComponent(item.name)}`,
+        {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${accessToken}` },
+        },
+      );
+      if (!deleteResponse.ok && deleteResponse.status !== 404) {
+        const result = await deleteResponse.json().catch(() => ({}));
+        throw new Error(result.error?.message || `Storage delete failed for ${item.name}`);
+      }
+      deleted += 1;
+    }
+    pageToken = listResult.nextPageToken || '';
+  } while (pageToken);
+
+  return deleted;
+}
+
+async function purgeExpiredDeletionTombstones(env) {
+  const docs = await listDocuments(env, docName(env, 'accountDeletionJobs'));
+  const now = Date.now();
+  const writes = [];
+
+  for (const document of docs) {
+    const data = fromFirestoreFields(document.fields || {});
+    if (data.status !== 'complete' || !data.purgeAfter) continue;
+    if (new Date(data.purgeAfter).getTime() > now) continue;
+    writes.push({ delete: document.name });
+  }
+
+  if (writes.length) await commitInChunks(env, writes);
+  return writes.length;
+}
+
+function decodeJwtPayload(token) {
+  try {
+    const part = String(token || '').split('.')[1];
+    if (!part) return {};
+    const json = atob(part.replace(/-/g, '+').replace(/_/g, '/'));
+    return JSON.parse(json);
+  } catch {
+    return {};
+  }
 }
 
 function dataId(doc) {
@@ -550,7 +1368,12 @@ async function sendFcm(env, token, payload) {
 async function verifyFirebaseUser(request, env) {
   const authHeader = request.headers.get('Authorization') || '';
   const idToken = authHeader.replace(/^Bearer\s+/i, '');
-  if (!idToken) throw new Error('Missing Firebase ID token');
+  if (!idToken) {
+    throw Object.assign(new Error('Missing Firebase ID token'), {
+      status: 401,
+      publicMessage: 'Authentication required',
+    });
+  }
 
   const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${env.FIREBASE_WEB_API_KEY}`, {
     method: 'POST',
@@ -558,9 +1381,18 @@ async function verifyFirebaseUser(request, env) {
     body: JSON.stringify({ idToken }),
   });
   const result = await response.json();
-  if (!response.ok || !result.users?.[0]) throw new Error('Invalid Firebase ID token');
+  if (!response.ok || !result.users?.[0]) {
+    throw Object.assign(new Error('Invalid Firebase ID token'), {
+      status: 401,
+      publicMessage: 'Invalid authentication token',
+    });
+  }
   if (result.users[0].disabled) throw Object.assign(new Error('This account has been disabled.'), { status: 403, publicMessage: 'Account disabled' });
-  return { uid: result.users[0].localId, email: result.users[0].email };
+  return {
+    uid: result.users[0].localId,
+    email: result.users[0].email,
+    emailVerified: result.users[0].emailVerified === true,
+  };
 }
 
 async function requireAdmin(env, user) {
@@ -1042,8 +1874,17 @@ function withCors(response, env, request) {
     env.CORS_ORIGIN || 'https://prayerstride.fanelesibonge50.workers.dev',
     'https://prayerstride.app',
   ];
-  const isLocalhost = origin.startsWith('http://localhost:') || origin.startsWith('http://10.') || origin.startsWith('http://192.168.');
-  const resolvedOrigin = isLocalhost ? origin : (allowedOrigins.includes(origin) ? origin : allowedOrigins[0]);
+  const allowDevOrigins = env.ALLOW_DEV_ORIGINS === 'true' || env.ALLOW_DEV_ORIGINS === '1';
+  const isDevOrigin = origin.startsWith('http://localhost:')
+    || origin.startsWith('http://127.0.0.1:')
+    || origin.startsWith('http://10.')
+    || origin.startsWith('http://192.168.');
+  let resolvedOrigin = allowedOrigins[0];
+  if (origin && allowedOrigins.includes(origin)) {
+    resolvedOrigin = origin;
+  } else if (allowDevOrigins && isDevOrigin && origin) {
+    resolvedOrigin = origin;
+  }
   next.headers.set('Access-Control-Allow-Origin', resolvedOrigin);
   next.headers.set('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
   next.headers.set('Access-Control-Allow-Headers', 'Authorization,Content-Type');

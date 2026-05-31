@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { alpha, spacing } from '../theme';
 import { useTestimonies } from '../usePrayerData';
+import { filterBlockedItems, useBlocks } from '../useBlocks';
 import { useFollowing } from '../useContentCollections';
 import { reactToTestimony } from '../api';
 import { auth } from '../firebase';
@@ -15,6 +16,7 @@ const TABS = ['All', 'Following', 'Recent'];
 
 export default function PraiseScreen({ onOpenTestimony }) {
   const { testimonies, loading } = useTestimonies(true);
+  const { blockedUids } = useBlocks(true);
   const uid = auth.currentUser?.uid;
   const { following } = useFollowing(uid, Boolean(uid));
   const [tab, setTab] = useState('All');
@@ -26,18 +28,19 @@ export default function PraiseScreen({ onOpenTestimony }) {
   );
 
   const visible = useMemo(() => {
+    const unblocked = filterBlockedItems(testimonies, blockedUids);
     if (tab === 'Following') {
-      return testimonies.filter((item) => followingIds.has(item.authorUid));
+      return unblocked.filter((item) => followingIds.has(item.authorUid));
     }
     if (tab === 'Recent') {
-      return [...testimonies].sort((a, b) => {
+      return [...unblocked].sort((a, b) => {
         const aTime = a.createdAt?.toMillis?.() ?? a.createdAt?.seconds ?? 0;
         const bTime = b.createdAt?.toMillis?.() ?? b.createdAt?.seconds ?? 0;
         return bTime - aTime;
       });
     }
-    return testimonies;
-  }, [testimonies, tab, followingIds]);
+    return unblocked;
+  }, [testimonies, blockedUids, tab, followingIds]);
 
   const react = async (id, key) => {
     if (reacted[`${id}:${key}`]) return;
@@ -66,8 +69,8 @@ export default function PraiseScreen({ onOpenTestimony }) {
               <TestimonyCard
                 testimony={{
                   ...testimony,
-                  praiseGod: testimony.praiseGod + (reacted[`${testimony.id}:praiseGod`] ? 1 : 0),
-                  amen: testimony.amen + (reacted[`${testimony.id}:amen`] ? 1 : 0),
+                  praiseGod: Number(testimony.praiseGod || 0) + (reacted[`${testimony.id}:praiseGod`] ? 1 : 0),
+                  amen: Number(testimony.amen || 0) + (reacted[`${testimony.id}:amen`] ? 1 : 0),
                 }}
                 onReact={react}
               />

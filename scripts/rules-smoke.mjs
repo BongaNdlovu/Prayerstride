@@ -92,6 +92,18 @@ async function seedFixtures() {
       status: 'archived',
       day: 2,
     });
+
+    await db.doc('prayers/prayer-a').set(prayerDoc());
+    await db.doc('prayers/prayer-linked').set(prayerDoc());
+    await db.doc('testimonies/testimony-a').set(testimonyDoc());
+    await db.doc('encouragements/encouragement-a').set({
+      threadId: 'prayer-linked',
+      authorUid: 'user-a',
+      authorName: 'User A',
+      text: 'Praying with you.',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
   });
 }
 
@@ -136,6 +148,7 @@ async function runTests() {
   await assertSucceeds(aDb.doc('users/user-a').get());
   await assertSucceeds(aDb.doc('users/user-a').update({ displayName: 'Updated User A', bio: 'Short bio' }));
   await assertFails(aDb.doc('users/user-a').update({ role: 'admin' }));
+  await assertFails(aDb.doc('users/user-a').update({ owner: true }));
   await assertFails(aDb.doc('users/user-b').get());
   await assertFails(aDb.doc('users/user-b').update({ displayName: 'Hacked' }));
   await assertFails(aDb.doc('users/user-a').delete());
@@ -143,23 +156,19 @@ async function runTests() {
   await assertFails(unauthDb.collection('prayers').get());
   await assertSucceeds(aDb.collection('prayers').get());
 
-  const prayerRef = aDb.collection('prayers').doc('prayer-a');
-  await assertSucceeds(prayerRef.set(prayerDoc()));
-  await assertFails(prayerRef.update({ prayedCount: 12 }));
-  await assertFails(prayerRef.update({ authorUid: 'user-b' }));
-  await assertFails(prayerRef.update({ status: 'archived' }));
-  await assertSucceeds(prayerRef.update({ status: 'answered', updatedAt: new Date() }));
+  const prayerRef = aDb.collection('prayers').doc('prayer-new');
+  await assertFails(prayerRef.set(prayerDoc()));
+  await assertFails(aDb.collection('prayers').doc('prayer-a').update({ title: 'Updated', updatedAt: new Date() }));
+  await assertFails(aDb.collection('prayers').doc('prayer-a').update({ prayedCount: 12 }));
+  await assertFails(aDb.collection('prayers').doc('prayer-a').delete());
   await assertFails(bDb.collection('prayers').doc('prayer-a').delete());
-  await assertSucceeds(adminDb.collection('prayers').doc('prayer-a').delete());
+  await assertFails(adminDb.collection('prayers').doc('prayer-a').delete());
 
-  const linkedPrayerRef = aDb.collection('prayers').doc('prayer-linked');
-  await assertSucceeds(linkedPrayerRef.set(prayerDoc()));
-
-  const testimonyRef = aDb.collection('testimonies').doc('testimony-a');
-  await assertSucceeds(testimonyRef.set(testimonyDoc()));
-  await assertFails(testimonyRef.update({ amen: 99 }));
-  await assertFails(testimonyRef.update({ praiseGod: 99 }));
-  await assertSucceeds(testimonyRef.update({ title: 'Updated', updatedAt: new Date() }));
+  const testimonyRef = aDb.collection('testimonies').doc('testimony-new');
+  await assertFails(testimonyRef.set(testimonyDoc()));
+  await assertFails(aDb.collection('testimonies').doc('testimony-a').update({ title: 'Updated', updatedAt: new Date() }));
+  await assertFails(aDb.collection('testimonies').doc('testimony-a').update({ amen: 99 }));
+  await assertFails(aDb.collection('testimonies').doc('testimony-a').delete());
 
   const reportRef = aDb.collection('reports').doc('report-a');
   await assertSucceeds(reportRef.set({
@@ -189,7 +198,7 @@ async function runTests() {
   await assertSucceeds(aDb.collection('notifications').doc('notification-a').update({ read: true }));
   await assertFails(bDb.collection('notifications').doc('notification-a').get());
 
-  await assertSucceeds(aDb.collection('encouragements').doc('encouragement-a').set({
+  await assertFails(aDb.collection('encouragements').doc('encouragement-new').set({
     threadId: 'prayer-linked',
     authorUid: 'user-a',
     authorName: 'User A',
@@ -197,14 +206,12 @@ async function runTests() {
     createdAt: new Date(),
     updatedAt: new Date(),
   }));
-  await assertFails(aDb.collection('encouragements').doc('encouragement-b').set({
-    threadId: 'prayer-linked',
-    authorUid: 'user-a',
-    authorName: 'User A',
-    text: '',
-    createdAt: new Date(),
+  await assertFails(aDb.collection('encouragements').doc('encouragement-a').update({
+    text: 'Updated encouragement',
     updatedAt: new Date(),
   }));
+  await assertFails(aDb.collection('encouragements').doc('encouragement-a').delete());
+  await assertFails(aDb.collection('encouragements').doc('encouragement-a').get());
 
   await assertSucceeds(aDb.collection('prayerSessions').doc('session-a').set({
     authorUid: 'user-a',
@@ -231,6 +238,7 @@ async function runTests() {
     prayerActivity: false,
     testimonyReactions: true,
     pushEnabled: false,
+    announcements: true,
     updatedAt: new Date(),
   }));
   await assertFails(bDb.doc('notificationSettings/user-a').get());

@@ -1,7 +1,7 @@
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { Alert, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { ChevronRight } from 'lucide-react-native';
-import { alpha, spacing } from '../theme';
-import { deleteOwnAccount } from '../api';
+import { alpha, colors, fonts, sharedStyles, spacing } from '../theme';
 import ScreenScaffold from '../components/ScreenScaffold';
 import AppHeader from '../components/AppHeader';
 import GlassCard from '../components/GlassCard';
@@ -13,24 +13,38 @@ const ITEMS = [
   { label: 'About PrayerStride', route: 'about' },
   { label: 'Privacy Policy', route: 'privacyPolicy' },
   { label: 'Terms of Service', route: 'termsOfService' },
-  { label: 'Copyright', route: 'copyright' },
+  { label: 'Legal & Copyright', route: 'copyright' },
   { label: 'Help Center', route: 'helpCenter' },
   { label: 'Support / Donation', route: 'support' },
 ];
 
-export default function SettingsScreen({ go, signOut, onBack }) {
-  const deleteAccount = () => {
+export default function SettingsScreen({ go, deleteAccount, onBack }) {
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const deleteAccountFlow = () => {
     Alert.alert('Delete Account', 'This action cannot be undone. All your data will be permanently removed.', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: async () => {
-        try {
-          await deleteOwnAccount();
-          signOut();
-        } catch (error) {
-          Alert.alert('Could not delete account', error.message);
-        }
-      }},
+      { text: 'Continue', style: 'destructive', onPress: () => setConfirmingDelete(true) },
     ]);
+  };
+
+  const submitDelete = async () => {
+    if (!password) {
+      Alert.alert('Password required', 'Enter your password to confirm deletion.');
+      return;
+    }
+    setBusy(true);
+    try {
+      await deleteAccount(password);
+    } catch (error) {
+      Alert.alert('Could not delete account', error.message);
+    } finally {
+      setBusy(false);
+      setPassword('');
+      setConfirmingDelete(false);
+    }
   };
 
   return (
@@ -48,7 +62,25 @@ export default function SettingsScreen({ go, signOut, onBack }) {
           </Pressable>
         ))}
       </GlassCard>
-      <PrimaryButton label="Delete Account" onPress={deleteAccount} variant="ghost" style={styles.deleteButton} />
+      {confirmingDelete ? (
+        <GlassCard style={styles.deleteCard}>
+          <BodyText variant="label" style={styles.deleteLabel}>Confirm with your password</BodyText>
+          <TextInput
+            value={password}
+            onChangeText={setPassword}
+            placeholder="Password"
+            secureTextEntry
+            style={styles.passwordInput}
+            placeholderTextColor={alpha.ivory55}
+          />
+          <PrimaryButton label={busy ? 'Deleting...' : 'Delete my account'} onPress={submitDelete} busy={busy} style={styles.deleteConfirm} />
+          <Pressable onPress={() => setConfirmingDelete(false)}>
+            <BodyText variant="small" style={styles.cancelDelete}>Cancel</BodyText>
+          </Pressable>
+        </GlassCard>
+      ) : (
+        <PrimaryButton label="Delete Account" onPress={deleteAccountFlow} variant="ghost" style={styles.deleteButton} />
+      )}
     </ScreenScaffold>
   );
 }
@@ -65,4 +97,13 @@ const styles = StyleSheet.create({
   },
   menuItemLast: { borderBottomWidth: 0 },
   deleteButton: { marginTop: spacing.xl, borderColor: alpha.gold30 },
+  deleteCard: { marginTop: spacing.xl, gap: spacing.md },
+  deleteLabel: { color: colors.gold },
+  passwordInput: {
+    ...sharedStyles.input,
+    color: colors.ivory,
+    fontFamily: fonts.sans,
+  },
+  deleteConfirm: { marginTop: spacing.sm },
+  cancelDelete: { textAlign: 'center', color: colors.gold, marginTop: spacing.sm },
 });

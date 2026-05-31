@@ -10,7 +10,7 @@ export default function HomeScreen({ onNavigate, onGo, activeTab }) {
   const { prayers, loading } = usePrayers();
 
   return (
-    <div className="cinematic-bg cinematic-texture relative flex h-full flex-col overflow-hidden text-ivory">
+    <div className="cinematic-bg cinematic-texture relative flex h-full w-full max-w-full flex-col overflow-hidden text-ivory">
       <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto pb-4">
       <ImageHero
         scene="dawn"
@@ -24,7 +24,7 @@ export default function HomeScreen({ onNavigate, onGo, activeTab }) {
           </div>
         )}
       />
-      <div className="-mt-5 px-4">
+      <div className="-mt-5 w-full max-w-full px-4">
         <GlassCard className="relative z-10">
           <div className="flex items-center justify-between">
             <div>
@@ -40,9 +40,9 @@ export default function HomeScreen({ onNavigate, onGo, activeTab }) {
             Pray Now <ChevronRight size={18} />
           </button>
         </GlassCard>
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <GlassCard><Flame className="text-candle" /><div className="mt-2 text-2xl font-serif text-ivory">7 days</div><p className="text-xs text-ivory/58">walking with God</p></GlassCard>
-          <GlassCard><Heart className="text-candle" /><div className="mt-2 text-2xl font-serif text-ivory">2</div><p className="text-xs text-ivory/58">answered prayers this week</p></GlassCard>
+        <div className="mt-4 grid min-w-0 grid-cols-2 gap-3">
+          <GlassCard className="min-w-0"><Flame className="text-candle" /><div className="mt-2 text-2xl font-serif text-ivory">7 days</div><p className="text-xs text-ivory/58">walking with God</p></GlassCard>
+          <GlassCard className="min-w-0"><Heart className="text-candle" /><div className="mt-2 text-2xl font-serif text-ivory">2</div><p className="text-xs text-ivory/58">answered prayers this week</p></GlassCard>
         </div>
         <div className="mt-6 flex items-center justify-between">
           <h3 className="font-serif text-xl text-ivory">Prayer Requests</h3>

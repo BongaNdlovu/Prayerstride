@@ -9,9 +9,9 @@ export default function PrivacyPolicyScreen({ onBack }) {
       <AppHeader title="Privacy Policy" subtitle="How we handle your data." onBack={onBack} />
       <GlassCard>
         <BodyText variant="body">
-          PrayerStride is committed to protecting your privacy. We only collect the information necessary to provide our prayer community service.
+          PrayerStride is proprietary software owned by the developer. This policy explains how we handle your personal information under POPIA and applicable privacy laws.
           {'\n\n'}
-          Information We Collect: Your email address, display name, and any content you choose to share (prayer requests, testimonies, encouragements).
+          Information We Collect: Your email address, date of birth (for age verification), display name, and content you choose to share (prayer requests and testimonies).
           {'\n\n'}
           How We Use Information: To provide and improve our service, to connect you with the prayer community, and to send notifications you have opted into.
           {'\n\n'}

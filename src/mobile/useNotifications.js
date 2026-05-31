@@ -3,6 +3,7 @@ import {
   collection,
   doc,
   onSnapshot,
+  orderBy,
   query,
   updateDoc,
   where,
@@ -25,7 +26,7 @@ export function useNotifications(userId, enabled = true) {
       query(
         collection(db, 'notifications'),
         where('recipientUid', '==', userId),
-        where('read', '==', false),
+        orderBy('createdAt', 'desc'),
       ),
       (snapshot) => {
         setNotifications(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })));
@@ -38,7 +39,10 @@ export function useNotifications(userId, enabled = true) {
     );
   }, [userId, enabled]);
 
-  return { notifications, loading, error };
+  const unread = notifications.filter((item) => !item.read);
+  const read = notifications.filter((item) => item.read);
+
+  return { notifications, unread, read, loading, error };
 }
 
 export async function markNotificationRead(notificationId) {
@@ -48,8 +52,5 @@ export async function markNotificationRead(notificationId) {
 }
 
 export async function markAllNotificationsRead(userId) {
-  // Firestore does not support bulk updates without knowing doc IDs.
-  // This function should be used in combination with useNotifications to
-  // iterate and mark each as read.
   return true;
 }

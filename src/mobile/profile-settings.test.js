@@ -43,9 +43,9 @@ describe('profile settings', () => {
     expect(source.default).toMatch(/useNotificationSettings/);
   });
 
-  it('Delete account uses Worker helper', async () => {
+  it('Delete account uses AuthProvider deleteAccount', async () => {
     const source = await import('./screens/SettingsScreen.jsx?raw');
-    expect(source.default).toMatch(/deleteOwnAccount/);
+    expect(source.default).toMatch(/deleteAccount/);
   });
 
   it('Delete confirmation uses Alert.alert', async () => {

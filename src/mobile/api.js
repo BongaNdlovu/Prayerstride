@@ -20,10 +20,51 @@ export async function apiFetch(path, options = {}) {
   return data;
 }
 
+export function bootstrapOwner() {
+  return apiFetch('/api/account/bootstrap-owner', {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
+
+export function completeRegistration(payload) {
+  return apiFetch('/api/account/complete-registration', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
 export function registerDevice(payload) {
   return apiFetch('/api/devices/register', {
     method: 'POST',
     body: JSON.stringify(payload),
+  });
+}
+
+export function createPrayer(payload) {
+  return apiFetch('/api/prayers', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updatePrayer(prayerId, payload) {
+  return apiFetch(`/api/prayers/${encodeURIComponent(prayerId)}/update`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function markPrayerAnswered(prayerId) {
+  return apiFetch(`/api/prayers/${encodeURIComponent(prayerId)}/mark-answered`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
+
+export function deletePrayer(prayerId) {
+  return apiFetch(`/api/prayers/${encodeURIComponent(prayerId)}`, {
+    method: 'DELETE',
   });
 }
 
@@ -34,10 +75,47 @@ export function prayForRequest(prayerId) {
   });
 }
 
+export function createTestimony(payload) {
+  return apiFetch('/api/testimonies', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateTestimony(testimonyId, payload) {
+  return apiFetch(`/api/testimonies/${encodeURIComponent(testimonyId)}/update`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteTestimony(testimonyId) {
+  return apiFetch(`/api/testimonies/${encodeURIComponent(testimonyId)}`, {
+    method: 'DELETE',
+  });
+}
+
 export function reactToTestimony(testimonyId, reaction) {
   return apiFetch(`/api/testimonies/${encodeURIComponent(testimonyId)}/react`, {
     method: 'POST',
     body: JSON.stringify({ reaction }),
+  });
+}
+
+export function listBlocks() {
+  return apiFetch('/api/blocks');
+}
+
+export function blockUser(blockedUid) {
+  return apiFetch(`/api/blocks/${encodeURIComponent(blockedUid)}`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
+
+export function unblockUser(blockedUid) {
+  return apiFetch(`/api/blocks/${encodeURIComponent(blockedUid)}`, {
+    method: 'DELETE',
   });
 }
 

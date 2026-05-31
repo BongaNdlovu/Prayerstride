@@ -10,9 +10,7 @@ import EmptyState from '../components/EmptyState';
 import AsyncState from '../components/AsyncState';
 
 export default function NotificationsScreen({ user, onBack }) {
-  const { notifications, loading } = useNotifications(user?.uid, true);
-  const unread = notifications.filter((item) => !item.read);
-  const read = notifications.filter((item) => item.read);
+  const { notifications, unread, read, loading } = useNotifications(user?.uid, true);
 
   const renderItem = ({ item }) => (
     <Pressable

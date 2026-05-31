@@ -57,12 +57,12 @@ const screenFiles = {
 const componentFiles = [
   'CinematicScreen', 'PageHero', 'GlassCard', 'AppHeader', 'BottomTabs',
   'EmptyState', 'ToggleRow', 'StatCard', 'PrayerCard', 'TestimonyCard',
-  'MiniLineChart', 'StreakCalendar', 'EncouragementThread',
+  'MiniLineChart', 'StreakCalendar',
 ];
 
 const mobileFiles = [
   'AuthProvider', 'api', 'firebase', 'navigation', 'notifications', 'theme',
-  'usePrayerData', 'usePrayerSessions', 'useEncouragements', 'useReports',
+  'usePrayerData', 'usePrayerSessions', 'useReports',
   'useUsers', 'useNotifications', 'useNotificationSettings', 'useIsAdmin',
   'useCalendarEvents', 'useAnnouncements',
   'prayerFormHelpers',
@@ -148,13 +148,13 @@ console.log('\n5. Notification settings');
 const notifSettingsSrc = readFileSync(resolve(screensDir, 'NotificationSettingsScreen.jsx'), 'utf-8');
 check('Imports useNotificationSettings', notifSettingsSrc.includes('useNotificationSettings'));
 
-// 6. Stats screen imports MiniLineChart and StreakCalendar
+// 6. Stats screen imports current visual summary components
 console.log('\n6. Stats screen imports');
 const statsSrc = readFileSync(resolve(screensDir, 'MyStatsScreen.jsx'), 'utf-8');
-check('Imports MiniLineChart', statsSrc.includes('MiniLineChart'));
-check('Imports StreakCalendar', statsSrc.includes('StreakCalendar'));
+check('Imports WeeklyBarChart', statsSrc.includes('WeeklyBarChart'));
+check('Imports ProgressRing', statsSrc.includes('ProgressRing'));
 
-// 7. Prayer detail imports encouragements, reports, pray API
+// 7. Prayer detail imports reports and pray API
 console.log('\n7. Prayer detail imports');
 const prayerDetailSrc = readFileSync(resolve(screensDir, 'PrayerDetailScreen.jsx'), 'utf-8');
 check('Imports prayForRequest', prayerDetailSrc.includes('prayForRequest'));
@@ -201,7 +201,7 @@ for (const component of authScreenComponents) {
 
 // 12. Check PrayerDetailScreen has required features per plan
 console.log('\n12. PrayerDetailScreen feature completeness');
-check('PrayerDetailScreen imports encouragements hook', prayerDetailSrc.includes('useEncouragements') || prayerDetailSrc.includes('EncouragementThread'));
+check('PrayerDetailScreen excludes removed comment thread', !prayerDetailSrc.includes('useEncouragements') && !prayerDetailSrc.includes('EncouragementThread'));
 check('PrayerDetailScreen imports reports hook', prayerDetailSrc.includes('submitReport') || prayerDetailSrc.includes('useReports'));
 check('PrayerDetailScreen has timer navigation', prayerDetailSrc.includes('prayerStopwatch') || prayerDetailSrc.includes('timer'));
 check('PrayerDetailScreen has bookmark logic', prayerDetailSrc.includes('bookmark') || prayerDetailSrc.includes('AsyncStorage'));

@@ -17,7 +17,7 @@ function formatTime(totalSeconds) {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, user, onDone }) {
+export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, user, onDone, onBack }) {
   const [running, setRunning] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -92,7 +92,7 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, us
 
   return (
     <ScreenScaffold scroll={false} pageContent style={styles.screen}>
-      <AppHeader centered showLogo title="Prayer Timer" subtitle={isDirectPrivateSession ? 'Private session' : sessionTitle} />
+      <AppHeader centered showLogo title="Prayer Timer" subtitle={isDirectPrivateSession ? 'Private session' : sessionTitle} onBack={onBack} />
 
       <GlassCard style={styles.timerCard}>
         <View style={styles.iconRing}>

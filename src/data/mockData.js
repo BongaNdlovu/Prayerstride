@@ -92,7 +92,7 @@ export const mockStats = {
 
 export const mockNotifications = [
   { id: 'n1', text: 'Emily P. is praying for your request.', type: 'new', time: '10m ago', read: false },
-  { id: 'n2', text: 'Jonah T. commented on your request.', type: 'new', time: '1h ago', read: false },
+  { id: 'n2', text: 'Jonah T. prayed for your request.', type: 'new', time: '1h ago', read: false },
   { id: 'n3', text: 'Your request received 5 new prayers.', type: 'new', time: '2h ago', read: false },
   { id: 'n4', text: 'Katie H. shared a testimony.', type: 'earlier', time: '1d ago', read: true },
   { id: 'n5', text: 'Michael T. started following you.', type: 'earlier', time: '2d ago', read: true },
@@ -143,7 +143,7 @@ export const mockAdminStats = {
 };
 
 export const mockReports = [
-  { id: 'rep1', reportedBy: 'User A', reportedUser: 'User B', content: 'Inappropriate comment on prayer request', reason: 'Harassment', status: 'open' },
+  { id: 'rep1', reportedBy: 'User A', reportedUser: 'User B', content: 'Inappropriate prayer request', reason: 'Harassment', status: 'open' },
 ];
 
 export const mockEncouragements = [

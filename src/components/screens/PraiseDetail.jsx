@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { ArrowLeft, CheckCircle2, ChevronRight, Flag, Heart, MessageCircle, Sparkles } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ChevronRight, Flag, Heart, Sparkles } from 'lucide-react';
 import BottomNav from '../BottomNav';
-import EncouragementThread from '../ui/EncouragementThread';
 import GlassCard from '../ui/GlassCard';
 import SceneImage from '../ui/SceneImage';
 import { useTestimonies } from '../../hooks/useTestimonies';
@@ -144,13 +143,8 @@ export default function PraiseDetail({ testimony, onBack, onGo, activeTab, onNav
             <div className="mt-5 flex flex-wrap gap-2 border-y border-ivory/12 py-4">
               <ReactionButton active={reacted.praiseGod} count={praiseGodCount} label="Praise God" onClick={() => react('praiseGod')} />
               <ReactionButton active={reacted.amen} count={amenCount} label="Amen" onClick={() => react('amen')} />
-              <span className="ml-auto flex items-center gap-1 text-xs font-semibold text-ivory/55">
-                <MessageCircle size={14} />
-                Encourage
-              </span>
             </div>
 
-            <EncouragementThread threadId={`testimony:${selected.id}`} currentUser={user} />
           </GlassCard>
         </div>
       </div>

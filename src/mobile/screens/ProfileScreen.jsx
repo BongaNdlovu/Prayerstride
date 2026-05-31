@@ -2,16 +2,24 @@ import { useMemo } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   BarChart3,
+  BookOpen,
+  Calendar,
   ChevronRight,
   Clock,
   Flame,
   Heart,
+  Megaphone,
   Settings,
   Sparkles,
+  Trophy,
+  User,
+  Users,
+  Zap,
 } from 'lucide-react-native';
 import { alpha, colors, fonts, radii, spacing } from '../theme';
 import { useUserProfile } from '../useUsers';
 import { usePrayerSessions } from '../usePrayerSessions';
+import { useIsAdmin } from '../useIsAdmin';
 import ScreenScaffold from '../components/ScreenScaffold';
 import AppHeader from '../components/AppHeader';
 import GlassCard from '../components/GlassCard';
@@ -34,6 +42,16 @@ const QUICK_LINKS = [
   { label: 'Prayer Requests', route: PROFILE_ROUTES.myPrayers, icon: Heart },
   { label: 'Prayer Times', route: PROFILE_ROUTES.reminderSettings, icon: Clock },
   { label: 'Testimonies', route: PROFILE_ROUTES.answeredPrayers, icon: Sparkles },
+];
+
+const MORE_LINKS = [
+  { label: 'Edit Profile', route: 'editProfile', icon: User },
+  { label: 'Devotions', route: 'devotions', icon: BookOpen },
+  { label: 'Calendar', route: 'calendar', icon: Calendar },
+  { label: 'Achievements', route: 'achievements', icon: Trophy },
+  { label: 'Announcements', route: 'announcements', icon: Megaphone },
+  { label: 'Quick Actions', route: 'quickActions', icon: Zap },
+  { label: 'Following', route: 'following', icon: Users },
 ];
 
 function sessionDate(session) {
@@ -91,6 +109,7 @@ function todaySeconds(sessions) {
 export default function ProfileScreen({ user, signOut, go }) {
   const { profile } = useUserProfile(user?.uid, Boolean(user?.uid));
   const { sessions } = usePrayerSessions(user?.uid, Boolean(user?.uid));
+  const { isAdmin } = useIsAdmin(user);
 
   const displayName = profile?.displayName || user.displayName || 'PrayerStride User';
   const handle = profile?.handle || '';
@@ -155,6 +174,39 @@ export default function ProfileScreen({ user, signOut, go }) {
             </MotionPressable>
           );
         })}
+      </GlassCard>
+
+      <Heading level="h4" style={styles.sectionTitle}>More</Heading>
+      <GlassCard style={styles.menuCard}>
+        {MORE_LINKS.map((item, index) => {
+          const Icon = item.icon;
+          return (
+            <MotionPressable
+              key={item.route}
+              onPress={() => go(item.route)}
+              style={[styles.menuItem, index === MORE_LINKS.length - 1 && styles.menuItemLast]}
+            >
+              <View style={styles.menuLeft}>
+                <View style={styles.menuIcon}>
+                  <Icon size={18} color={colors.gold} />
+                </View>
+                <BodyText variant="label">{item.label}</BodyText>
+              </View>
+              <ChevronRight size={18} color={alpha.ivory55} />
+            </MotionPressable>
+          );
+        })}
+        {isAdmin ? (
+          <MotionPressable onPress={() => go('adminDashboard')} style={[styles.menuItem, styles.menuItemLast]}>
+            <View style={styles.menuLeft}>
+              <View style={styles.menuIcon}>
+                <Settings size={18} color={colors.gold} />
+              </View>
+              <BodyText variant="label">Admin Dashboard</BodyText>
+            </View>
+            <ChevronRight size={18} color={alpha.ivory55} />
+          </MotionPressable>
+        ) : null}
       </GlassCard>
 
       <MotionPressable onPress={signOut} style={styles.signOutButton}>

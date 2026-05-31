@@ -138,7 +138,7 @@ export default function MyStatsScreen({ user, onBack, go }) {
           <View style={styles.streakInfo}>
             <Heading level="eyebrow">Prayer Time</Heading>
             <Heading level="stat" style={styles.timeValue}>{formatMinutes(totalSeconds)}</Heading>
-            <BodyText variant="small">Time spent in prayer and encouragement.</BodyText>
+            <BodyText variant="small">Time spent in prayer.</BodyText>
           </View>
           <View style={styles.timeIcon}>
             <Clock size={24} color={colors.ink} />

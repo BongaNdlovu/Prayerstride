@@ -58,7 +58,7 @@ export default function EditRequestScreen({ prayer, user, onDone }) {
         body: body.trim(),
         privacy: privacy === 'hidden' ? 'private' : privacy,
         allowShare: privacy !== 'hidden',
-        prayerLimit: prayerLimit === 'weekly' ? 'daily' : prayerLimit,
+        prayerLimit,
         isAnonymous: anonymous,
         urgent,
       });

@@ -8,6 +8,33 @@ const assert = (condition, message) => {
   if (!condition) failures.push(message);
 };
 
+assert(worker.includes('bootstrapOwner'), 'Worker should implement owner bootstrap endpoint.');
+assert(worker.includes('createPrayer(env'), 'Worker should implement createPrayer handler.');
+assert(worker.includes('updatePrayer(env'), 'Worker should implement updatePrayer handler.');
+assert(worker.includes('deletePrayer(env'), 'Worker should implement deletePrayer handler.');
+assert(worker.includes('createTestimony(env'), 'Worker should implement createTestimony handler.');
+assert(!worker.includes('/api/encouragements'), 'Worker should not expose comment endpoints.');
+assert(!worker.includes('createEncouragement(env'), 'Worker should not implement comment creation.');
+assert(worker.includes('blockUser(env'), 'Worker should implement blockUser handler.');
+assert(worker.includes("from './moderation.js'"), 'Worker should use moderation module.');
+assert(worker.includes('ALLOW_DEV_ORIGINS'), 'Worker should gate dev CORS behind ALLOW_DEV_ORIGINS.');
+assert(worker.includes('OWNER_EMAIL'), 'Worker should read OWNER_EMAIL secret for bootstrap.');
+assert(worker.includes('completeRegistration(env'), 'Worker should implement complete-registration endpoint.');
+assert(worker.includes('const guardianEmailSent = await sendGuardianApprovalEmail'), 'Worker should report guardian email delivery truthfully.');
+assert(worker.includes('const tokenId = await hashToken(token)'), 'Worker should store guardian approval tokens by hash.');
+assert(worker.includes('escapeHtml(displayName'), 'Worker should escape display names included in guardian emails.');
+assert(worker.includes('termsAcceptedAt'), 'Worker should persist a terms acceptance audit timestamp.');
+assert(worker.includes('CURRENT_TERMS_VERSION'), 'Worker should validate the accepted terms version.');
+assert(worker.includes('CURRENT_PRIVACY_VERSION'), 'Worker should validate the accepted privacy version.');
+assert(worker.includes("registrationState: 'complete'"), 'Worker should complete registration server-side.');
+assert(worker.includes("profile.registrationState === 'pending_completion'"), 'Worker should deny community access before registration completes.');
+assert(worker.includes('privacyPageHtml'), 'Worker should serve public privacy HTML.');
+assert(worker.includes('accountDeletionJobs'), 'Worker should write account deletion tombstones.');
+assert(worker.includes('deleteFirebaseAuthUser'), 'Worker should delete Firebase Auth user last.');
+assert(worker.includes('purgeExpiredDeletionTombstones'), 'Worker should purge expired deletion tombstones.');
+assert(worker.includes('deleteStoragePrefix'), 'Worker should delete Storage objects during account deletion.');
+assert(worker.includes('async scheduled'), 'Worker should define a scheduled handler for cron jobs.');
+assert(worker.includes('weekly'), 'Worker should support weekly prayer limits.');
 assert(worker.includes('fieldTransforms'), 'Worker should use Firestore transform writes for aggregate counts.');
 assert(worker.includes("increment: { integerValue: '1' }"), 'Worker should increment counts atomically.');
 assert(worker.includes("currentDocument: { exists: false }"), 'Worker should create deterministic per-user action docs for idempotency.');
@@ -17,6 +44,7 @@ assert(worker.includes('response.ok') && worker.includes('invalidToken'), 'Worke
 assert(!worker.includes("Access-Control-Allow-Origin', env.CORS_ORIGIN || '*'"), 'Worker should not fall back to wildcard CORS.');
 assert(!worker.includes('runFirestoreQuery'), 'Unused runFirestoreQuery helper should be removed.');
 assert(worker.includes("status >= 500 ? 'Unexpected server error'"), 'Worker should hide raw internal errors from clients.');
+assert(worker.includes("status: 401") && worker.includes("publicMessage: 'Authentication required'"), 'Worker should classify missing authentication as 401.');
 
 assert(worker.includes('adminCreateAnnouncement'), 'Worker should implement adminCreateAnnouncement handler.');
 assert(worker.includes('adminUpdateAnnouncement'), 'Worker should implement adminUpdateAnnouncement handler.');

@@ -9,11 +9,6 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == uid;
     }
 
-    function isOwnerEmail() {
-      return signedIn()
-        && request.auth.token.email == "fanelesibonge50@gmail.com";
-    }
-
     function isAdmin() {
       return signedIn()
         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
@@ -124,8 +119,8 @@ service cloud.firestore {
 
     function validUserCreate(uid) {
       return isSelf(uid)
-        && request.resource.data.keys().hasOnly(["uid", "email", "displayName", "role", "owner", "createdAt", "photoURL", "handle", "bio"])
-        && request.resource.data.keys().hasAll(["uid", "email", "displayName", "role", "owner", "createdAt"])
+        && request.resource.data.keys().hasOnly(["uid", "email", "displayName", "role", "owner", "createdAt", "photoURL", "handle", "bio", "registrationState"])
+        && request.resource.data.keys().hasAll(["uid", "email", "displayName", "role", "owner", "createdAt", "registrationState"])
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.email == request.auth.token.email
         && request.resource.data.displayName is string
@@ -134,14 +129,14 @@ service cloud.firestore {
         && optionalString("photoURL", 2048)
         && optionalString("handle", 40)
         && optionalString("bio", 180)
-        && (
-          (isOwnerEmail() && request.resource.data.role == "admin" && request.resource.data.owner == true)
-          || (!isOwnerEmail() && request.resource.data.role == "user" && request.resource.data.owner == false)
-        );
+        && request.resource.data.role == "user"
+        && request.resource.data.owner == false
+        && request.resource.data.registrationState == "pending_completion";
     }
 
     function validUserUpdate() {
       return unchanged(["uid", "email", "role", "owner", "createdAt"])
+        && (!("registrationState" in resource.data) || unchanged(["registrationState"]))
         && changedOnly(["displayName", "handle", "bio", "photoURL", "updatedAt"])
         && optionalString("displayName", 80)
         && optionalString("handle", 40)
@@ -168,7 +163,7 @@ service cloud.firestore {
         && (!("privacy" in request.resource.data) || request.resource.data.privacy == null || request.resource.data.privacy in ["community", "private"])
         && optionalBool("urgent")
         && optionalBool("allowShare")
-        && (!("prayerLimit" in request.resource.data) || request.resource.data.prayerLimit in ["daily", "once"]);
+        && (!("prayerLimit" in request.resource.data) || request.resource.data.prayerLimit in ["daily", "once", "weekly"]);
     }
 
     function validPrayerAuthorUpdate() {
@@ -184,7 +179,7 @@ service cloud.firestore {
         && (!("privacy" in request.resource.data) || request.resource.data.privacy == null || request.resource.data.privacy in ["community", "private"])
         && optionalBool("urgent")
         && optionalBool("allowShare")
-        && (!("prayerLimit" in request.resource.data) || request.resource.data.prayerLimit in ["daily", "once"]);
+        && (!("prayerLimit" in request.resource.data) || request.resource.data.prayerLimit in ["daily", "once", "weekly"]);
     }
 
     function validTestimonyCreate() {
@@ -242,9 +237,7 @@ service cloud.firestore {
 
     match /prayers/{prayerId} {
       allow read: if canReadPrayerData(resource.data);
-      allow create: if validPrayerCreate() && notSuspended();
-      allow update: if validPrayerAuthorUpdate() && notSuspended();
-      allow delete: if isAuthor() || isAdmin();
+      allow create, update, delete: if false;
 
       match /prays/{uid} {
         allow read: if isSelf(uid) || isAdmin();
@@ -254,9 +247,7 @@ service cloud.firestore {
 
     match /testimonies/{testimonyId} {
       allow read: if signedIn();
-      allow create: if validTestimonyCreate() && notSuspended();
-      allow update: if validTestimonyAuthorUpdate() && notSuspended();
-      allow delete: if isAuthor() || isAdmin();
+      allow create, update, delete: if false;
 
       match /reactions/{reactionId} {
         allow read: if signedIn();
@@ -272,7 +263,7 @@ service cloud.firestore {
         && request.resource.data.targetId is string
         && request.resource.data.targetId.size() > 0
         && request.resource.data.targetId.size() <= 160
-        && request.resource.data.targetType in ["prayer", "testimony", "user", "encouragement"]
+        && request.resource.data.targetType in ["prayer", "testimony", "user"]
         && validString(request.resource.data.reason, 800)
         && request.resource.data.status == "pending"
         && request.resource.data.createdAt is timestamp;
@@ -308,25 +299,20 @@ service cloud.firestore {
     }
 
     match /encouragements/{encouragementId} {
-      allow read: if canReadPrayerId(resource.data.threadId);
-      allow create: if signedIn() && notSuspended()
-        && request.resource.data.keys().hasOnly(["threadId", "authorUid", "authorName", "text", "createdAt", "updatedAt"])
-        && request.resource.data.keys().hasAll(["threadId", "authorUid", "authorName", "text", "createdAt", "updatedAt"])
-        && request.resource.data.authorUid == request.auth.uid
-        && validString(request.resource.data.threadId, 160)
-        && canReadPrayerId(request.resource.data.threadId)
-        && request.resource.data.authorName is string
-        && request.resource.data.authorName.size() <= 80
-        && validString(request.resource.data.text, 800)
-        && request.resource.data.createdAt is timestamp
-        && request.resource.data.updatedAt is timestamp;
-      allow update: if signedIn() && notSuspended()
-        && resource.data.authorUid == request.auth.uid
-        && unchanged(["threadId", "authorUid", "authorName", "createdAt"])
-        && changedOnly(["text", "updatedAt"])
-        && validString(request.resource.data.text, 800)
-        && request.resource.data.updatedAt is timestamp;
-      allow delete: if signedIn() && (resource.data.authorUid == request.auth.uid || isAdmin());
+      allow read, write: if false;
+    }
+
+    match /blocks/{blockId} {
+      allow read: if signedIn() && resource.data.blockerUid == request.auth.uid;
+      allow write: if false;
+    }
+
+    match /guardianApprovals/{tokenId} {
+      allow read, write: if false;
+    }
+
+    match /accountDeletionJobs/{uid} {
+      allow read, write: if false;
     }
 
     match /notifications/{notificationId} {
@@ -344,10 +330,11 @@ service cloud.firestore {
     match /notificationSettings/{uid} {
       allow read: if isSelf(uid);
       allow create, update: if isSelf(uid) && notSuspended()
-        && request.resource.data.keys().hasOnly(["prayerActivity", "testimonyReactions", "pushEnabled", "updatedAt"])
+        && request.resource.data.keys().hasOnly(["prayerActivity", "testimonyReactions", "pushEnabled", "announcements", "updatedAt"])
         && optionalBool("prayerActivity")
         && optionalBool("testimonyReactions")
         && optionalBool("pushEnabled")
+        && optionalBool("announcements")
         && (!("updatedAt" in request.resource.data) || request.resource.data.updatedAt is timestamp);
       allow delete: if false;
     }

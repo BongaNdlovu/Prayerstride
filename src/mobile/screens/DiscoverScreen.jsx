@@ -3,6 +3,7 @@ import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { Filter, Search, X } from 'lucide-react-native';
 import { alpha, colors, radii, spacing } from '../theme';
 import { usePrayers } from '../usePrayerData';
+import { filterBlockedItems, useBlocks } from '../useBlocks';
 import ScreenScaffold from '../components/ScreenScaffold';
 import Heading from '../components/Heading';
 import BodyText from '../components/BodyText';
@@ -30,18 +31,20 @@ function matchesCategory(prayer, category) {
 
 export default function DiscoverScreen({ onOpenPrayer }) {
   const { prayers, loading } = usePrayers(true);
+  const { blockedUids } = useBlocks(true);
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('All');
   const [showFilters, setShowFilters] = useState(false);
 
   const filtered = useMemo(() => {
+    const visible = filterBlockedItems(prayers, blockedUids);
     const normalized = query.trim().toLowerCase();
-    return prayers.filter((prayer) => {
+    return visible.filter((prayer) => {
       const matchesSearch = !normalized
         || `${prayer.title} ${prayer.body} ${prayer.authorName}`.toLowerCase().includes(normalized);
       return matchesSearch && matchesCategory(prayer, category);
     });
-  }, [prayers, query, category]);
+  }, [prayers, blockedUids, query, category]);
 
   const header = (
     <View style={styles.header}>

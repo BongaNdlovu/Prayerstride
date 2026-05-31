@@ -9,7 +9,9 @@ export default function TermsOfServiceScreen({ onBack }) {
       <AppHeader title="Terms of Service" subtitle="Guidelines for our community." onBack={onBack} />
       <GlassCard>
         <BodyText variant="body">
-          Welcome to PrayerStride. By using this app, you agree to these terms.
+          Welcome to PrayerStride. By using this proprietary app, you agree to these terms.
+          {'\n\n'}
+          0. Ownership: PrayerStride is proprietary software. You receive a limited, personal, non-transferable license to use the app. You may not copy, redistribute, or reverse engineer it.
           {'\n\n'}
           1. Be Respectful: Treat all members with kindness and respect. Harassment, hate speech, or bullying will not be tolerated.
           {'\n\n'}

@@ -10,8 +10,8 @@ import {
 import { alpha, colors, fonts, radii, spacing } from '../theme';
 import { prayForRequest } from '../api';
 import { markAnswered } from '../usePrayerData';
+import { prayedButtonLabel, prayedStorageKey } from '../prayerLimit';
 import { submitReport } from '../useReports';
-import { useEncouragements } from '../useEncouragements';
 import ScreenScaffold from '../components/ScreenScaffold';
 import AppHeader from '../components/AppHeader';
 import GlassCard from '../components/GlassCard';
@@ -19,7 +19,6 @@ import Heading from '../components/Heading';
 import BodyText from '../components/BodyText';
 import PrimaryButton from '../components/PrimaryButton';
 import MotionPressable from '../components/MotionPressable';
-import EncouragementThread from '../components/EncouragementThread';
 
 function Tag({ label, tone = 'default' }) {
   return (
@@ -52,7 +51,6 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
   const [prayerCountDelta, setPrayerCountDelta] = useState(0);
   const [bookmarked, setBookmarked] = useState(false);
   const [showActions, setShowActions] = useState(false);
-  const { comments, loading: commentsLoading } = useEncouragements(prayer.id);
   const isOwner = user && prayer.authorUid === user.uid;
   const prayedCount = prayer.prayedCount + prayerCountDelta;
 
@@ -61,10 +59,17 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
     loadPrayedToday();
   }, [prayer.id]);
 
-  const todayKey = () => new Date().toISOString().slice(0, 10);
-  const prayedStorageKey = (dayKey = todayKey(), limit = prayer.prayerLimit || 'daily') => (
-    limit === 'once' ? `prayed:${prayer.id}:once` : `prayed:${prayer.id}:${dayKey}`
-  );
+  const storageKeyForPrayer = (limit = prayer.prayerLimit || 'daily') => prayedStorageKey(prayer.id, limit);
+
+  const loadPrayedToday = async () => {
+    try {
+      const saved = await AsyncStorage.getItem(storageKeyForPrayer());
+      setPrayed(saved === 'true');
+      setPrayerCountDelta(0);
+    } catch (error) {
+      console.warn('Failed to load prayer status', error);
+    }
+  };
 
   const loadBookmark = async () => {
     try {
@@ -73,16 +78,6 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
       setBookmarked(saved === 'true');
     } catch (error) {
       console.warn('Failed to load bookmark', error);
-    }
-  };
-
-  const loadPrayedToday = async () => {
-    try {
-      const saved = await AsyncStorage.getItem(prayedStorageKey());
-      setPrayed(saved === 'true');
-      setPrayerCountDelta(0);
-    } catch (error) {
-      console.warn('Failed to load prayer status', error);
     }
   };
 
@@ -106,8 +101,8 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
     setPrayed(true);
     try {
       const result = await prayForRequest(prayer.id);
-      const dayKey = result.dayKey || todayKey();
-      await AsyncStorage.setItem(prayedStorageKey(dayKey, result.prayerLimit), 'true');
+      const limit = result.prayerLimit || prayer.prayerLimit || 'daily';
+      await AsyncStorage.setItem(prayedStorageKey(prayer.id, limit), 'true');
       setPrayerCountDelta(result.duplicate ? 0 : 1);
       if (onRefresh) onRefresh();
     } catch (error) {
@@ -173,9 +168,7 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
 
   const prayLabel = isOwner
     ? 'Your Request'
-    : prayed
-      ? (prayer.prayerLimit === 'once' ? 'Already Prayed' : 'Prayed Today')
-      : "I'll Pray";
+    : prayedButtonLabel(prayer.prayerLimit || 'daily', prayed);
 
   return (
     <ScreenScaffold pageContent>
@@ -250,13 +243,6 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
         </GlassCard>
       ) : null}
 
-      <EncouragementThread
-        threadId={prayer.id}
-        comments={comments}
-        loading={commentsLoading}
-        user={user}
-        onRefresh={onRefresh}
-      />
     </ScreenScaffold>
   );
 }

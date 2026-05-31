@@ -13,9 +13,11 @@ import {
 } from '@firebase/auth';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { auth, db } from './firebase';
-import { isOwnerEmail, OWNER_DISPLAY_NAME } from '../data/owner';
+import { bootstrapOwner, completeRegistration, deleteOwnAccount } from './api';
+import { PRIVACY_VERSION, TERMS_VERSION } from './legal';
 
 const AuthContext = createContext(null);
+const MIN_PASSWORD_LENGTH = 12;
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -25,6 +27,9 @@ export function AuthProvider({ children }) {
     (nextUser) => {
       setUser(nextUser);
       setLoading(false);
+      if (nextUser) {
+        bootstrapOwner().catch(() => {});
+      }
     },
     (error) => {
       console.error('Auth state change error', error);
@@ -38,22 +43,34 @@ export function AuthProvider({ children }) {
     async signIn(email, password) {
       return signInWithEmailAndPassword(auth, email, password);
     },
-    async register(email, password, name) {
+    async register(email, password, name, profile = {}) {
+      if (!password || password.length < MIN_PASSWORD_LENGTH) {
+        throw new Error(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+      }
       const credential = await createUserWithEmailAndPassword(auth, email, password);
-      const isOwner = isOwnerEmail(email);
-      const displayName = isOwner ? OWNER_DISPLAY_NAME : name;
+      const displayName = name;
       await updateProfile(credential.user, { displayName });
       await setDoc(doc(db, 'users', credential.user.uid), {
         uid: credential.user.uid,
         displayName,
         email,
         createdAt: serverTimestamp(),
-        role: isOwner ? 'admin' : 'user',
-        owner: isOwner,
+        role: 'user',
+        owner: false,
         photoURL: null,
+        registrationState: 'pending_completion',
+      });
+      const registration = await completeRegistration({
+        dateOfBirth: profile.dateOfBirth,
+        guardianEmail: profile.guardianEmail,
+        isSeventhDayAdventist: profile.isSeventhDayAdventist === true,
+        churchName: profile.churchName,
+        termsAccepted: profile.termsAccepted === true,
+        termsVersion: TERMS_VERSION,
+        privacyVersion: PRIVACY_VERSION,
       });
       await sendEmailVerification(credential.user);
-      return credential;
+      return { credential, registration };
     },
     async signOut() {
       return firebaseSignOut(auth);
@@ -65,10 +82,22 @@ export function AuthProvider({ children }) {
       const currentUser = auth.currentUser;
       if (!currentUser?.email) throw new Error('No email is linked to this account.');
       if (!currentPassword || !newPassword) throw new Error('Enter your current and new password.');
-      if (newPassword.length < 6) throw new Error('New password must be at least 6 characters.');
+      if (newPassword.length < MIN_PASSWORD_LENGTH) {
+        throw new Error(`New password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+      }
       const credential = EmailAuthProvider.credential(currentUser.email, currentPassword);
       await reauthenticateWithCredential(currentUser, credential);
       return updatePassword(currentUser, newPassword);
+    },
+    async deleteAccount(password) {
+      const currentUser = auth.currentUser;
+      if (!currentUser?.email) throw new Error('No email is linked to this account.');
+      if (!password) throw new Error('Enter your password to confirm deletion.');
+      const credential = EmailAuthProvider.credential(currentUser.email, password);
+      await reauthenticateWithCredential(currentUser, credential);
+      await currentUser.getIdToken(true);
+      await deleteOwnAccount();
+      await firebaseSignOut(auth);
     },
   }), [user, loading]);
 

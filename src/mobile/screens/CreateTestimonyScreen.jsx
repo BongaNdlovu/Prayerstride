@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Sparkles } from 'lucide-react-native';
 import { alpha, colors, sharedStyles, spacing } from '../theme';
 import { addTestimony, usePrayers } from '../usePrayerData';
@@ -78,24 +78,20 @@ export default function CreateTestimonyScreen({ user, linkedPrayerId, onDone }) 
         </Pressable>
 
         {showPicker ? (
-          <View style={styles.pickerList}>
-            <FlatList
-              data={[{ id: null, title: 'No linked prayer' }, ...myPrayers]}
-              keyExtractor={(item) => item.id || 'none'}
-              nestedScrollEnabled
-              ListEmptyComponent={<EmptyState label="No active prayers to link." />}
-              renderItem={({ item }) => (
-                <Pressable
-                  onPress={() => { setPrayerId(item.id); setShowPicker(false); }}
-                  style={styles.pickerItem}
-                >
-                  <BodyText variant="small" style={prayerId === item.id && styles.pickerItemActive}>
-                    {item.title}
-                  </BodyText>
-                </Pressable>
-              )}
-            />
-          </View>
+          <ScrollView style={styles.pickerList} nestedScrollEnabled>
+            {[{ id: null, title: 'No linked prayer' }, ...myPrayers].map((item) => (
+              <Pressable
+                key={item.id || 'none'}
+                onPress={() => { setPrayerId(item.id); setShowPicker(false); }}
+                style={styles.pickerItem}
+              >
+                <BodyText variant="small" style={prayerId === item.id && styles.pickerItemActive}>
+                  {item.title}
+                </BodyText>
+              </Pressable>
+            ))}
+            {myPrayers.length === 0 ? <EmptyState label="No active prayers to link." /> : null}
+          </ScrollView>
         ) : null}
 
         <PrimaryButton

@@ -37,10 +37,6 @@ vi.mock('../ui/GlassCard', () => ({
   default: ({ children }) => <div data-testid="glass-card">{children}</div>,
 }));
 
-vi.mock('../ui/EncouragementThread', () => ({
-  default: () => <div data-testid="encouragement-thread">EncouragementThread</div>,
-}));
-
 describe('Detail', () => {
   const defaultProps = {
     request: {

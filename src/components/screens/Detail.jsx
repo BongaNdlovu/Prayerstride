@@ -3,7 +3,6 @@ import { ArrowLeft, MoreHorizontal, Users, Send, CheckCircle2, Bookmark, Timer, 
 import BottomNav from '../BottomNav';
 import { usePersistentState } from '../../hooks/usePersistentState';
 import { usePrayerData } from '../../hooks/usePrayerData';
-import EncouragementThread from '../ui/EncouragementThread';
 import SceneImage from '../ui/SceneImage';
 import GlassCard from '../ui/GlassCard';
 import { prayForRequest } from '../../lib/api';
@@ -167,7 +166,6 @@ export default function Detail({ request, user, onBack, onGo, activeTab, onNavig
               )}
             </div>
           )}
-          <EncouragementThread threadId={prayer.id || prayer.title} currentUser={user} />
         </GlassCard>
       </div>
       </div>

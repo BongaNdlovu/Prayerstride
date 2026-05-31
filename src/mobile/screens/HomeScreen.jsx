@@ -42,7 +42,7 @@ export default function HomeScreen({ onOpenPrayer, go }) {
     <ScreenScaffold pageContent>
       <View style={styles.topBar}>
         <View>
-          <BodyText variant="caption" style={styles.greeting}>{greeting()} ☀</BodyText>
+          <BodyText variant="caption" style={styles.greeting}>{greeting()}</BodyText>
           <Heading level="h2" style={styles.headline}>Who can you carry in prayer today?</Heading>
         </View>
         <Pressable onPress={() => go('notifications')} style={styles.bellBtn}>

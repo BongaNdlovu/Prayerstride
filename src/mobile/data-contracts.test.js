@@ -40,14 +40,6 @@ describe('data contracts', () => {
     expect(source.default).toMatch(/export async function addPrayerSession/);
   });
 
-  it('useEncouragements exports expected functions', async () => {
-    const source = await import('./useEncouragements.js?raw');
-    expect(source.default).toMatch(/export function useEncouragements/);
-    expect(source.default).toMatch(/export async function addEncouragement/);
-    expect(source.default).toMatch(/export async function updateEncouragement/);
-    expect(source.default).toMatch(/export async function deleteEncouragement/);
-  });
-
   it('useReports exports expected functions', async () => {
     const source = await import('./useReports.js?raw');
     expect(source.default).toMatch(/export async function submitReport/);
@@ -105,6 +97,9 @@ describe('data contracts', () => {
     expect(source.default).toMatch(/changePassword/);
     expect(source.default).toMatch(/resetPassword/);
     expect(source.default).toMatch(/reauthenticateWithCredential/);
+    expect(source.default).toMatch(/termsAccepted/);
+    expect(source.default).toMatch(/termsVersion/);
+    expect(source.default).toMatch(/privacyVersion/);
   });
 
   it('useIsAdmin has separate admin and suspended hooks', async () => {
@@ -118,7 +113,6 @@ describe('data contracts', () => {
       import('./api.js?raw'),
       import('./usePrayerData.js?raw'),
       import('./usePrayerSessions.js?raw'),
-      import('./useEncouragements.js?raw'),
       import('./useReports.js?raw'),
       import('./useUsers.js?raw'),
       import('./useNotifications.js?raw'),

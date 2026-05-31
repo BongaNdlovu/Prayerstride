@@ -1,18 +1,19 @@
 import { useEffect, useState } from 'react';
 import {
-  addDoc,
   collection,
-  deleteDoc,
-  doc,
   onSnapshot,
   orderBy,
   query,
-  serverTimestamp,
-  updateDoc,
   where,
-  writeBatch,
 } from 'firebase/firestore';
 import { auth, db } from './firebase';
+import {
+  createPrayer as apiCreatePrayer,
+  createTestimony as apiCreateTestimony,
+  deletePrayer as apiDeletePrayer,
+  markPrayerAnswered as apiMarkPrayerAnswered,
+  updatePrayer as apiUpdatePrayer,
+} from './api';
 
 function mapPrayer(docSnap) {
   const data = docSnap.data();
@@ -127,26 +128,22 @@ export function useTestimonies(enabled) {
 }
 
 export async function addPrayer(data, user) {
-  return addDoc(collection(db, 'prayers'), {
+  if (!user) throw new Error('You must be signed in to create a prayer.');
+  const result = await apiCreatePrayer({
     title: data.title,
     body: data.body,
-    authorUid: user.uid,
-    authorName: data.isAnonymous ? 'Anonymous' : (user.displayName || user.email || 'You'),
     isAnonymous: Boolean(data.isAnonymous ?? data.anonymous),
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-    prayedCount: 0,
-    status: 'active',
     privacy: data.privacy || 'community',
     prayerLimit: data.prayerLimit || 'daily',
     urgent: Boolean(data.urgent ?? data.urgency),
     allowShare: data.allowShare !== false,
   });
+  return { id: result.prayerId };
 }
 
 export async function updatePrayer(prayerId, data) {
   if (!prayerId) throw new Error('Missing prayer request.');
-  return updateDoc(doc(db, 'prayers', prayerId), {
+  await apiUpdatePrayer(prayerId, {
     title: data.title,
     body: data.body || data.text,
     isAnonymous: Boolean(data.isAnonymous ?? data.anonymous),
@@ -154,49 +151,29 @@ export async function updatePrayer(prayerId, data) {
     prayerLimit: data.prayerLimit || 'daily',
     urgent: Boolean(data.urgent ?? data.urgency),
     allowShare: data.allowShare !== false,
-    updatedAt: serverTimestamp(),
   });
 }
 
 export async function deletePrayer(prayerId) {
   if (!prayerId) throw new Error('Missing prayer request.');
-  return deleteDoc(doc(db, 'prayers', prayerId));
+  await apiDeletePrayer(prayerId);
 }
 
 export async function markAnswered(prayerId) {
-  return updateDoc(doc(db, 'prayers', prayerId), {
-    status: 'answered',
-    updatedAt: serverTimestamp(),
-  });
+  await apiMarkPrayerAnswered(prayerId);
 }
 
 export async function addTestimony(data, user) {
   if (!user) throw new Error('You must be signed in to create a testimony.');
 
-  const testimony = {
+  const result = await apiCreateTestimony({
     title: data.title,
     body: data.body || data.text,
     prayerId: data.prayerId ?? null,
     shared: Boolean(data.shared),
-    authorUid: user.uid,
-    authorName: data.isAnonymous ? 'Anonymous' : (user.displayName || user.email || 'You'),
     isAnonymous: Boolean(data.isAnonymous),
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-    amen: 0,
-    praiseGod: 0,
     tags: data.tags || [],
-  };
-
-  if (!data.prayerId) return addDoc(collection(db, 'testimonies'), testimony);
-
-  const testimonyRef = doc(collection(db, 'testimonies'));
-  const batch = writeBatch(db);
-  batch.set(testimonyRef, testimony);
-  batch.update(doc(db, 'prayers', data.prayerId), {
-    status: 'answered',
-    updatedAt: serverTimestamp(),
   });
-  await batch.commit();
-  return testimonyRef;
+
+  return { id: result.testimonyId };
 }

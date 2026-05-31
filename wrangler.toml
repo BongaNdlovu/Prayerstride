@@ -1,7 +1,12 @@
 name = "prayerstride"
 main = "worker/index.js"
 compatibility_date = "2026-05-15"
+account_id = "db3ff43837e8a179130bd7513dc81667"
 
 [vars]
 FIREBASE_PROJECT_ID = "end-of-time-94cd3"
+FIREBASE_STORAGE_BUCKET = "end-of-time-94cd3.firebasestorage.app"
 CORS_ORIGIN = "https://prayerstride.fanelesibonge50.workers.dev"
+
+[triggers]
+crons = ["0 4 * * *"]
