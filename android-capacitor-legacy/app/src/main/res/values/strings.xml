@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">PrayerStride</string>
-    <string name="title_activity_main">PrayerStride</string>
-    <string name="package_name">Prayerstride.com</string>
-    <string name="custom_url_scheme">Prayerstride.com</string>
-</resources>
