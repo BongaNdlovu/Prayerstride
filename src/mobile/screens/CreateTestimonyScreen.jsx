@@ -1,10 +1,16 @@
 import { useState } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { colors } from '../theme';
+import { Sparkles } from 'lucide-react-native';
+import { alpha, colors, sharedStyles, spacing } from '../theme';
 import { addTestimony, usePrayers } from '../usePrayerData';
-import CinematicScreen from '../components/CinematicScreen';
-import PageHero from '../components/PageHero';
+import ScreenScaffold from '../components/ScreenScaffold';
+import AppHeader from '../components/AppHeader';
+import GlassCard from '../components/GlassCard';
+import BodyText from '../components/BodyText';
+import PrimaryButton from '../components/PrimaryButton';
 import EmptyState from '../components/EmptyState';
+
+const DETAILS_LIMIT = 1500;
 
 export default function CreateTestimonyScreen({ user, linkedPrayerId, onDone }) {
   const [title, setTitle] = useState('');
@@ -35,45 +41,103 @@ export default function CreateTestimonyScreen({ user, linkedPrayerId, onDone }) 
     }
   };
 
+  const linkedTitle = prayerId
+    ? myPrayers.find((p) => p.id === prayerId)?.title || 'Prayer'
+    : null;
+
   return (
-    <CinematicScreen pageContent>
-      <PageHero scene="answered" eyebrow="Testimony" title="Share what God has done" subtitle="Your story of answered prayer encourages the whole community." compact />
-      <View style={styles.card}>
-        <TextInput value={title} onChangeText={setTitle} placeholder="Testimony title" style={styles.input} placeholderTextColor="rgba(248,243,234,0.56)" />
-        <TextInput value={body} onChangeText={setBody} placeholder="Tell your story..." multiline style={[styles.input, styles.textArea]} placeholderTextColor="rgba(248,243,234,0.56)" />
+    <ScreenScaffold pageContent>
+      <AppHeader centered showLogo title="Share Testimony" subtitle="Tell others what God has done" />
+
+      <GlassCard style={styles.card}>
+        <Text style={sharedStyles.fieldLabel}>Title</Text>
+        <TextInput
+          value={title}
+          onChangeText={setTitle}
+          placeholder="Testimony title"
+          placeholderTextColor={alpha.ivory55}
+          style={sharedStyles.input}
+        />
+
+        <Text style={sharedStyles.fieldLabel}>Your story</Text>
+        <TextInput
+          value={body}
+          onChangeText={(text) => setBody(text.slice(0, DETAILS_LIMIT))}
+          placeholder="Tell your story..."
+          multiline
+          maxLength={DETAILS_LIMIT}
+          placeholderTextColor={alpha.ivory55}
+          style={[sharedStyles.input, sharedStyles.textArea]}
+        />
+        <BodyText variant="caption" style={styles.counter}>{body.length}/{DETAILS_LIMIT}</BodyText>
+
         <Pressable onPress={() => setShowPicker(!showPicker)} style={styles.pickerButton}>
-          <Text style={styles.pickerText}>{prayerId ? `Linked to: ${myPrayers.find((p) => p.id === prayerId)?.title || 'Prayer'}` : 'Link to a prayer (optional)'}</Text>
+          <BodyText variant="small">
+            {linkedTitle ? `Linked to: ${linkedTitle}` : 'Link to a prayer (optional)'}
+          </BodyText>
         </Pressable>
+
         {showPicker ? (
-          <FlatList
-            data={[{ id: null, title: 'No linked prayer' }, ...myPrayers]}
-            keyExtractor={(item) => item.id || 'none'}
-            style={styles.pickerList}
-            ListEmptyComponent={<EmptyState label="No active prayers to link." />}
-            renderItem={({ item }) => (
-              <Pressable onPress={() => { setPrayerId(item.id); setShowPicker(false); }} style={styles.pickerItem}>
-                <Text style={[styles.pickerItemText, prayerId === item.id && { color: colors.gold }]}>{item.title}</Text>
-              </Pressable>
-            )}
-          />
+          <View style={styles.pickerList}>
+            <FlatList
+              data={[{ id: null, title: 'No linked prayer' }, ...myPrayers]}
+              keyExtractor={(item) => item.id || 'none'}
+              nestedScrollEnabled
+              ListEmptyComponent={<EmptyState label="No active prayers to link." />}
+              renderItem={({ item }) => (
+                <Pressable
+                  onPress={() => { setPrayerId(item.id); setShowPicker(false); }}
+                  style={styles.pickerItem}
+                >
+                  <BodyText variant="small" style={prayerId === item.id && styles.pickerItemActive}>
+                    {item.title}
+                  </BodyText>
+                </Pressable>
+              )}
+            />
+          </View>
         ) : null}
-        <Pressable disabled={busy} onPress={submit} style={styles.button}>
-          <Text style={styles.buttonText}>{busy ? 'Sharing...' : 'Share Testimony'}</Text>
-        </Pressable>
-      </View>
-    </CinematicScreen>
+
+        <PrimaryButton
+          label="Share Testimony"
+          icon={Sparkles}
+          onPress={submit}
+          busy={busy}
+          style={styles.submit}
+        />
+      </GlassCard>
+    </ScreenScaffold>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { borderWidth: 1, borderColor: 'rgba(248,243,234,0.16)', backgroundColor: 'rgba(248,243,234,0.11)', borderRadius: 24, padding: 18 },
-  input: { marginTop: 12, minHeight: 52, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(248,243,234,0.16)', backgroundColor: 'rgba(248,243,234,0.1)', paddingHorizontal: 16, color: colors.ivory, fontSize: 15 },
-  textArea: { minHeight: 150, paddingTop: 16, textAlignVertical: 'top' },
-  button: { marginTop: 20, minHeight: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.gold },
-  buttonText: { color: colors.ink, fontSize: 15, fontWeight: '800' },
-  pickerButton: { marginTop: 12, minHeight: 44, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(248,243,234,0.16)', backgroundColor: 'rgba(248,243,234,0.08)', paddingHorizontal: 14, justifyContent: 'center' },
-  pickerText: { color: 'rgba(248,243,234,0.62)', fontSize: 14 },
-  pickerList: { maxHeight: 200, marginTop: 8, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(248,243,234,0.12)', backgroundColor: 'rgba(8,11,19,0.95)', overflow: 'hidden' },
-  pickerItem: { paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(248,243,234,0.08)' },
-  pickerItemText: { color: 'rgba(248,243,234,0.72)', fontSize: 14 },
+  card: { marginTop: spacing.sm },
+  counter: { marginTop: spacing.xs, textAlign: 'right' },
+  pickerButton: {
+    marginTop: spacing.md,
+    minHeight: 48,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: alpha.ivory16,
+    backgroundColor: alpha.ivory10,
+    paddingHorizontal: spacing.md,
+    justifyContent: 'center',
+  },
+  pickerList: {
+    maxHeight: 200,
+    marginTop: spacing.sm,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: alpha.ivory16,
+    backgroundColor: alpha.ivory10,
+    overflow: 'hidden',
+  },
+  pickerItem: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: alpha.ivory10,
+  },
+  pickerItemActive: { color: colors.gold },
+  submit: { marginTop: spacing.xl },
 });

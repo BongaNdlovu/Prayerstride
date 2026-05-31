@@ -1,31 +1,40 @@
-import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { ShieldAlert } from 'lucide-react-native';
-import { colors } from '../theme';
-
-const styles = StyleSheet.create({
-  shell: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: colors.ink },
-  iconWrap: { width: 70, height: 70, borderRadius: 35, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(200,137,43,0.16)', marginBottom: 24 },
-  title: { color: colors.ivory, fontSize: 28, fontWeight: '800', textAlign: 'center' },
-  subtitle: { marginTop: 12, color: 'rgba(248,243,234,0.72)', fontSize: 15, lineHeight: 23, textAlign: 'center', maxWidth: 280 },
-  reason: { marginTop: 8, color: 'rgba(248,243,234,0.5)', fontSize: 13, textAlign: 'center', maxWidth: 280 },
-  button: { marginTop: 32, minHeight: 54, paddingHorizontal: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 18, borderWidth: 1, borderColor: 'rgba(248,243,234,0.16)', backgroundColor: 'rgba(248,243,234,0.08)' },
-  buttonText: { color: colors.ivory, fontSize: 16, fontWeight: '800' },
-});
+import { alpha, colors, spacing } from '../theme';
+import ScreenScaffold from '../components/ScreenScaffold';
+import Heading from '../components/Heading';
+import BodyText from '../components/BodyText';
+import PrimaryButton from '../components/PrimaryButton';
 
 export default function AccountSuspendedScreen({ reason, onSignOut }) {
   return (
-    <SafeAreaView style={styles.shell}>
+    <ScreenScaffold scroll={false} style={styles.centered}>
       <View style={styles.iconWrap}>
         <ShieldAlert color={colors.gold} size={32} />
       </View>
-      <Text style={styles.title}>Account Suspended</Text>
-      <Text style={styles.subtitle}>
+      <Heading level="h2" style={styles.title}>Account Suspended</Heading>
+      <BodyText variant="body" style={styles.subtitle}>
         Your account has been temporarily suspended. This may be due to a violation of our community guidelines.
-      </Text>
-      {reason ? <Text style={styles.reason}>{reason}</Text> : null}
-      <Pressable onPress={onSignOut} style={styles.button}>
-        <Text style={styles.buttonText}>Sign Out</Text>
-      </Pressable>
-    </SafeAreaView>
+      </BodyText>
+      {reason ? <BodyText variant="caption" style={styles.reason}>{reason}</BodyText> : null}
+      <PrimaryButton label="Sign Out" onPress={onSignOut} variant="ghost" style={styles.cta} />
+    </ScreenScaffold>
   );
 }
+
+const styles = StyleSheet.create({
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xxl },
+  iconWrap: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: alpha.gold18,
+    marginBottom: spacing.xxl,
+  },
+  title: { textAlign: 'center' },
+  subtitle: { marginTop: spacing.md, textAlign: 'center', maxWidth: 280 },
+  reason: { marginTop: spacing.sm, textAlign: 'center', maxWidth: 280 },
+  cta: { marginTop: spacing.xxxl, alignSelf: 'stretch' },
+});

@@ -1,17 +1,19 @@
-import { FlatList, StyleSheet, Text, View } from 'react-native';
-import { colors } from '../theme';
+import { FlatList, StyleSheet, View } from 'react-native';
+import { alpha, colors, spacing } from '../theme';
 import { useFollowing } from '../useContentCollections';
-import CinematicScreen from '../components/CinematicScreen';
-import PageHero from '../components/PageHero';
+import ScreenScaffold from '../components/ScreenScaffold';
+import AppHeader from '../components/AppHeader';
+import GlassCard from '../components/GlassCard';
+import BodyText from '../components/BodyText';
 import EmptyState from '../components/EmptyState';
 import AsyncState from '../components/AsyncState';
 
-export default function FollowingScreen({ user }) {
+export default function FollowingScreen({ user, onBack }) {
   const { following, loading, error } = useFollowing(user?.uid, true);
 
   return (
-    <CinematicScreen>
-      <PageHero scene="community" eyebrow="Community" title="Following" subtitle="People and groups you follow." compact />
+    <ScreenScaffold scroll={false} style={styles.shell}>
+      <AppHeader title="Following" subtitle="People and groups you follow." onBack={onBack} />
       <AsyncState
         loading={loading}
         error={error}
@@ -24,28 +26,37 @@ export default function FollowingScreen({ user }) {
           contentContainerStyle={styles.list}
           ListEmptyComponent={<EmptyState label="Not following anyone yet." />}
           renderItem={({ item }) => (
-            <View style={styles.card}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{(item.displayName || item.name || 'U').slice(0, 1)}</Text>
+            <GlassCard style={styles.card}>
+              <View style={styles.row}>
+                <View style={styles.avatar}>
+                  <BodyText variant="label" style={styles.avatarText}>{(item.displayName || item.name || 'U').slice(0, 1)}</BodyText>
+                </View>
+                <View style={styles.info}>
+                  <BodyText variant="label">{item.displayName || item.name || item.handle || 'Follower'}</BodyText>
+                  <BodyText variant="caption">{item.subtitle || item.title || item.handle || 'Community member'}</BodyText>
+                </View>
               </View>
-              <View style={styles.info}>
-                <Text style={styles.name}>{item.displayName || item.name || item.handle || 'Follower'}</Text>
-                <Text style={styles.title}>{item.subtitle || item.title || item.handle || 'Community member'}</Text>
-              </View>
-            </View>
+            </GlassCard>
           )}
         />
       </AsyncState>
-    </CinematicScreen>
+    </ScreenScaffold>
   );
 }
 
 const styles = StyleSheet.create({
-  list: { paddingHorizontal: 16, paddingBottom: 120, gap: 10 },
-  card: { flexDirection: 'row', alignItems: 'center', gap: 14, borderWidth: 1, borderColor: 'rgba(248,243,234,0.12)', borderRadius: 18, padding: 14, backgroundColor: 'rgba(248,243,234,0.05)' },
-  avatar: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.sand },
-  avatarText: { color: colors.navy, fontSize: 20, fontWeight: '800' },
+  shell: { flex: 1 },
+  list: { paddingHorizontal: spacing.lg, paddingBottom: spacing.tabBar, gap: spacing.md },
+  card: { marginBottom: 0 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: alpha.gold22,
+  },
+  avatarText: { color: colors.navy },
   info: { flex: 1 },
-  name: { color: colors.ivory, fontSize: 16, fontWeight: '700' },
-  title: { color: 'rgba(248,243,234,0.5)', fontSize: 12, marginTop: 2 },
 });

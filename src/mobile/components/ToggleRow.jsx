@@ -1,16 +1,33 @@
-import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
-import { colors } from '../theme';
+import { Pressable, StyleSheet, Switch, View } from 'react-native';
+import { alpha, colors, spacing } from '../theme';
+import BodyText from './BodyText';
 
-const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(248,243,234,0.1)' },
-  label: { color: colors.ivory, fontSize: 15, fontWeight: '600', flex: 1 },
-});
-
-export default function ToggleRow({ label, value, onToggle }) {
+export default function ToggleRow({ label, subtext, value, onToggle, style }) {
   return (
-    <Pressable onPress={() => onToggle(!value)} style={styles.row}>
-      <Text style={styles.label}>{label}</Text>
-      <Switch value={value} onValueChange={onToggle} trackColor={{ false: 'rgba(248,243,234,0.2)', true: colors.gold }} thumbColor={value ? colors.ink : colors.ivory} />
+    <Pressable onPress={() => onToggle(!value)} style={[styles.row, style]}>
+      <View style={styles.textGroup}>
+        <BodyText variant="label">{label}</BodyText>
+        {subtext ? <BodyText variant="caption" style={styles.subtext}>{subtext}</BodyText> : null}
+      </View>
+      <Switch
+        value={value}
+        onValueChange={onToggle}
+        trackColor={{ false: alpha.ivory20, true: colors.gold }}
+        thumbColor={value ? colors.ink : colors.ivory}
+      />
     </Pressable>
   );
 }
+
+const styles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.md + 2,
+    borderBottomWidth: 1,
+    borderBottomColor: alpha.ivory10,
+  },
+  textGroup: { flex: 1, paddingRight: spacing.md },
+  subtext: { marginTop: 2 },
+});

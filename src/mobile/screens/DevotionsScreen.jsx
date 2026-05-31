@@ -1,17 +1,21 @@
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors } from '../theme';
+import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { ChevronRight } from 'lucide-react-native';
+import { alpha, spacing } from '../theme';
 import { useDevotions } from '../useContentCollections';
-import CinematicScreen from '../components/CinematicScreen';
-import PageHero from '../components/PageHero';
+import ScreenScaffold from '../components/ScreenScaffold';
+import AppHeader from '../components/AppHeader';
+import GlassCard from '../components/GlassCard';
+import Heading from '../components/Heading';
+import BodyText from '../components/BodyText';
 import EmptyState from '../components/EmptyState';
 import AsyncState from '../components/AsyncState';
 
-export default function DevotionsScreen({ go }) {
+export default function DevotionsScreen({ go, onBack }) {
   const { devotions, loading, error } = useDevotions(true);
 
   return (
-    <CinematicScreen>
-      <PageHero scene="bible" eyebrow="Devotion" title="Daily Devotions" subtitle="Read, reflect, and grow in faith." compact />
+    <ScreenScaffold scroll={false} style={styles.shell}>
+      <AppHeader title="Daily Devotions" subtitle="Read, reflect, and grow in faith." onBack={onBack} />
       <AsyncState
         loading={loading}
         error={error}
@@ -24,22 +28,32 @@ export default function DevotionsScreen({ go }) {
           contentContainerStyle={styles.list}
           ListEmptyComponent={<EmptyState label="No devotions available." />}
           renderItem={({ item }) => (
-            <Pressable onPress={() => go('guideDetail', { guideId: item.guideId || item.id })} style={styles.card}>
-              <Text style={styles.title}>{item.title}</Text>
-              <Text style={styles.ref}>{item.reference || item.subtitle || 'Daily reading'}</Text>
-              <Text style={styles.date}>{item.dateLabel || item.date || ''}{item.day ? ` - Day ${item.day}` : ''}</Text>
+            <Pressable onPress={() => go('guideDetail', { guideId: item.guideId || item.id })}>
+              <GlassCard style={styles.card}>
+                <View style={styles.cardRow}>
+                  <View style={styles.cardInfo}>
+                    <Heading level="h4">{item.title}</Heading>
+                    <BodyText variant="small">{item.reference || item.subtitle || 'Daily reading'}</BodyText>
+                    <BodyText variant="caption" style={styles.date}>
+                      {item.dateLabel || item.date || ''}{item.day ? ` · Day ${item.day}` : ''}
+                    </BodyText>
+                  </View>
+                  <ChevronRight size={18} color={alpha.ivory55} />
+                </View>
+              </GlassCard>
             </Pressable>
           )}
         />
       </AsyncState>
-    </CinematicScreen>
+    </ScreenScaffold>
   );
 }
 
 const styles = StyleSheet.create({
-  list: { paddingHorizontal: 16, paddingBottom: 120, gap: 10 },
-  card: { borderWidth: 1, borderColor: 'rgba(248,243,234,0.12)', borderRadius: 18, padding: 16, backgroundColor: 'rgba(248,243,234,0.05)' },
-  title: { color: colors.ivory, fontSize: 16, fontWeight: '700' },
-  ref: { marginTop: 6, color: 'rgba(248,243,234,0.62)', fontSize: 13 },
-  date: { marginTop: 4, color: 'rgba(248,243,234,0.4)', fontSize: 11 },
+  shell: { flex: 1 },
+  list: { paddingHorizontal: spacing.lg, paddingBottom: spacing.tabBar, gap: spacing.md },
+  card: { marginBottom: 0 },
+  cardRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  cardInfo: { flex: 1 },
+  date: { marginTop: spacing.xs, color: alpha.ivory55 },
 });

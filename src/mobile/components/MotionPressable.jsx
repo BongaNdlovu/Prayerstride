@@ -1,19 +1,24 @@
-import { useState } from 'react';
 import { Pressable } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
-export default function MotionPressable({ children, style, disabled, onPress, ...rest }) {
-  const [pressed, setPressed] = useState(false);
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+export default function MotionPressable({ children, style, onPress, disabled }) {
+  const scale = useSharedValue(1);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
 
   return (
-    <Pressable
+    <AnimatedPressable
       disabled={disabled}
       onPress={onPress}
-      onPressIn={() => setPressed(true)}
-      onPressOut={() => setPressed(false)}
-      style={[style, (pressed || disabled) && { opacity: disabled ? 0.5 : 0.92 }]}
-      {...rest}
+      onPressIn={() => { scale.value = withSpring(0.97); }}
+      onPressOut={() => { scale.value = withSpring(1); }}
+      style={[animatedStyle, style]}
     >
       {children}
-    </Pressable>
+    </AnimatedPressable>
   );
 }

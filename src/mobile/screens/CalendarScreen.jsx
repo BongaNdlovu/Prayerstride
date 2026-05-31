@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Alert, FlatList, StyleSheet, Text, TextInput, View } from 'react-native';
-import { colors } from '../theme';
+import { Alert, FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { alpha, colors, fonts, sharedStyles, spacing } from '../theme';
 import {
   bookmarkDate,
   createCalendarEvent,
@@ -12,12 +12,15 @@ import {
   updateCalendarEvent,
   useCalendarEvents,
 } from '../useCalendarEvents';
-import CinematicScreen from '../components/CinematicScreen';
-import PageHero from '../components/PageHero';
+import ScreenScaffold from '../components/ScreenScaffold';
+import AppHeader from '../components/AppHeader';
+import GlassCard from '../components/GlassCard';
+import PrimaryButton from '../components/PrimaryButton';
+import Heading from '../components/Heading';
+import BodyText from '../components/BodyText';
 import AsyncState from '../components/AsyncState';
-import MotionPressable from '../components/MotionPressable';
 
-export default function CalendarScreen({ user }) {
+export default function CalendarScreen({ user, onBack }) {
   const { events, bookmarkedDateKeys, loading, error } = useCalendarEvents(user?.uid, Boolean(user?.uid));
   const [title, setTitle] = useState('');
   const [notes, setNotes] = useState('');
@@ -84,81 +87,94 @@ export default function CalendarScreen({ user }) {
   };
 
   return (
-    <CinematicScreen>
-      <PageHero scene="community" eyebrow="Calendar" title="Your rhythm" subtitle="Personal prayer events and bookmarked dates." compact />
-      <View style={styles.formCard}>
-        <Text style={styles.label}>Date (YYYY-MM-DD)</Text>
-        <TextInput value={dateKey} onChangeText={setDateKey} style={styles.input} placeholderTextColor="rgba(248,243,234,0.5)" />
-        <TextInput value={title} onChangeText={setTitle} placeholder="Event title" style={styles.input} placeholderTextColor="rgba(248,243,234,0.5)" />
-        <TextInput value={notes} onChangeText={setNotes} placeholder="Notes (optional)" multiline style={[styles.input, styles.textArea]} placeholderTextColor="rgba(248,243,234,0.5)" />
-        <View style={styles.row}>
-          <MotionPressable disabled={busy} onPress={saveEvent} style={styles.primaryButton}>
-            <Text style={styles.primaryText}>{busy ? 'Saving...' : editingId ? 'Update Event' : 'Add Event'}</Text>
-          </MotionPressable>
-          <MotionPressable onPress={toggleBookmark} style={styles.outlineButton}>
-            <Text style={styles.outlineText}>{bookmarkedDateKeys.has(dateKey) ? 'Unbookmark' : 'Bookmark date'}</Text>
-          </MotionPressable>
-        </View>
-        {editingId ? (
-          <MotionPressable onPress={resetForm} style={styles.linkButton}>
-            <Text style={styles.linkText}>Cancel edit</Text>
-          </MotionPressable>
-        ) : null}
-      </View>
-      <AsyncState loading={loading} error={error} empty={!loading && !error && sortedEvents.length === 0} emptyLabel="No calendar events yet.">
-        <FlatList
-          data={sortedEvents}
-          keyExtractor={(item) => item.id}
-          scrollEnabled={false}
-          contentContainerStyle={styles.list}
-          renderItem={({ item }) => (
-            <View style={styles.card}>
-              <Text style={styles.date}>{formatDateKeyLabel(item.dateKey)}</Text>
+    <ScreenScaffold scroll={false} style={styles.shell}>
+      <AppHeader title="Your rhythm" subtitle="Personal prayer events and bookmarked dates." onBack={onBack} />
+      <AsyncState loading={loading} error={error} empty={false}>
+      <FlatList
+        data={sortedEvents}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.list}
+        ListHeaderComponent={(
+          <GlassCard style={styles.formCard}>
+            <BodyText variant="label" style={styles.fieldLabel}>Date (YYYY-MM-DD)</BodyText>
+            <TextInput value={dateKey} onChangeText={setDateKey} style={styles.input} placeholderTextColor={alpha.ivory55} />
+            <TextInput value={title} onChangeText={setTitle} placeholder="Event title" style={styles.input} placeholderTextColor={alpha.ivory55} />
+            <TextInput value={notes} onChangeText={setNotes} placeholder="Notes (optional)" multiline style={[styles.input, styles.textArea]} placeholderTextColor={alpha.ivory55} />
+            <View style={styles.row}>
+              <PrimaryButton
+                label={busy ? 'Saving...' : editingId ? 'Update Event' : 'Add Event'}
+                onPress={saveEvent}
+                disabled={busy}
+                busy={busy}
+                style={styles.primaryBtn}
+              />
+              <PrimaryButton
+                label={bookmarkedDateKeys.has(dateKey) ? 'Unbookmark' : 'Bookmark date'}
+                onPress={toggleBookmark}
+                variant="ghost"
+                style={styles.outlineBtn}
+              />
+            </View>
+            {editingId ? (
+              <Pressable onPress={resetForm} style={styles.linkButton}>
+                <BodyText variant="small" style={styles.linkText}>Cancel edit</BodyText>
+              </Pressable>
+            ) : null}
+          </GlassCard>
+        )}
+        ListEmptyComponent={(
+          <GlassCard>
+            <BodyText variant="body">No calendar events yet.</BodyText>
+          </GlassCard>
+        )}
+        renderItem={({ item }) => (
+          <GlassCard style={styles.eventCard}>
+            <View style={styles.eventRow}>
+              <Heading level="h4" style={styles.date}>{formatDateKeyLabel(item.dateKey)}</Heading>
               <View style={styles.info}>
-                <Text style={styles.title}>{item.title}</Text>
-                <Text style={styles.meta}>
+                <BodyText variant="label">{item.title}</BodyText>
+                <BodyText variant="caption">
                   {formatEventTime(item.startsAt) || 'All day'}
                   {item.notes ? ` · ${item.notes}` : ''}
                   {bookmarkedDateKeys.has(item.dateKey) ? ' · Bookmarked' : ''}
-                </Text>
-              </View>
-              <View style={styles.actions}>
-                <MotionPressable onPress={() => { setEditingId(item.id); setTitle(item.title); setNotes(item.notes || ''); setDateKey(item.dateKey); }} style={styles.smallBtn}>
-                  <Text style={styles.smallBtnText}>Edit</Text>
-                </MotionPressable>
-                <MotionPressable onPress={() => removeEvent(item)} style={styles.smallBtnOutline}>
-                  <Text style={styles.smallBtnTextOutline}>Delete</Text>
-                </MotionPressable>
+                </BodyText>
               </View>
             </View>
-          )}
-        />
+            <View style={styles.actions}>
+              <PrimaryButton
+                label="Edit"
+                onPress={() => { setEditingId(item.id); setTitle(item.title); setNotes(item.notes || ''); setDateKey(item.dateKey); }}
+                style={styles.smallBtn}
+                textStyle={styles.smallBtnText}
+              />
+              <PrimaryButton label="Delete" onPress={() => removeEvent(item)} variant="ghost" style={styles.smallBtnOutline} />
+            </View>
+          </GlassCard>
+        )}
+      />
       </AsyncState>
-    </CinematicScreen>
+    </ScreenScaffold>
   );
 }
 
 const styles = StyleSheet.create({
-  formCard: { marginHorizontal: 16, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(248,243,234,0.12)', borderRadius: 18, padding: 14, backgroundColor: 'rgba(248,243,234,0.05)', gap: 8 },
-  label: { color: 'rgba(248,243,234,0.62)', fontSize: 12, fontWeight: '700' },
-  input: { minHeight: 48, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(248,243,234,0.16)', backgroundColor: 'rgba(248,243,234,0.08)', paddingHorizontal: 14, color: colors.ivory, fontSize: 14 },
-  textArea: { minHeight: 72, paddingTop: 12, textAlignVertical: 'top' },
-  row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
-  primaryButton: { minHeight: 44, paddingHorizontal: 16, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.gold },
-  primaryText: { color: colors.ink, fontSize: 13, fontWeight: '800' },
-  outlineButton: { minHeight: 44, paddingHorizontal: 16, borderRadius: 14, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(248,243,234,0.2)' },
-  outlineText: { color: colors.ivory, fontSize: 13, fontWeight: '700' },
-  linkButton: { alignSelf: 'flex-start', paddingVertical: 6 },
-  linkText: { color: colors.gold, fontSize: 13, fontWeight: '700' },
-  list: { paddingHorizontal: 16, paddingBottom: 120, gap: 10 },
-  card: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, borderWidth: 1, borderColor: 'rgba(248,243,234,0.12)', borderRadius: 18, padding: 14, backgroundColor: 'rgba(248,243,234,0.05)' },
-  date: { color: colors.gold, fontSize: 14, fontWeight: '800', minWidth: 56 },
+  shell: { flex: 1 },
+  list: { paddingHorizontal: spacing.lg, paddingBottom: spacing.tabBar, gap: spacing.md },
+  formCard: { marginBottom: spacing.md },
+  fieldLabel: { marginBottom: spacing.xs },
+  input: { ...sharedStyles.input, marginTop: spacing.sm },
+  textArea: { ...sharedStyles.textArea, minHeight: 72 },
+  row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md },
+  primaryBtn: { flex: 1, minWidth: 140 },
+  outlineBtn: { flex: 1, minWidth: 140 },
+  linkButton: { alignSelf: 'flex-start', marginTop: spacing.sm, paddingVertical: spacing.xs },
+  linkText: { color: colors.gold, fontFamily: fonts.sansSemiBold },
+  eventCard: { marginBottom: 0 },
+  eventRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
+  date: { color: colors.gold, minWidth: 56 },
   info: { flex: 1, minWidth: 140 },
-  title: { color: colors.ivory, fontSize: 15, fontWeight: '700' },
-  meta: { marginTop: 2, color: 'rgba(248,243,234,0.5)', fontSize: 12 },
-  actions: { flexDirection: 'row', gap: 8, width: '100%' },
-  smallBtn: { minHeight: 36, paddingHorizontal: 12, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.gold },
-  smallBtnText: { color: colors.ink, fontSize: 12, fontWeight: '800' },
-  smallBtnOutline: { minHeight: 36, paddingHorizontal: 12, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(248,243,234,0.2)' },
-  smallBtnTextOutline: { color: colors.ivory, fontSize: 12, fontWeight: '700' },
+  actions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
+  smallBtn: { flex: 1, minHeight: 40 },
+  smallBtnText: { fontSize: 13 },
+  smallBtnOutline: { flex: 1, minHeight: 40 },
 });

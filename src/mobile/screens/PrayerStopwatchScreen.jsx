@@ -1,10 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { Alert, StyleSheet, Text, TextInput, View } from 'react-native';
-import { colors } from '../theme';
+import { Timer } from 'lucide-react-native';
+import { alpha, colors, fonts, radii, sharedStyles, spacing, typography } from '../theme';
 import { addPrayer } from '../usePrayerData';
 import { addPrayerSession } from '../usePrayerSessions';
-import CinematicScreen from '../components/CinematicScreen';
-import MotionPressable from '../components/MotionPressable';
+import ScreenScaffold from '../components/ScreenScaffold';
+import AppHeader from '../components/AppHeader';
+import GlassCard from '../components/GlassCard';
+import BodyText from '../components/BodyText';
+import PrimaryButton from '../components/PrimaryButton';
 
 function formatTime(totalSeconds) {
   const h = Math.floor(totalSeconds / 3600);
@@ -75,7 +79,10 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, us
       setPrivateTitle('');
       setReadyToLog(false);
       if (onDone) onDone();
-      Alert.alert('Session saved', isDirectPrivateSession ? 'Your private prayer session has been recorded.' : 'Your prayer time has been recorded.');
+      Alert.alert(
+        'Session saved',
+        isDirectPrivateSession ? 'Your private prayer session has been recorded.' : 'Your prayer time has been recorded.',
+      );
     } catch (error) {
       Alert.alert('Could not save', error.message);
     } finally {
@@ -84,9 +91,14 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, us
   };
 
   return (
-    <CinematicScreen>
-      <View style={styles.container}>
-        <Text style={styles.label}>{isDirectPrivateSession ? 'Private Prayer Session' : sessionTitle}</Text>
+    <ScreenScaffold scroll={false} pageContent style={styles.screen}>
+      <AppHeader centered showLogo title="Prayer Timer" subtitle={isDirectPrivateSession ? 'Private session' : sessionTitle} />
+
+      <GlassCard style={styles.timerCard}>
+        <View style={styles.iconRing}>
+          <Timer size={28} color={colors.gold} />
+        </View>
+
         {isDirectPrivateSession ? (
           <>
             <TextInput
@@ -94,43 +106,63 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, us
               onChangeText={setPrivateTitle}
               editable={!running && seconds === 0 && !readyToLog}
               placeholder="What are you praying about?"
-              placeholderTextColor="rgba(248,243,234,0.5)"
-              style={styles.input}
+              placeholderTextColor={alpha.ivory55}
+              style={[sharedStyles.input, styles.input]}
             />
-            <Text style={styles.privateNote}>This will create an Only me prayer and attach this stopwatch session to it.</Text>
+            <BodyText variant="caption" style={styles.privateNote}>
+              This creates a private prayer and attaches this stopwatch session to it.
+            </BodyText>
           </>
         ) : null}
+
         <Text style={styles.timer}>{formatTime(seconds)}</Text>
+        <BodyText variant="caption" style={styles.timerLabel}>
+          {running ? 'Praying now...' : seconds ? 'Paused' : 'Ready when you are'}
+        </BodyText>
+
         <View style={styles.actions}>
-          <MotionPressable onPress={startPause} style={styles.button}>
-            <Text style={styles.buttonText}>{running ? 'Pause' : seconds ? 'Resume' : 'Start'}</Text>
-          </MotionPressable>
+          <PrimaryButton
+            label={running ? 'Pause' : seconds ? 'Resume' : 'Start'}
+            onPress={startPause}
+            style={styles.actionBtn}
+          />
           {seconds > 0 && !running ? (
-            <MotionPressable onPress={resetTimer} style={styles.outlineButton}>
-              <Text style={styles.outlineText}>Reset</Text>
-            </MotionPressable>
+            <PrimaryButton label="Reset" variant="ghost" onPress={resetTimer} style={styles.actionBtn} />
           ) : null}
         </View>
+
         {readyToLog && !running && seconds > 0 ? (
-          <MotionPressable disabled={busy} onPress={logPrayer} style={[styles.button, styles.logButton]}>
-            <Text style={styles.buttonText}>{busy ? 'Saving...' : 'Log Prayer'}</Text>
-          </MotionPressable>
+          <PrimaryButton label="Log Prayer" onPress={logPrayer} busy={busy} disabled={busy} style={styles.logBtn} />
         ) : null}
-      </View>
-    </CinematicScreen>
+      </GlassCard>
+    </ScreenScaffold>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, paddingBottom: 120 },
-  label: { color: 'rgba(248,243,234,0.62)', fontSize: 16, marginBottom: 16, textAlign: 'center' },
-  input: { width: '100%', minHeight: 52, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(248,243,234,0.16)', backgroundColor: 'rgba(248,243,234,0.1)', paddingHorizontal: 16, color: colors.ivory, fontSize: 15, marginBottom: 10 },
-  privateNote: { color: 'rgba(248,243,234,0.58)', fontSize: 12, lineHeight: 18, textAlign: 'center', marginBottom: 20 },
-  timer: { color: colors.ivory, fontSize: 56, fontWeight: '800', fontVariant: ['tabular-nums'], marginBottom: 32 },
-  actions: { flexDirection: 'row', gap: 12, marginBottom: 20, flexWrap: 'wrap', justifyContent: 'center' },
-  button: { minHeight: 52, paddingHorizontal: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.gold },
-  buttonText: { color: colors.ink, fontSize: 15, fontWeight: '800' },
-  outlineButton: { minHeight: 52, paddingHorizontal: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(248,243,234,0.2)' },
-  outlineText: { color: 'rgba(248,243,234,0.72)', fontSize: 15, fontWeight: '700' },
-  logButton: { marginTop: 12, backgroundColor: colors.ivory, width: '100%', maxWidth: 280 },
+  screen: { flex: 1, justifyContent: 'center' },
+  timerCard: { alignItems: 'center', marginTop: spacing.lg },
+  iconRing: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: alpha.gold18,
+    marginBottom: spacing.lg,
+  },
+  input: { alignSelf: 'stretch', marginTop: 0 },
+  privateNote: { marginTop: spacing.sm, marginBottom: spacing.md, textAlign: 'center' },
+  timer: {
+    ...typography.display,
+    fontSize: 56,
+    lineHeight: 64,
+    fontVariant: ['tabular-nums'],
+    color: colors.gold,
+    marginTop: spacing.md,
+  },
+  timerLabel: { marginTop: spacing.sm, marginBottom: spacing.xl },
+  actions: { flexDirection: 'row', gap: spacing.md, flexWrap: 'wrap', justifyContent: 'center', width: '100%' },
+  actionBtn: { minWidth: 140 },
+  logBtn: { marginTop: spacing.lg, alignSelf: 'stretch' },
 });

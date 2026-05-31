@@ -1,55 +1,63 @@
-import { useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors } from '../theme';
+import { useMemo, useState } from 'react';
+import { FlatList, StyleSheet, View } from 'react-native';
+import { spacing } from '../theme';
 import { usePrayers } from '../usePrayerData';
-import CinematicScreen from '../components/CinematicScreen';
-import PageHero from '../components/PageHero';
+import ScreenScaffold from '../components/ScreenScaffold';
+import AppHeader from '../components/AppHeader';
+import PillTabs from '../components/PillTabs';
 import PrayerCard from '../components/PrayerCard';
-import EmptyState from '../components/EmptyState';
+import AsyncState from '../components/AsyncState';
 
-export default function MyPrayersScreen({ user, onOpenPrayer }) {
-  const { prayers } = usePrayers(true, { userId: user?.uid });
-  const [tab, setTab] = useState('Active');
-  const mine = prayers.filter((p) => p.authorUid === user.uid);
-  const active = mine.filter((p) => p.status === 'active');
-  const answered = mine.filter((p) => p.status === 'answered');
+const TABS = ['All', 'Active', 'Answered'];
 
-  const data = tab === 'Answered' ? answered : active;
-  const tabs = ['Active', 'Answered'];
+export default function MyPrayersScreen({ user, onOpenPrayer, onBack }) {
+  const { prayers, loading } = usePrayers(true, { userId: user?.uid });
+  const [tab, setTab] = useState('All');
+
+  const mine = useMemo(
+    () => prayers.filter((prayer) => prayer.authorUid === user.uid),
+    [prayers, user.uid],
+  );
+
+  const data = useMemo(() => {
+    if (tab === 'Active') return mine.filter((prayer) => prayer.status === 'active');
+    if (tab === 'Answered') return mine.filter((prayer) => prayer.status === 'answered');
+    return mine;
+  }, [mine, tab]);
+
   const header = (
-    <>
-      <PageHero scene="bible" eyebrow="My Prayers" title="Your prayer walk" subtitle="Track your requests and answered prayers." compact />
-      <View style={styles.tabRow}>
-        {tabs.map((t) => (
-          <Pressable key={t} onPress={() => setTab(t)} style={[styles.tab, tab === t && styles.tabActive]}>
-            <Text style={[styles.tabText, tab === t && styles.tabTextActive]}>{t}</Text>
-          </Pressable>
-        ))}
-      </View>
-    </>
+    <View style={styles.header}>
+      <AppHeader onBack={onBack} title="My Prayers" subtitle="Track your prayer requests" />
+      <PillTabs tabs={TABS} active={tab} onChange={setTab} style={styles.tabs} />
+    </View>
   );
 
   return (
-    <CinematicScreen scroll={false}>
+    <ScreenScaffold scroll={false} pageContent style={styles.screen}>
       <FlatList
         data={data}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         ListHeaderComponent={header}
-        ListEmptyComponent={<EmptyState label={tab === 'Answered' ? 'No answered prayers yet.' : 'No active prayers.'} />}
-        renderItem={({ item }) => <PrayerCard prayer={item} onPress={() => onOpenPrayer(item)} variant="glass" />}
-        showsVerticalScrollIndicator
-        persistentScrollbar
+        ListEmptyComponent={(
+          <AsyncState
+            loading={loading}
+            empty={!loading}
+            emptyLabel={tab === 'Answered' ? 'No answered prayers yet.' : tab === 'Active' ? 'No active prayers.' : 'No prayers yet.'}
+          />
+        )}
+        renderItem={({ item }) => (
+          <PrayerCard prayer={item} onPress={() => onOpenPrayer(item)} variant="glass" />
+        )}
+        showsVerticalScrollIndicator={false}
       />
-    </CinematicScreen>
+    </ScreenScaffold>
   );
 }
 
 const styles = StyleSheet.create({
-  tabRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, marginBottom: 12 },
-  tab: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(248,243,234,0.16)', backgroundColor: 'rgba(248,243,234,0.08)' },
-  tabActive: { borderColor: colors.gold, backgroundColor: 'rgba(200,137,43,0.18)' },
-  tabText: { color: 'rgba(248,243,234,0.62)', fontSize: 13, fontWeight: '700' },
-  tabTextActive: { color: colors.gold },
-  list: { paddingBottom: 120, gap: 12 },
+  screen: { flex: 1 },
+  header: { paddingTop: spacing.sm },
+  tabs: { marginBottom: spacing.md },
+  list: { paddingBottom: spacing.tabBar, gap: spacing.md },
 });

@@ -1,8 +1,10 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Plus, Sparkles, Heart, BookOpen, Timer } from 'lucide-react-native';
-import { colors } from '../theme';
-import CinematicScreen from '../components/CinematicScreen';
-import PageHero from '../components/PageHero';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { ChevronRight, Plus, Sparkles, Heart, BookOpen, Timer } from 'lucide-react-native';
+import { colors, radii, spacing } from '../theme';
+import ScreenScaffold from '../components/ScreenScaffold';
+import AppHeader from '../components/AppHeader';
+import GlassCard from '../components/GlassCard';
+import Heading from '../components/Heading';
 
 const ACTIONS = [
   { label: 'Create Prayer Request', route: 'create', icon: Plus },
@@ -12,26 +14,60 @@ const ACTIONS = [
   { label: 'Prayer Timer', route: 'prayerStopwatch', icon: Timer },
 ];
 
-export default function QuickActionsScreen({ go }) {
+export default function QuickActionsScreen({ go, onBack }) {
   return (
-    <CinematicScreen pageContent>
-      <PageHero scene="dawn" eyebrow="Actions" title="Quick Actions" subtitle="Jump into prayer, praise, or reflection." compact />
-      {ACTIONS.map((action) => (
-        <Pressable key={action.route} onPress={() => go(action.route)} style={styles.card}>
-          <View style={styles.iconWrap}>
-            <action.icon size={22} color={colors.ink} />
-          </View>
-          <Text style={styles.label}>{action.label}</Text>
-          <Text style={styles.arrow}>›</Text>
-        </Pressable>
-      ))}
-    </CinematicScreen>
+    <ScreenScaffold pageContent>
+      <AppHeader title="Quick Actions" subtitle="Jump into prayer, praise, or reflection." onBack={onBack} centered showLogo />
+      <View style={styles.grid}>
+        {ACTIONS.map((action) => {
+          const Icon = action.icon;
+          return (
+            <Pressable
+              key={action.route}
+              onPress={() => go(action.route)}
+              style={({ pressed }) => [styles.gridItem, pressed && styles.pressed]}
+              accessibilityRole="button"
+            >
+              <GlassCard style={styles.card}>
+                <View style={styles.iconWrap}>
+                  <Icon size={22} color={colors.ink} />
+                </View>
+                <Heading level="h4" style={styles.label}>{action.label}</Heading>
+                <ChevronRight size={18} color={colors.gold} style={styles.arrow} />
+              </GlassCard>
+            </Pressable>
+          );
+        })}
+      </View>
+    </ScreenScaffold>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { flexDirection: 'row', alignItems: 'center', gap: 14, borderWidth: 1, borderColor: 'rgba(248,243,234,0.16)', borderRadius: 18, padding: 16, marginBottom: 10, backgroundColor: 'rgba(248,243,234,0.06)' },
-  iconWrap: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.gold },
-  label: { flex: 1, color: colors.ivory, fontSize: 16, fontWeight: '600' },
-  arrow: { color: 'rgba(248,243,234,0.4)', fontSize: 24 },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.md,
+  },
+  gridItem: {
+    width: '47%',
+    flexGrow: 1,
+  },
+  card: {
+    minHeight: 140,
+    marginBottom: 0,
+    justifyContent: 'space-between',
+  },
+  iconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.gold,
+    marginBottom: spacing.md,
+  },
+  label: { fontSize: 15, lineHeight: 20, flex: 1 },
+  arrow: { alignSelf: 'flex-end', marginTop: spacing.sm },
+  pressed: { opacity: 0.92 },
 });

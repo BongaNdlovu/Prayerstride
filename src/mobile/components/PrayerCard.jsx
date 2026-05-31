@@ -1,47 +1,104 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Bookmark } from 'lucide-react-native';
-import { colors } from '../theme';
+import { ChevronRight } from 'lucide-react-native';
+import { alpha, colors, fonts, radii, spacing } from '../theme';
+import Heading from './Heading';
+import BodyText from './BodyText';
+import GlassCard from './GlassCard';
 
-const styles = StyleSheet.create({
-  glassCard: { width: '100%', borderWidth: 1, borderColor: 'rgba(248,243,234,0.16)', backgroundColor: 'rgba(248,243,234,0.1)', borderRadius: 24, padding: 16 },
-  solidCard: { marginTop: 12, padding: 18, borderRadius: 22, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.stone, shadowColor: '#101820', shadowOffset: { width: 0, height: 16 }, shadowOpacity: 0.16, shadowRadius: 24, elevation: 6 },
-  metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
-  meta: { flexShrink: 1, color: 'rgba(248,243,234,0.55)', fontSize: 12 },
-  tag: { overflow: 'hidden', borderRadius: 999, backgroundColor: 'rgba(200,137,43,0.18)', paddingHorizontal: 9, paddingVertical: 5, color: colors.gold, fontSize: 11, fontWeight: '800' },
-  title: { marginTop: 10, color: colors.ivory, fontSize: 21, lineHeight: 26, fontWeight: '800' },
-  body: { marginTop: 8, color: 'rgba(248,243,234,0.68)', fontSize: 14, lineHeight: 21 },
-  cardEyebrow: { color: colors.gold, fontSize: 11, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase' },
-  cardTitle: { marginTop: 6, color: colors.navy, fontSize: 22, fontWeight: '800' },
-  cardBody: { marginTop: 10, color: '#475467', fontSize: 15, lineHeight: 23 },
-  authorText: { marginTop: 12, color: colors.muted, fontSize: 12, fontWeight: '700' },
-});
+const CATEGORY_ICONS = {
+  health: '❤',
+  family: '🏠',
+  finances: '📈',
+  wisdom: '☀',
+  peace: '🕊',
+  job: '💼',
+  protection: '🛡',
+};
 
 export default function PrayerCard({ prayer, onPress, variant = 'glass' }) {
-  const isGlass = variant === 'glass';
+  const icon = CATEGORY_ICONS[prayer.category?.toLowerCase()] || '🙏';
+  const prayedCount = prayer.prayedCount || prayer.count || 0;
+  const isActive = prayer.status !== 'answered';
+
+  if (variant === 'list') {
+    return (
+      <Pressable onPress={onPress} style={styles.listRow}>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>{(prayer.authorName || prayer.name || 'P').slice(0, 1)}</Text>
+        </View>
+        <View style={styles.listContent}>
+          <Text style={styles.listName}>{prayer.authorName || prayer.name || 'Anonymous'}</Text>
+          <BodyText variant="small" numberOfLines={1}>{prayer.title}</BodyText>
+        </View>
+        <ChevronRight size={18} color={alpha.ivory55} />
+      </Pressable>
+    );
+  }
 
   return (
-    <Pressable onPress={onPress} style={isGlass ? styles.glassCard : styles.solidCard}>
-      {isGlass ? (
-        <>
-          <View style={styles.metaRow}>
-            <Text style={styles.meta}>{prayer.authorName || prayer.name || 'PrayerStride'} - 2h ago</Text>
-            {prayer.tag ? <Text style={styles.tag}>{prayer.tag}</Text> : null}
+    <Pressable onPress={onPress}>
+      <GlassCard style={styles.card}>
+        <View style={styles.metaRow}>
+          <View style={styles.iconWrap}>
+            <Text style={styles.categoryIcon}>{icon}</Text>
           </View>
-          <Text style={styles.title}>{prayer.title}</Text>
-          <Text numberOfLines={3} style={styles.body}>{prayer.body || prayer.text}</Text>
-          <View style={styles.metaRow}>
-            <Text style={styles.meta}>{prayer.prayedCount || prayer.count || 0} praying</Text>
-            <Bookmark size={16} color="rgba(248,243,234,0.55)" />
+          <View style={styles.content}>
+            <Heading level="h4" style={styles.title}>{prayer.title}</Heading>
+            <BodyText variant="small" numberOfLines={2}>{prayer.body || prayer.text}</BodyText>
+            <Text style={styles.praying}>{prayedCount} praying</Text>
           </View>
-        </>
-      ) : (
-        <>
-          <Text style={styles.cardEyebrow}>Prayer Request</Text>
-          <Text style={styles.cardTitle}>{prayer.title}</Text>
-          <Text numberOfLines={3} style={styles.cardBody}>{prayer.body}</Text>
-          <Text style={styles.authorText}>{prayer.authorName} - {prayer.prayedCount} praying</Text>
-        </>
-      )}
+          <View style={styles.rightCol}>
+            {isActive ? <View style={styles.activeBadge}><Text style={styles.activeText}>Active</Text></View> : null}
+            <BodyText variant="caption">2h ago</BodyText>
+            <ChevronRight size={16} color={alpha.ivory55} style={styles.chevron} />
+          </View>
+        </View>
+      </GlassCard>
     </Pressable>
   );
 }
+
+const styles = StyleSheet.create({
+  card: { marginBottom: 0 },
+  metaRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
+  iconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: alpha.gold18,
+  },
+  categoryIcon: { fontSize: 18 },
+  content: { flex: 1 },
+  title: { fontSize: 17, marginBottom: 4 },
+  praying: { marginTop: 6, fontFamily: fonts.sansMedium, fontSize: 12, color: alpha.ivory55 },
+  rightCol: { alignItems: 'flex-end', gap: 4 },
+  activeBadge: {
+    backgroundColor: 'rgba(74,222,128,0.15)',
+    borderRadius: radii.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  activeText: { fontFamily: fonts.sansSemiBold, fontSize: 10, color: colors.success },
+  chevron: { marginTop: 4 },
+  listRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: alpha.ivory10,
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: alpha.gold22,
+  },
+  avatarText: { fontFamily: fonts.sansBold, fontSize: 16, color: colors.gold },
+  listContent: { flex: 1 },
+  listName: { fontFamily: fonts.sansSemiBold, fontSize: 14, color: colors.ivory },
+});

@@ -1,6 +1,6 @@
 import { Component } from 'react';
 import { Pressable, SafeAreaView, Text, View } from 'react-native';
-import { colors } from './theme';
+import { alpha, colors, radii, spacing } from './theme';
 
 export class ErrorBoundary extends Component {
   constructor(props) {
@@ -23,15 +23,15 @@ export class ErrorBoundary extends Component {
   render() {
     if (this.state.hasError) {
       return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: colors.ink }}>
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
-            <Text style={{ color: colors.gold, fontSize: 32, fontWeight: '800', marginBottom: 12 }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: colors.screen }}>
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xxl }}>
+            <Text style={{ color: colors.gold, fontSize: 32, fontWeight: '800', marginBottom: spacing.md }}>
               Something went wrong
             </Text>
-            <Text style={{ color: 'rgba(248,243,234,0.72)', fontSize: 15, textAlign: 'center', lineHeight: 22, marginBottom: 8 }}>
+            <Text style={{ color: alpha.ivory72, fontSize: 15, textAlign: 'center', lineHeight: 22, marginBottom: spacing.sm }}>
               The app encountered an unexpected error.
             </Text>
-            <Text style={{ color: 'rgba(248,243,234,0.5)', fontSize: 12, textAlign: 'center', marginBottom: 24 }}>
+            <Text style={{ color: alpha.ivory55, fontSize: 12, textAlign: 'center', marginBottom: spacing.xxl }}>
               {this.state.error?.message || 'Unknown error'}
             </Text>
             <Pressable
@@ -41,7 +41,7 @@ export class ErrorBoundary extends Component {
                 paddingHorizontal: 32,
                 alignItems: 'center',
                 justifyContent: 'center',
-                borderRadius: 16,
+                borderRadius: radii.md,
                 backgroundColor: colors.gold,
               }}
             >

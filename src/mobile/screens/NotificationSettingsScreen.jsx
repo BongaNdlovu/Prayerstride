@@ -1,21 +1,28 @@
 import { useState, useEffect } from 'react';
-import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
-import { colors } from '../theme';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { ChevronRight, Moon } from 'lucide-react-native';
+import { alpha, colors, spacing } from '../theme';
 import { useNotificationSettings, updateNotificationSettings } from '../useNotificationSettings';
 import { registerForPushNotifications } from '../notifications';
-import CinematicScreen from '../components/CinematicScreen';
-import PageHero from '../components/PageHero';
+import ScreenScaffold from '../components/ScreenScaffold';
+import AppHeader from '../components/AppHeader';
+import GlassCard from '../components/GlassCard';
+import ToggleRow from '../components/ToggleRow';
+import Heading from '../components/Heading';
+import BodyText from '../components/BodyText';
 
-export default function NotificationSettingsScreen({ user }) {
+export default function NotificationSettingsScreen({ user, onBack }) {
   const { settings, loading } = useNotificationSettings(user?.uid, true);
   const [prayerActivity, setPrayerActivity] = useState(true);
   const [testimonyReactions, setTestimonyReactions] = useState(true);
+  const [announcements, setAnnouncements] = useState(true);
   const [pushEnabled, setPushEnabled] = useState(true);
 
   useEffect(() => {
     if (settings) {
       setPrayerActivity(settings.prayerActivity !== false);
       setTestimonyReactions(settings.testimonyReactions !== false);
+      setAnnouncements(settings.announcements !== false);
       setPushEnabled(settings.pushEnabled !== false);
     }
   }, [settings]);
@@ -32,28 +39,76 @@ export default function NotificationSettingsScreen({ user }) {
   };
 
   return (
-    <CinematicScreen pageContent>
-      <PageHero scene="community" eyebrow="Settings" title="Notifications" subtitle="Choose what you want to hear about." compact />
-      <View style={styles.card}>
-        <ToggleRow label="Prayer Activity" value={prayerActivity} onToggle={(v) => { setPrayerActivity(v); save('prayerActivity', v); }} />
-        <ToggleRow label="Testimony Reactions" value={testimonyReactions} onToggle={(v) => { setTestimonyReactions(v); save('testimonyReactions', v); }} />
-        <ToggleRow label="Push Notifications" value={pushEnabled} onToggle={(v) => { setPushEnabled(v); save('pushEnabled', v); }} />
-      </View>
-    </CinematicScreen>
-  );
-}
-
-function ToggleRow({ label, value, onToggle }) {
-  return (
-    <Pressable onPress={() => onToggle(!value)} style={styles.toggleRow}>
-      <Text style={styles.toggleLabel}>{label}</Text>
-      <Switch value={value} onValueChange={onToggle} trackColor={{ false: 'rgba(248,243,234,0.2)', true: colors.gold }} thumbColor={value ? colors.ink : colors.ivory} />
-    </Pressable>
+    <ScreenScaffold pageContent>
+      <AppHeader title="Notifications" subtitle="Choose what you want to hear about." onBack={onBack} />
+      <Heading level="eyebrow" style={styles.sectionLabel}>Activity</Heading>
+      <GlassCard style={styles.card}>
+        <ToggleRow
+          label="Prayer Activity"
+          subtext="When someone prays for your request."
+          value={prayerActivity}
+          onToggle={(v) => { setPrayerActivity(v); save('prayerActivity', v); }}
+        />
+        <ToggleRow
+          label="Testimony Reactions"
+          subtext="When someone reacts to your testimony."
+          value={testimonyReactions}
+          onToggle={(v) => { setTestimonyReactions(v); save('testimonyReactions', v); }}
+          style={styles.toggleBorderless}
+        />
+        <ToggleRow
+          label="Announcements"
+          subtext="Community updates from PrayerStride leaders."
+          value={announcements}
+          onToggle={(v) => { setAnnouncements(v); save('announcements', v); }}
+          style={styles.toggleBorderless}
+        />
+      </GlassCard>
+      <Heading level="eyebrow" style={styles.sectionLabel}>Channels</Heading>
+      <GlassCard style={styles.card}>
+        <ToggleRow
+          label="Push Notifications"
+          subtext="Device alerts for enabled activity."
+          value={pushEnabled}
+          onToggle={(v) => { setPushEnabled(v); save('pushEnabled', v); }}
+          style={styles.toggleBorderless}
+        />
+        <Pressable style={styles.quietRow}>
+          <View style={styles.quietIcon}>
+            <Moon size={18} color={colors.gold} />
+          </View>
+          <View style={styles.quietText}>
+            <BodyText variant="label">Quiet Hours</BodyText>
+            <BodyText variant="caption">10 PM – 7 AM · Notifications paused</BodyText>
+          </View>
+          <ChevronRight size={18} color={alpha.ivory55} />
+        </Pressable>
+      </GlassCard>
+      {loading ? <BodyText variant="caption" style={styles.loadingNote}>Loading preferences…</BodyText> : null}
+    </ScreenScaffold>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { borderWidth: 1, borderColor: 'rgba(248,243,234,0.16)', backgroundColor: 'rgba(248,243,234,0.11)', borderRadius: 24, padding: 18 },
-  toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(248,243,234,0.1)' },
-  toggleLabel: { color: colors.ivory, fontSize: 15, fontWeight: '600', flex: 1 },
+  sectionLabel: { marginTop: spacing.md, marginBottom: spacing.sm },
+  card: { paddingVertical: spacing.sm, marginBottom: spacing.sm },
+  toggleBorderless: { borderBottomWidth: 0 },
+  quietRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: alpha.ivory10,
+    gap: spacing.md,
+  },
+  quietIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: alpha.gold18,
+  },
+  quietText: { flex: 1 },
+  loadingNote: { textAlign: 'center', marginTop: spacing.md },
 });

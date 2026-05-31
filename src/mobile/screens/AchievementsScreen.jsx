@@ -1,10 +1,15 @@
 import { useMemo } from 'react';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
-import { colors } from '../theme';
+import { FlatList, StyleSheet, View } from 'react-native';
+import { Award, Star } from 'lucide-react-native';
+import { alpha, colors, radii, spacing } from '../theme';
 import { usePrayers, useTestimonies } from '../usePrayerData';
 import { usePrayerSessions } from '../usePrayerSessions';
-import CinematicScreen from '../components/CinematicScreen';
-import PageHero from '../components/PageHero';
+import ScreenScaffold from '../components/ScreenScaffold';
+import AppHeader from '../components/AppHeader';
+import GlassCard from '../components/GlassCard';
+import Heading from '../components/Heading';
+import BodyText from '../components/BodyText';
+import ProgressRing from '../components/ProgressRing';
 import EmptyState from '../components/EmptyState';
 import AsyncState from '../components/AsyncState';
 
@@ -15,7 +20,14 @@ const ACHIEVEMENT_DEFS = [
   { id: 'testimony', name: 'Tell of goodness', description: 'Share an answered-prayer testimony.', total: 1, metric: 'testimonies' },
 ];
 
-export default function AchievementsScreen({ user }) {
+function formatProgress(item) {
+  if (item.format === 'time') {
+    return `${Math.floor(item.current / 60)}/${Math.floor(item.total / 60)}m`;
+  }
+  return `${item.current}/${item.total}`;
+}
+
+export default function AchievementsScreen({ user, onBack }) {
   const { prayers, loading: prayersLoading } = usePrayers(Boolean(user?.uid), { userId: user?.uid });
   const { sessions, totalSeconds, loading: sessionsLoading, error: sessionsError } = usePrayerSessions(user?.uid, true);
   const { testimonies, loading: testimoniesLoading } = useTestimonies(Boolean(user?.uid));
@@ -39,48 +51,110 @@ export default function AchievementsScreen({ user }) {
     };
   }), [myPrayers.length, myTestimonies.length, sessions.length, totalSeconds]);
 
+  const completedCount = achievements.filter((item) => item.completed).length;
+  const overallProgress = achievements.length ? completedCount / achievements.length : 0;
+
   return (
-    <CinematicScreen>
-      <PageHero scene="bible" eyebrow="Milestones" title="Achievements" subtitle="Your growth and consistency tracked." compact />
+    <ScreenScaffold scroll={false} pageContent style={styles.screen}>
+      <AppHeader title="Achievements" subtitle="Your growth and consistency tracked." onBack={onBack} centered showLogo />
       <AsyncState loading={loading} error={error} empty={!loading && !error && achievements.length === 0} emptyLabel="No achievements yet.">
+        <GlassCard style={styles.summaryCard}>
+          <View style={styles.summaryRow}>
+            <View style={styles.summaryInfo}>
+              <Heading level="eyebrow">Overall Progress</Heading>
+              <Heading level="stat" style={styles.summaryPercent}>{Math.round(overallProgress * 100)}%</Heading>
+              <BodyText variant="caption">{completedCount} of {achievements.length} completed</BodyText>
+            </View>
+            <ProgressRing progress={overallProgress} size={72} strokeWidth={6}>
+              <Award size={22} color={colors.gold} />
+            </ProgressRing>
+          </View>
+        </GlassCard>
         <FlatList
           data={achievements}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
           ListEmptyComponent={<EmptyState label="No achievements yet." />}
-          renderItem={({ item }) => (
-            <View style={[styles.card, item.completed && styles.cardCompleted]}>
-              <Text style={styles.name}>{item.name}</Text>
-              <Text style={styles.description}>{item.description}</Text>
-              <View style={styles.progressRow}>
-                <View style={styles.progressBar}>
-                  <View style={[styles.progressFill, { width: `${Math.min(100, (item.current / item.total) * 100)}%` }]} />
+          renderItem={({ item }) => {
+            const pct = Math.min(100, (item.current / item.total) * 100);
+            return (
+              <GlassCard style={[styles.card, item.completed && styles.cardCompleted]}>
+                <View style={styles.cardRow}>
+                  <View style={[styles.iconWrap, item.completed && styles.iconWrapCompleted]}>
+                    {item.completed ? (
+                      <Star size={20} color={colors.gold} fill={colors.gold} />
+                    ) : (
+                      <Award size={20} color={alpha.ivory55} />
+                    )}
+                  </View>
+                  <View style={styles.cardBody}>
+                    <View style={styles.titleRow}>
+                      <Heading level="h4" style={styles.cardTitle}>{item.name}</Heading>
+                      <BodyText variant="caption" style={styles.progressLabel}>{formatProgress(item)}</BodyText>
+                    </View>
+                    <View style={styles.progressBar}>
+                      <View style={[styles.progressFill, { width: `${pct}%` }, item.completed && styles.progressFillCompleted]} />
+                    </View>
+                    <BodyText variant="caption" style={styles.description}>{item.description}</BodyText>
+                    {item.completed ? (
+                      <View style={styles.laurelRow}>
+                        <View style={styles.laurelLine} />
+                        <Star size={10} color={colors.gold} fill={colors.gold} />
+                        <BodyText variant="caption" style={styles.completedBadge}>Completed</BodyText>
+                        <Star size={10} color={colors.gold} fill={colors.gold} />
+                        <View style={styles.laurelLine} />
+                      </View>
+                    ) : null}
+                  </View>
                 </View>
-                <Text style={styles.progressText}>{formatProgress(item)}</Text>
-              </View>
-            </View>
-          )}
+              </GlassCard>
+            );
+          }}
         />
       </AsyncState>
-    </CinematicScreen>
+    </ScreenScaffold>
   );
 }
 
-function formatProgress(item) {
-  if (item.format === 'time') {
-    return `${Math.floor(item.current / 60)}/${Math.floor(item.total / 60)}m`;
-  }
-  return `${item.current}/${item.total}`;
-}
-
 const styles = StyleSheet.create({
-  list: { paddingHorizontal: 16, paddingBottom: 120, gap: 10 },
-  card: { borderWidth: 1, borderColor: 'rgba(248,243,234,0.12)', borderRadius: 18, padding: 16, backgroundColor: 'rgba(248,243,234,0.05)' },
-  cardCompleted: { borderColor: 'rgba(200,137,43,0.3)', backgroundColor: 'rgba(200,137,43,0.08)' },
-  name: { color: colors.ivory, fontSize: 16, fontWeight: '700' },
-  description: { marginTop: 4, color: 'rgba(248,243,234,0.55)', fontSize: 13 },
-  progressRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12 },
-  progressBar: { flex: 1, height: 6, borderRadius: 3, backgroundColor: 'rgba(248,243,234,0.12)' },
+  screen: { flex: 1 },
+  summaryCard: { marginBottom: spacing.lg },
+  summaryRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.lg },
+  summaryInfo: { flex: 1 },
+  summaryPercent: { marginTop: spacing.sm, marginBottom: spacing.xs },
+  list: { paddingBottom: spacing.tabBar, gap: spacing.md },
+  card: { marginBottom: 0 },
+  cardCompleted: { borderColor: alpha.gold30, backgroundColor: alpha.gold18 },
+  cardRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
+  iconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: alpha.ivory12,
+  },
+  iconWrapCompleted: { backgroundColor: alpha.gold22 },
+  cardBody: { flex: 1 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
+  cardTitle: { flex: 1, fontSize: 16 },
+  progressLabel: { color: colors.gold },
+  progressBar: {
+    marginTop: spacing.sm,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: alpha.ivory12,
+    overflow: 'hidden',
+  },
   progressFill: { height: 6, borderRadius: 3, backgroundColor: colors.gold },
-  progressText: { color: 'rgba(248,243,234,0.5)', fontSize: 11, fontWeight: '700' },
+  progressFillCompleted: { backgroundColor: colors.goldLight },
+  description: { marginTop: spacing.xs },
+  laurelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  laurelLine: { flex: 1, height: 1, backgroundColor: alpha.gold30 },
+  completedBadge: { color: colors.gold, letterSpacing: 1.2, textTransform: 'uppercase', fontSize: 10 },
 });

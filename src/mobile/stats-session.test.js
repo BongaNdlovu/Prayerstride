@@ -50,9 +50,9 @@ describe('stats session', () => {
     expect(source.default).toMatch(/addPrayerSession/);
   });
 
-  it('stats screen imports MiniLineChart and StreakCalendar', async () => {
+  it('stats screen imports ProgressRing and WeeklyBarChart', async () => {
     const source = await import('./screens/MyStatsScreen.jsx?raw');
-    expect(source.default).toMatch(/MiniLineChart/);
-    expect(source.default).toMatch(/StreakCalendar/);
+    expect(source.default).toMatch(/ProgressRing/);
+    expect(source.default).toMatch(/WeeklyBarChart/);
   });
 });

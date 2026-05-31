@@ -1,16 +1,22 @@
 import { useEffect, useState } from 'react';
-import { Alert, Image, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Image, KeyboardAvoidingView, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Camera } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { updateProfile } from '@firebase/auth';
 import { doc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { auth, db, storage } from '../firebase';
-import { colors } from '../theme';
+import { alpha, colors, fonts, sharedStyles, spacing } from '../theme';
 import { useAuth } from '../AuthProvider';
 import { useUserProfile } from '../useUsers';
-import CinematicScreen from '../components/CinematicScreen';
-import PageHero from '../components/PageHero';
-import MotionPressable from '../components/MotionPressable';
+import ScreenScaffold from '../components/ScreenScaffold';
+import AppHeader from '../components/AppHeader';
+import GlassCard from '../components/GlassCard';
+import Heading from '../components/Heading';
+import BodyText from '../components/BodyText';
+import PrimaryButton from '../components/PrimaryButton';
+
+const BIO_MAX = 150;
 
 function normalizeHandle(value) {
   const trimmed = value.trim();
@@ -118,55 +124,131 @@ export default function EditProfileScreen({ user, onDone }) {
     }
   };
 
-  return (
-    <CinematicScreen pageContent>
-      <PageHero scene="community" eyebrow="Edit" title="Your profile" subtitle="Photo, identity, bio, and password." compact />
-      <View style={styles.card}>
-        <MotionPressable onPress={pickPhoto} style={styles.avatarButton}>
-          {photoURL ? (
-            <Image source={{ uri: photoURL }} style={styles.avatarImage} />
-          ) : (
-            <View style={styles.avatarFallback}>
-              <Text style={styles.avatarText}>{(name || 'P').slice(0, 1).toUpperCase()}</Text>
-            </View>
-          )}
-        </MotionPressable>
-        <Text style={styles.avatarHint}>Tap to change profile photo</Text>
-        <TextInput value={name} onChangeText={setName} placeholder="Display name" style={styles.input} placeholderTextColor="rgba(248,243,234,0.56)" />
-        <TextInput value={handle} onChangeText={setHandle} placeholder="@username" autoCapitalize="none" style={styles.input} placeholderTextColor="rgba(248,243,234,0.56)" />
-        <TextInput value={bio} onChangeText={setBio} placeholder="Bio" multiline style={[styles.input, styles.textArea]} placeholderTextColor="rgba(248,243,234,0.56)" />
-        <MotionPressable disabled={busy} onPress={save} style={styles.button}>
-          <Text style={styles.buttonText}>{busy ? 'Saving...' : 'Save Profile'}</Text>
-        </MotionPressable>
-      </View>
+  const displayHandle = handle.startsWith('@') ? handle.slice(1) : handle;
 
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Password</Text>
-        <MotionPressable onPress={requestPasswordReset} style={styles.outlineButton}>
-          <Text style={styles.outlineText}>Send password reset email</Text>
-        </MotionPressable>
-        <TextInput value={currentPassword} onChangeText={setCurrentPassword} placeholder="Current password" secureTextEntry style={styles.input} placeholderTextColor="rgba(248,243,234,0.56)" />
-        <TextInput value={newPassword} onChangeText={setNewPassword} placeholder="New password" secureTextEntry style={styles.input} placeholderTextColor="rgba(248,243,234,0.56)" />
-        <MotionPressable onPress={savePassword} style={styles.button}>
-          <Text style={styles.buttonText}>Change Password</Text>
-        </MotionPressable>
-      </View>
-    </CinematicScreen>
+  return (
+    <ScreenScaffold pageContent scroll>
+      <AppHeader centered showLogo title="Edit Profile" subtitle="Photo, identity, and bio." />
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <GlassCard style={styles.profileCard}>
+          <Pressable onPress={pickPhoto} style={styles.avatarButton} accessibilityRole="button" accessibilityLabel="Change profile photo">
+            {photoURL ? (
+              <Image source={{ uri: photoURL }} style={styles.avatarImage} />
+            ) : (
+              <View style={styles.avatarFallback}>
+                <Camera size={28} color={colors.navy} />
+              </View>
+            )}
+            <View style={styles.avatarBadge}>
+              <Camera size={14} color={colors.ivory} />
+            </View>
+          </Pressable>
+          <BodyText variant="caption" style={styles.avatarHint}>Tap to change profile photo</BodyText>
+
+          <Heading level="eyebrow" style={styles.fieldLabel}>Display Name</Heading>
+          <TextInput
+            value={name}
+            onChangeText={setName}
+            placeholder="Your name"
+            style={styles.input}
+            placeholderTextColor={alpha.ivory55}
+          />
+
+          <Heading level="eyebrow" style={styles.fieldLabel}>Username</Heading>
+          <View style={styles.handleRow}>
+            <BodyText variant="body" style={styles.handlePrefix}>@</BodyText>
+            <TextInput
+              value={displayHandle}
+              onChangeText={(value) => setHandle(value.replace(/^@/, ''))}
+              placeholder="username"
+              autoCapitalize="none"
+              style={styles.handleInput}
+              placeholderTextColor={alpha.ivory55}
+            />
+          </View>
+
+          <Heading level="eyebrow" style={styles.fieldLabel}>Bio</Heading>
+          <TextInput
+            value={bio}
+            onChangeText={(value) => setBio(value.slice(0, BIO_MAX))}
+            placeholder="Tell us about yourself..."
+            multiline
+            maxLength={BIO_MAX}
+            style={[styles.input, styles.textArea]}
+            placeholderTextColor={alpha.ivory55}
+          />
+          <BodyText variant="caption" style={styles.charCount}>{bio.length}/{BIO_MAX}</BodyText>
+
+          <PrimaryButton label="Save Profile" onPress={save} busy={busy} disabled={busy} style={styles.saveButton} />
+        </GlassCard>
+
+        <GlassCard>
+          <Heading level="h4" style={styles.sectionTitle}>Password</Heading>
+          <PrimaryButton label="Send password reset email" onPress={requestPasswordReset} variant="ghost" style={styles.outlineButton} />
+          <TextInput
+            value={currentPassword}
+            onChangeText={setCurrentPassword}
+            placeholder="Current password"
+            secureTextEntry
+            style={styles.input}
+            placeholderTextColor={alpha.ivory55}
+          />
+          <TextInput
+            value={newPassword}
+            onChangeText={setNewPassword}
+            placeholder="New password"
+            secureTextEntry
+            style={styles.input}
+            placeholderTextColor={alpha.ivory55}
+          />
+          <PrimaryButton label="Change Password" onPress={savePassword} style={styles.saveButton} />
+        </GlassCard>
+      </KeyboardAvoidingView>
+    </ScreenScaffold>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { borderWidth: 1, borderColor: 'rgba(248,243,234,0.16)', backgroundColor: 'rgba(248,243,234,0.11)', borderRadius: 24, padding: 18, marginBottom: 16 },
-  avatarButton: { alignSelf: 'center', marginBottom: 8 },
-  avatarImage: { width: 88, height: 88, borderRadius: 44 },
-  avatarFallback: { width: 88, height: 88, borderRadius: 44, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.sand },
-  avatarText: { color: colors.navy, fontSize: 32, fontWeight: '800' },
-  avatarHint: { textAlign: 'center', color: 'rgba(248,243,234,0.55)', fontSize: 12, marginBottom: 12 },
-  sectionTitle: { color: colors.ivory, fontSize: 16, fontWeight: '800', marginBottom: 10 },
-  input: { marginTop: 12, minHeight: 52, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(248,243,234,0.16)', backgroundColor: 'rgba(248,243,234,0.1)', paddingHorizontal: 16, color: colors.ivory, fontSize: 15 },
-  textArea: { minHeight: 100, paddingTop: 16, textAlignVertical: 'top' },
-  button: { marginTop: 20, minHeight: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.gold },
-  buttonText: { color: colors.ink, fontSize: 15, fontWeight: '800' },
-  outlineButton: { minHeight: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(248,243,234,0.2)', marginBottom: 8 },
-  outlineText: { color: colors.ivory, fontSize: 14, fontWeight: '700' },
+  profileCard: { marginBottom: spacing.lg },
+  avatarButton: { alignSelf: 'center', marginBottom: spacing.sm },
+  avatarImage: { width: 96, height: 96, borderRadius: 48 },
+  avatarFallback: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.warm,
+  },
+  avatarBadge: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.navyMid,
+    borderWidth: 2,
+    borderColor: alpha.ivory16,
+  },
+  avatarHint: { textAlign: 'center', marginBottom: spacing.lg },
+  fieldLabel: { marginTop: spacing.lg, marginBottom: spacing.sm },
+  input: { ...sharedStyles.input, marginTop: 0 },
+  handleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    ...sharedStyles.input,
+    marginTop: 0,
+    paddingTop: 0,
+    paddingBottom: 0,
+  },
+  handlePrefix: { color: alpha.ivory55 },
+  handleInput: { flex: 1, color: colors.ivory, fontFamily: fonts.sans, fontSize: 15, paddingVertical: spacing.md },
+  textArea: { ...sharedStyles.textArea, minHeight: 100 },
+  charCount: { marginTop: spacing.xs, textAlign: 'right' },
+  saveButton: { marginTop: spacing.xl },
+  sectionTitle: { marginBottom: spacing.md },
+  outlineButton: { marginBottom: spacing.sm },
 });

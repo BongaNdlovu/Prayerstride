@@ -1,38 +1,139 @@
 import { useMemo, useState } from 'react';
-import { FlatList, StyleSheet, Text, TextInput, View } from 'react-native';
-import { Search } from 'lucide-react-native';
-import { colors } from '../theme';
+import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Filter, Search, X } from 'lucide-react-native';
+import { alpha, colors, radii, spacing } from '../theme';
 import { usePrayers } from '../usePrayerData';
-import EmptyState from '../components/EmptyState';
-import PageHero from '../components/PageHero';
+import ScreenScaffold from '../components/ScreenScaffold';
+import Heading from '../components/Heading';
+import BodyText from '../components/BodyText';
+import PillTabs from '../components/PillTabs';
 import PrayerCard from '../components/PrayerCard';
+import AsyncState from '../components/AsyncState';
+import GlassCard from '../components/GlassCard';
+
+const CATEGORIES = ['All', 'Health', 'Family', 'Finances', 'Relationships'];
+
+const CATEGORY_KEYWORDS = {
+  Health: ['health', 'healing', 'sick', 'hospital', 'medical', 'cancer', 'surgery'],
+  Family: ['family', 'marriage', 'child', 'parent', 'spouse', 'son', 'daughter'],
+  Finances: ['finance', 'money', 'job', 'debt', 'provision', 'financial', 'work'],
+  Relationships: ['relationship', 'friend', 'conflict', 'forgive', 'lonely', 'breakup'],
+};
+
+function matchesCategory(prayer, category) {
+  if (category === 'All') return true;
+  const stored = prayer.category?.toLowerCase();
+  if (stored && stored.includes(category.toLowerCase().slice(0, 4))) return true;
+  const text = `${prayer.title} ${prayer.body}`.toLowerCase();
+  return (CATEGORY_KEYWORDS[category] || []).some((keyword) => text.includes(keyword));
+}
 
 export default function DiscoverScreen({ onOpenPrayer }) {
-  const { prayers } = usePrayers(true);
+  const { prayers, loading } = usePrayers(true);
   const [query, setQuery] = useState('');
-  const filtered = useMemo(() => prayers.filter((prayer) => `${prayer.title} ${prayer.body}`.toLowerCase().includes(query.toLowerCase())), [prayers, query]);
+  const [category, setCategory] = useState('All');
+  const [showFilters, setShowFilters] = useState(false);
+
+  const filtered = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    return prayers.filter((prayer) => {
+      const matchesSearch = !normalized
+        || `${prayer.title} ${prayer.body} ${prayer.authorName}`.toLowerCase().includes(normalized);
+      return matchesSearch && matchesCategory(prayer, category);
+    });
+  }, [prayers, query, category]);
+
+  const header = (
+    <View style={styles.header}>
+      <Heading level="h2">Pray</Heading>
+      <BodyText variant="small" style={styles.subtitle}>
+        Search requests and find a prayer to carry today.
+      </BodyText>
+
+      <View style={styles.searchRow}>
+        <Search size={18} color={colors.gold} />
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Search prayers..."
+          placeholderTextColor={alpha.ivory55}
+          style={styles.searchInput}
+        />
+        {query ? (
+          <Pressable onPress={() => setQuery('')} accessibilityLabel="Clear search">
+            <X size={18} color={alpha.ivory55} />
+          </Pressable>
+        ) : null}
+        <Pressable
+          onPress={() => setShowFilters((open) => !open)}
+          style={[styles.filterBtn, showFilters && styles.filterBtnActive]}
+          accessibilityLabel="Toggle filters"
+        >
+          <Filter size={16} color={showFilters ? colors.ink : colors.gold} />
+        </Pressable>
+      </View>
+
+      {showFilters ? (
+        <GlassCard style={styles.filterPanel}>
+          <BodyText variant="caption" style={styles.filterLabel}>Category</BodyText>
+          <PillTabs tabs={CATEGORIES} active={category} onChange={setCategory} style={styles.pills} />
+        </GlassCard>
+      ) : (
+        <PillTabs tabs={CATEGORIES} active={category} onChange={setCategory} style={styles.pills} />
+      )}
+    </View>
+  );
 
   return (
-    <View style={styles.screen}>
-      <PageHero scene="community" eyebrow="Explore" title="Find a prayer to carry" subtitle="Search requests, people, and praise reports in a quieter, warmer space." compact bleed={false} />
-      <View style={styles.searchPanel}>
-        <Search size={18} color="rgba(248,243,234,0.62)" />
-        <TextInput value={query} onChangeText={setQuery} placeholder="Search prayers..." style={styles.searchInput} placeholderTextColor="rgba(248,243,234,0.58)" />
-      </View>
+    <ScreenScaffold scroll={false} pageContent style={styles.screen}>
       <FlatList
         data={filtered}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
-        ListEmptyComponent={<EmptyState label="No matching prayers." />}
-        renderItem={({ item }) => <PrayerCard prayer={item} onPress={() => onOpenPrayer(item)} variant="glass" />}
+        ListHeaderComponent={header}
+        ListEmptyComponent={(
+          <AsyncState
+            loading={loading}
+            empty={!loading}
+            emptyLabel="No matching prayers."
+          />
+        )}
+        renderItem={({ item }) => (
+          <PrayerCard prayer={item} onPress={() => onOpenPrayer(item)} variant="glass" />
+        )}
+        showsVerticalScrollIndicator={false}
       />
-    </View>
+    </ScreenScaffold>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#080b13' },
-  searchPanel: { marginHorizontal: 16, marginBottom: 12, minHeight: 52, borderWidth: 1, borderColor: 'rgba(248,243,234,0.16)', backgroundColor: 'rgba(248,243,234,0.11)', borderRadius: 18, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  screen: { flex: 1 },
+  header: { paddingTop: spacing.sm, paddingBottom: spacing.md },
+  subtitle: { marginTop: spacing.xs, marginBottom: spacing.lg },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    minHeight: 52,
+    borderWidth: 1,
+    borderColor: alpha.ivory16,
+    backgroundColor: alpha.ivory11,
+    borderRadius: radii.lg,
+    paddingHorizontal: spacing.md,
+  },
   searchInput: { flex: 1, color: colors.ivory, fontSize: 15 },
-  listContent: { paddingHorizontal: 16, paddingBottom: 120, gap: 12 },
+  filterBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: alpha.ivory12,
+  },
+  filterBtnActive: { backgroundColor: colors.gold },
+  filterPanel: { marginTop: spacing.sm, marginBottom: spacing.xs },
+  filterLabel: { marginBottom: spacing.xs, color: colors.gold, letterSpacing: 1.2, textTransform: 'uppercase' },
+  pills: { marginTop: spacing.sm },
+  listContent: { paddingBottom: spacing.tabBar, gap: spacing.md },
 });

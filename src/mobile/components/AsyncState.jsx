@@ -1,49 +1,35 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors } from '../theme';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { colors, spacing } from '../theme';
+import BodyText from './BodyText';
 import EmptyState from './EmptyState';
 
-export default function AsyncState({
-  loading = false,
-  error = null,
-  empty = false,
-  emptyLabel = 'Nothing here yet.',
-  onRetry,
-  children,
-}) {
+export default function AsyncState({ loading, error, empty, emptyLabel, children }) {
   if (loading) {
     return (
-      <View style={styles.centered}>
+      <View style={styles.center}>
         <ActivityIndicator color={colors.gold} />
-        <Text style={styles.meta}>Loading...</Text>
+        <BodyText variant="small" style={styles.hint}>Loading...</BodyText>
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.centered}>
-        <Text style={styles.errorTitle}>Could not load</Text>
-        <Text style={styles.meta}>{error.message || 'Something went wrong.'}</Text>
-        {onRetry ? (
-          <Pressable onPress={onRetry} style={styles.retryButton}>
-            <Text style={styles.retryText}>Try again</Text>
-          </Pressable>
-        ) : null}
+      <View style={styles.center}>
+        <BodyText variant="body" style={styles.error}>{error.message || String(error)}</BodyText>
       </View>
     );
   }
 
   if (empty) {
-    return <EmptyState label={emptyLabel} />;
+    return <EmptyState label={emptyLabel || 'No items yet.'} />;
   }
 
   return children;
 }
 
 const styles = StyleSheet.create({
-  centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 32, paddingHorizontal: 16, gap: 10 },
-  errorTitle: { color: colors.ivory, fontSize: 16, fontWeight: '800' },
-  meta: { color: 'rgba(248,243,234,0.58)', fontSize: 13, textAlign: 'center', lineHeight: 20 },
-  retryButton: { marginTop: 8, minHeight: 44, paddingHorizontal: 20, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.gold },
-  retryText: { color: colors.ink, fontSize: 14, fontWeight: '800' },
+  center: { paddingVertical: spacing.xxl, alignItems: 'center', gap: spacing.sm },
+  hint: { marginTop: spacing.sm },
+  error: { color: colors.urgent, textAlign: 'center' },
 });

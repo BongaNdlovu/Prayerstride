@@ -1,8 +1,12 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors } from '../theme';
+import { StyleSheet, View } from 'react-native';
+import { colors, spacing } from '../theme';
 import { useStudyGuide } from '../useContentCollections';
-import CinematicScreen from '../components/CinematicScreen';
-import PageHero from '../components/PageHero';
+import ScreenScaffold from '../components/ScreenScaffold';
+import AppHeader from '../components/AppHeader';
+import GlassCard from '../components/GlassCard';
+import PrimaryButton from '../components/PrimaryButton';
+import Heading from '../components/Heading';
+import BodyText from '../components/BodyText';
 import AsyncState from '../components/AsyncState';
 
 export default function GuideDetailScreen({ guideId, go, back }) {
@@ -10,45 +14,35 @@ export default function GuideDetailScreen({ guideId, go, back }) {
   const includes = Array.isArray(guide?.includes) ? guide.includes : [];
 
   return (
-    <CinematicScreen pageContent>
-      <Pressable onPress={back} style={styles.backButton}>
-        <Text style={styles.backText}>Back</Text>
-      </Pressable>
-      <PageHero scene="bible" eyebrow="Study Guide" title={guide?.title || 'Study Guide'} subtitle={guide?.subtitle || 'Real study content from the library.'} compact />
+    <ScreenScaffold pageContent>
+      <AppHeader title={guide?.title || 'Study Guide'} subtitle={guide?.subtitle || 'Real study content from the library.'} onBack={back} />
       <AsyncState loading={loading} error={error} empty={!loading && !error && !guide} emptyLabel="This guide is not available.">
-        <View style={styles.card}>
-          <Text style={styles.description}>{guide?.description || 'No description has been published for this guide yet.'}</Text>
+        <GlassCard>
+          <BodyText variant="body">{guide?.description || 'No description has been published for this guide yet.'}</BodyText>
           <View style={styles.metaRow}>
-            <Text style={styles.meta}>{guide?.days || 1} days</Text>
-            <Text style={styles.meta}>{guide?.level || 'All levels'}</Text>
-            <Text style={styles.meta}>{guide?.format || 'Reading'}</Text>
+            <BodyText variant="label" style={styles.meta}>{guide?.days || 1} days</BodyText>
+            <BodyText variant="label" style={styles.meta}>{guide?.level || 'All levels'}</BodyText>
+            <BodyText variant="label" style={styles.meta}>{guide?.format || 'Reading'}</BodyText>
           </View>
           {includes.length > 0 ? (
-            <>
-              <Text style={styles.sectionTitle}>Includes:</Text>
+            <View style={styles.includes}>
+              <Heading level="h4">Includes</Heading>
               {includes.map((item, i) => (
-                <Text key={`${item}-${i}`} style={styles.item}>- {item}</Text>
+                <BodyText key={`${item}-${i}`} variant="small" style={styles.item}>· {item}</BodyText>
               ))}
-            </>
+            </View>
           ) : null}
-          <Pressable onPress={() => go('lessonReader', { guideId })} style={styles.button}>
-            <Text style={styles.buttonText}>Start Reading</Text>
-          </Pressable>
-        </View>
+          <PrimaryButton label="Start Reading" onPress={() => go('lessonReader', { guideId })} style={styles.cta} />
+        </GlassCard>
       </AsyncState>
-    </CinematicScreen>
+    </ScreenScaffold>
   );
 }
 
 const styles = StyleSheet.create({
-  backButton: { alignSelf: 'flex-start', marginTop: 16, marginBottom: 4, paddingVertical: 8, paddingRight: 16 },
-  backText: { color: colors.gold, fontWeight: '800' },
-  card: { borderWidth: 1, borderColor: 'rgba(248,243,234,0.16)', backgroundColor: 'rgba(248,243,234,0.11)', borderRadius: 24, padding: 18 },
-  description: { color: 'rgba(248,243,234,0.72)', fontSize: 14, lineHeight: 23 },
-  metaRow: { flexDirection: 'row', gap: 16, marginTop: 16 },
-  meta: { color: colors.gold, fontSize: 12, fontWeight: '800' },
-  sectionTitle: { color: colors.ivory, fontSize: 16, fontWeight: '800', marginTop: 20, marginBottom: 8 },
-  item: { color: 'rgba(248,243,234,0.62)', fontSize: 14, lineHeight: 22, marginBottom: 4 },
-  button: { marginTop: 24, minHeight: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.gold },
-  buttonText: { color: colors.ink, fontSize: 15, fontWeight: '800' },
+  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.lg, marginTop: spacing.lg },
+  meta: { color: colors.gold },
+  includes: { marginTop: spacing.xl },
+  item: { marginTop: spacing.sm },
+  cta: { marginTop: spacing.xl },
 });

@@ -1,9 +1,12 @@
-import { Alert, StyleSheet, Text } from 'react-native';
-import MotionPressable from '../components/MotionPressable';
-import { colors } from '../theme';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { ChevronRight } from 'lucide-react-native';
+import { alpha, spacing } from '../theme';
 import { deleteOwnAccount } from '../api';
-import CinematicScreen from '../components/CinematicScreen';
-import PageHero from '../components/PageHero';
+import ScreenScaffold from '../components/ScreenScaffold';
+import AppHeader from '../components/AppHeader';
+import GlassCard from '../components/GlassCard';
+import PrimaryButton from '../components/PrimaryButton';
+import BodyText from '../components/BodyText';
 
 const ITEMS = [
   { label: 'Notification Settings', route: 'notificationSettings' },
@@ -15,7 +18,7 @@ const ITEMS = [
   { label: 'Support / Donation', route: 'support' },
 ];
 
-export default function SettingsScreen({ go, signOut }) {
+export default function SettingsScreen({ go, signOut, onBack }) {
   const deleteAccount = () => {
     Alert.alert('Delete Account', 'This action cannot be undone. All your data will be permanently removed.', [
       { text: 'Cancel', style: 'cancel' },
@@ -31,25 +34,35 @@ export default function SettingsScreen({ go, signOut }) {
   };
 
   return (
-    <CinematicScreen pageContent>
-      <PageHero scene="community" eyebrow="Settings" title="Manage your account" subtitle="Notifications, privacy, and account controls." compact />
-      {ITEMS.map((item) => (
-        <MotionPressable key={item.route} onPress={() => go(item.route)} style={styles.menuItem}>
-          <Text style={styles.menuText}>{item.label}</Text>
-          <Text style={styles.menuArrow}>›</Text>
-        </MotionPressable>
-      ))}
-      <MotionPressable onPress={deleteAccount} style={styles.deleteButton}>
-        <Text style={styles.deleteText}>Delete Account</Text>
-      </MotionPressable>
-    </CinematicScreen>
+    <ScreenScaffold pageContent>
+      <AppHeader title="Settings" subtitle="Notifications, privacy, and account controls." onBack={onBack} />
+      <GlassCard style={styles.menuCard}>
+        {ITEMS.map((item, index) => (
+          <Pressable
+            key={item.route}
+            onPress={() => go(item.route)}
+            style={[styles.menuItem, index === ITEMS.length - 1 && styles.menuItemLast]}
+          >
+            <BodyText variant="label">{item.label}</BodyText>
+            <ChevronRight size={18} color={alpha.ivory55} />
+          </Pressable>
+        ))}
+      </GlassCard>
+      <PrimaryButton label="Delete Account" onPress={deleteAccount} variant="ghost" style={styles.deleteButton} />
+    </ScreenScaffold>
   );
 }
 
 const styles = StyleSheet.create({
-  menuItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 16, paddingHorizontal: 4, borderBottomWidth: 1, borderBottomColor: 'rgba(248,243,234,0.08)' },
-  menuText: { color: colors.ivory, fontSize: 16, fontWeight: '600' },
-  menuArrow: { color: 'rgba(248,243,234,0.4)', fontSize: 24 },
-  deleteButton: { marginTop: 24, minHeight: 54, alignItems: 'center', justifyContent: 'center', borderRadius: 18, borderWidth: 1, borderColor: 'rgba(200,137,43,0.3)', backgroundColor: 'rgba(200,137,43,0.08)' },
-  deleteText: { color: colors.gold, fontSize: 16, fontWeight: '700' },
+  menuCard: { paddingVertical: spacing.sm },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.md + 2,
+    borderBottomWidth: 1,
+    borderBottomColor: alpha.ivory10,
+  },
+  menuItemLast: { borderBottomWidth: 0 },
+  deleteButton: { marginTop: spacing.xl, borderColor: alpha.gold30 },
 });

@@ -4,13 +4,15 @@ describe('native UI kit', () => {
   it('theme exports expected keys', async () => {
     const source = await import('../theme.js?raw');
     expect(source.default).toMatch(/export const colors/);
-    expect(source.default).toMatch(/#C8892B/);
-    expect(source.default).toMatch(/#F8F3EA/);
-    expect(source.default).toMatch(/#101820/);
+    expect(source.default).toMatch(/#D7A552/);
+    expect(source.default).toMatch(/#F7F0E4/);
+    expect(source.default).toMatch(/#101014/);
     expect(source.default).toMatch(/export const shadow/);
     expect(source.default).toMatch(/export const glass/);
     expect(source.default).toMatch(/export const cinematicScreen/);
     expect(source.default).toMatch(/export const scenes/);
+    expect(source.default).toMatch(/export const fonts/);
+    expect(source.default).toMatch(/export const typography/);
     expect(source.default).toMatch(/dawn/);
     expect(source.default).toMatch(/bible/);
     expect(source.default).toMatch(/community/);
@@ -22,6 +24,7 @@ describe('native UI kit', () => {
   it('shared components export successfully', { timeout: 15000 }, async () => {
     const modules = [
       'CinematicScreen',
+      'ScreenScaffold',
       'PageHero',
       'GlassCard',
       'AppHeader',
@@ -32,9 +35,18 @@ describe('native UI kit', () => {
       'PrayerCard',
       'TestimonyCard',
       'MiniLineChart',
+      'WeeklyBarChart',
       'StreakCalendar',
       'AsyncState',
       'MotionPressable',
+      'Heading',
+      'BodyText',
+      'PrimaryButton',
+      'SegmentedControl',
+      'PillTabs',
+      'ProgressRing',
+      'SectionDivider',
+      'LogoMark',
     ];
 
     for (const name of modules) {
@@ -49,7 +61,7 @@ describe('native UI kit', () => {
   });
 
   it('shared native components do not import react-dom or browser APIs', async () => {
-    const names = ['CinematicScreen', 'PageHero', 'GlassCard', 'AppHeader', 'BottomTabs', 'EmptyState', 'ToggleRow', 'StatCard', 'PrayerCard', 'TestimonyCard', 'MiniLineChart', 'StreakCalendar', 'AsyncState', 'MotionPressable'];
+    const names = ['CinematicScreen', 'ScreenScaffold', 'PageHero', 'GlassCard', 'AppHeader', 'BottomTabs', 'EmptyState', 'ToggleRow', 'StatCard', 'PrayerCard', 'TestimonyCard', 'MiniLineChart', 'WeeklyBarChart', 'StreakCalendar', 'AsyncState', 'MotionPressable'];
 
     for (const name of names) {
       const source = await import(`../components/${name}.jsx?raw`);

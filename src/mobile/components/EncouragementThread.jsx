@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { colors } from '../theme';
+import { alpha, colors, fonts, radii, spacing } from '../theme';
 import { addEncouragement, deleteEncouragement, updateEncouragement } from '../useEncouragements';
 import EmptyState from '../components/EmptyState';
+import Heading from '../components/Heading';
+import BodyText from '../components/BodyText';
 
 export default function EncouragementThread({ threadId, comments, loading, user, onRefresh }) {
   const [text, setText] = useState('');
@@ -44,15 +46,15 @@ export default function EncouragementThread({ threadId, comments, loading, user,
 
   return (
     <View style={styles.container}>
-      <Text style={styles.heading}>Encouragements</Text>
-      {loading ? <ActivityIndicator color={colors.navy} /> : null}
+      <Heading level="h4" style={styles.heading}>Encouragements</Heading>
+      {loading ? <ActivityIndicator color={colors.gold} /> : null}
       {comments.length === 0 ? <EmptyState label="No encouragements yet." /> : null}
       {comments.map((comment) => (
         <View key={comment.id} style={styles.comment}>
           <Text style={styles.author}>{comment.authorName}</Text>
           {editingId === comment.id ? (
             <View>
-              <TextInput value={editText} onChangeText={setEditText} style={styles.input} multiline placeholderTextColor="rgba(248,243,234,0.56)" />
+              <TextInput value={editText} onChangeText={setEditText} style={styles.input} multiline placeholderTextColor={alpha.ivory55} />
               <View style={styles.editActions}>
                 <Pressable onPress={() => handleEdit(comment.id)} style={styles.smallButton}>
                   <Text style={styles.smallButtonText}>Save</Text>
@@ -64,7 +66,7 @@ export default function EncouragementThread({ threadId, comments, loading, user,
             </View>
           ) : (
             <>
-              <Text style={styles.text}>{comment.text}</Text>
+              <BodyText variant="body" style={styles.text}>{comment.text}</BodyText>
               {user && comment.authorUid === user.uid ? (
                 <View style={styles.commentActions}>
                   <Pressable onPress={() => { setEditingId(comment.id); setEditText(comment.text); }}>
@@ -81,7 +83,7 @@ export default function EncouragementThread({ threadId, comments, loading, user,
       ))}
       {user ? (
         <View style={styles.inputRow}>
-          <TextInput value={text} onChangeText={setText} placeholder="Add an encouragement..." style={styles.input} placeholderTextColor="rgba(248,243,234,0.56)" />
+          <TextInput value={text} onChangeText={setText} placeholder="Add an encouragement..." style={styles.input} placeholderTextColor={alpha.ivory55} />
           <Pressable disabled={busy || !text.trim()} onPress={submit} style={[styles.smallButton, (busy || !text.trim()) && { opacity: 0.5 }]}>
             <Text style={styles.smallButtonText}>Send</Text>
           </Pressable>
@@ -92,18 +94,18 @@ export default function EncouragementThread({ threadId, comments, loading, user,
 }
 
 const styles = StyleSheet.create({
-  container: { marginTop: 16 },
-  heading: { color: colors.ivory, fontSize: 18, fontWeight: '800', marginBottom: 12 },
-  comment: { borderWidth: 1, borderColor: 'rgba(248,243,234,0.12)', borderRadius: 16, padding: 14, marginBottom: 10, backgroundColor: 'rgba(248,243,234,0.06)' },
-  author: { color: colors.gold, fontSize: 12, fontWeight: '800' },
-  text: { marginTop: 6, color: 'rgba(248,243,234,0.78)', fontSize: 14, lineHeight: 21 },
-  commentActions: { flexDirection: 'row', gap: 14, marginTop: 8 },
-  actionLink: { color: 'rgba(248,243,234,0.5)', fontSize: 12, fontWeight: '700' },
-  input: { marginTop: 8, minHeight: 44, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(248,243,234,0.16)', backgroundColor: 'rgba(248,243,234,0.1)', paddingHorizontal: 14, paddingVertical: 10, color: colors.ivory, fontSize: 14 },
-  inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginTop: 12 },
-  editActions: { flexDirection: 'row', gap: 8, marginTop: 8 },
-  smallButton: { minHeight: 38, paddingHorizontal: 16, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.gold },
-  smallButtonText: { color: colors.ink, fontSize: 13, fontWeight: '800' },
-  smallButtonOutline: { minHeight: 38, paddingHorizontal: 16, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(248,243,234,0.2)' },
-  smallButtonOutlineText: { color: 'rgba(248,243,234,0.72)', fontSize: 13, fontWeight: '700' },
+  container: { marginTop: spacing.lg },
+  heading: { marginBottom: spacing.md },
+  comment: { borderWidth: 1, borderColor: alpha.ivory12, borderRadius: radii.md, padding: 14, marginBottom: spacing.sm + 2, backgroundColor: alpha.ivory10 },
+  author: { fontFamily: fonts.sansExtraBold, color: colors.gold, fontSize: 12 },
+  text: { marginTop: 6 },
+  commentActions: { flexDirection: 'row', gap: 14, marginTop: spacing.sm },
+  actionLink: { fontFamily: fonts.sansBold, color: alpha.ivory55, fontSize: 12 },
+  input: { marginTop: spacing.sm, minHeight: 44, borderRadius: radii.sm + 2, borderWidth: 1, borderColor: alpha.ivory16, backgroundColor: alpha.ivory10, paddingHorizontal: 14, paddingVertical: 10, color: colors.ivory, fontSize: 14, fontFamily: fonts.sans, flex: 1 },
+  inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm, marginTop: spacing.md },
+  editActions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
+  smallButton: { minHeight: 38, paddingHorizontal: spacing.lg, borderRadius: radii.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.gold },
+  smallButtonText: { fontFamily: fonts.sansExtraBold, color: colors.ink, fontSize: 13 },
+  smallButtonOutline: { minHeight: 38, paddingHorizontal: spacing.lg, borderRadius: radii.sm, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: alpha.ivory20 },
+  smallButtonOutlineText: { fontFamily: fonts.sansBold, color: alpha.ivory72, fontSize: 13 },
 });

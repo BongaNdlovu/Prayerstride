@@ -1,29 +1,43 @@
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors } from '../theme';
+import { FlatList, StyleSheet, View } from 'react-native';
+import { spacing } from '../theme';
 import { usePrayers } from '../usePrayerData';
-import CinematicScreen from '../components/CinematicScreen';
-import PageHero from '../components/PageHero';
+import ScreenScaffold from '../components/ScreenScaffold';
+import AppHeader from '../components/AppHeader';
 import PrayerCard from '../components/PrayerCard';
-import EmptyState from '../components/EmptyState';
+import AsyncState from '../components/AsyncState';
 
-export default function AnsweredPrayersScreen({ user, onOpenPrayer }) {
-  const { prayers } = usePrayers(true, { userId: user?.uid });
+export default function AnsweredPrayersScreen({ user, onOpenPrayer, onBack }) {
+  const { prayers, loading } = usePrayers(true, { userId: user?.uid });
   const mine = prayers.filter((p) => p.authorUid === user.uid && p.status === 'answered');
 
+  const header = (
+    <AppHeader
+      onBack={onBack}
+      title="Answered Prayers"
+      subtitle="Celebrate what God has done"
+    />
+  );
+
   return (
-    <CinematicScreen>
-      <PageHero scene="answered" eyebrow="Answered" title="Prayers God has answered" subtitle="Celebrate what God has done through your prayers." compact />
+    <ScreenScaffold scroll={false} pageContent style={styles.screen}>
       <FlatList
         data={mine}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
-        ListEmptyComponent={<EmptyState label="No answered prayers yet." />}
-        renderItem={({ item }) => <PrayerCard prayer={item} onPress={() => onOpenPrayer(item)} variant="glass" />}
+        ListHeaderComponent={header}
+        ListEmptyComponent={(
+          <AsyncState loading={loading} empty={!loading} emptyLabel="No answered prayers yet." />
+        )}
+        renderItem={({ item }) => (
+          <PrayerCard prayer={item} onPress={() => onOpenPrayer(item)} variant="glass" />
+        )}
+        showsVerticalScrollIndicator={false}
       />
-    </CinematicScreen>
+    </ScreenScaffold>
   );
 }
 
 const styles = StyleSheet.create({
-  list: { paddingHorizontal: 16, paddingBottom: 120, gap: 12 },
+  screen: { flex: 1 },
+  list: { paddingTop: spacing.sm, paddingBottom: spacing.tabBar, gap: spacing.md },
 });

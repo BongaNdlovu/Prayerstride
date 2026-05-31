@@ -1,18 +1,23 @@
-import { StyleSheet, Text, View } from 'react-native';
-import { colors } from '../theme';
+import { StyleSheet, View } from 'react-native';
+import { alpha, colors, fonts, radii, spacing, typography } from '../theme';
+import Heading from './Heading';
+import BodyText from './BodyText';
+import GlassCard from './GlassCard';
 
-const styles = StyleSheet.create({
-  card: { flex: 1, minHeight: 116, borderWidth: 1, borderColor: 'rgba(248,243,234,0.16)', backgroundColor: 'rgba(248,243,234,0.1)', borderRadius: 22, padding: 16 },
-  value: { marginTop: 10, color: colors.ivory, fontSize: 25, fontWeight: '800' },
-  label: { marginTop: 3, color: 'rgba(248,243,234,0.58)', fontSize: 12 },
-});
-
-export default function StatCard({ icon: Icon, value, label }) {
+export default function StatCard({ icon: Icon, value, label, sublabel }) {
   return (
-    <View style={styles.card}>
+    <GlassCard style={styles.card}>
       {Icon ? <Icon color={colors.gold} size={21} /> : null}
-      <Text style={styles.value}>{value}</Text>
-      <Text style={styles.label}>{label}</Text>
-    </View>
+      <Heading level="stat" style={styles.value}>{value}</Heading>
+      <BodyText variant="caption" style={styles.label}>{label}</BodyText>
+      {sublabel ? <BodyText variant="caption" style={styles.sublabel}>{sublabel}</BodyText> : null}
+    </GlassCard>
   );
 }
+
+const styles = StyleSheet.create({
+  card: { flex: 1, minHeight: 116, marginBottom: 0 },
+  value: { marginTop: spacing.sm + 2, fontSize: 25 },
+  label: { marginTop: 3, fontFamily: fonts.sansMedium },
+  sublabel: { marginTop: 2, color: colors.gold },
+});

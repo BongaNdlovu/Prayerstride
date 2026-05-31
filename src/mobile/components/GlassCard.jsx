@@ -1,17 +1,14 @@
 import { StyleSheet, View } from 'react-native';
+import { alpha, radii, shadow, spacing } from '../theme';
 
 const styles = StyleSheet.create({
   card: {
     borderWidth: 1,
-    borderColor: 'rgba(248,243,234,0.16)',
-    backgroundColor: 'rgba(248,243,234,0.11)',
-    borderRadius: 24,
-    padding: 18,
-    shadowColor: '#101820',
-    shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.16,
-    shadowRadius: 24,
-    elevation: 6,
+    borderColor: alpha.ivory16,
+    backgroundColor: alpha.ivory11,
+    borderRadius: radii.xxl,
+    padding: spacing.xl - 2,
+    ...shadow.card,
   },
 });
 

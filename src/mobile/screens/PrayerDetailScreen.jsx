@@ -1,14 +1,51 @@
 import { useEffect, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { colors } from '../theme';
+import {
+  Bookmark,
+  Clock,
+  MoreHorizontal,
+  Users,
+} from 'lucide-react-native';
+import { alpha, colors, fonts, radii, spacing } from '../theme';
 import { prayForRequest } from '../api';
 import { markAnswered } from '../usePrayerData';
 import { submitReport } from '../useReports';
 import { useEncouragements } from '../useEncouragements';
-import CinematicScreen from '../components/CinematicScreen';
-import PageHero from '../components/PageHero';
+import ScreenScaffold from '../components/ScreenScaffold';
+import AppHeader from '../components/AppHeader';
+import GlassCard from '../components/GlassCard';
+import Heading from '../components/Heading';
+import BodyText from '../components/BodyText';
+import PrimaryButton from '../components/PrimaryButton';
+import MotionPressable from '../components/MotionPressable';
 import EncouragementThread from '../components/EncouragementThread';
+
+function Tag({ label, tone = 'default' }) {
+  return (
+    <View style={[styles.tag, tone === 'urgent' && styles.tagUrgent, tone === 'community' && styles.tagCommunity]}>
+      <Text style={[styles.tagText, tone === 'urgent' && styles.tagTextUrgent, tone === 'community' && styles.tagTextCommunity]}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+function AvatarStack({ count, authorName }) {
+  const slots = Math.min(4, Math.max(1, Math.min(count, 4)));
+  const initials = ['P', 'A', 'M', 'J'].slice(0, slots);
+  if (authorName) initials[0] = authorName.slice(0, 1).toUpperCase();
+
+  return (
+    <View style={styles.avatarStack}>
+      {initials.map((letter, index) => (
+        <View key={`${letter}-${index}`} style={[styles.stackAvatar, { marginLeft: index ? -10 : 0, zIndex: slots - index }]}>
+          <Text style={styles.stackAvatarText}>{letter}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
 
 export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh }) {
   const [prayed, setPrayed] = useState(false);
@@ -17,6 +54,7 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
   const [showActions, setShowActions] = useState(false);
   const { comments, loading: commentsLoading } = useEncouragements(prayer.id);
   const isOwner = user && prayer.authorUid === user.uid;
+  const prayedCount = prayer.prayedCount + prayerCountDelta;
 
   useEffect(() => {
     loadBookmark();
@@ -85,18 +123,9 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
       'Why are you reporting this prayer?',
       [
         { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Inappropriate content',
-          onPress: () => submitReportIfSignedIn('Inappropriate content'),
-        },
-        {
-          text: 'Spam',
-          onPress: () => submitReportIfSignedIn('Spam'),
-        },
-        {
-          text: 'Other',
-          onPress: () => submitReportIfSignedIn('User submitted report'),
-        },
+        { text: 'Inappropriate content', onPress: () => submitReportIfSignedIn('Inappropriate content') },
+        { text: 'Spam', onPress: () => submitReportIfSignedIn('Spam') },
+        { text: 'Other', onPress: () => submitReportIfSignedIn('User submitted report') },
       ],
     );
   };
@@ -139,90 +168,145 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
   };
 
   const handleTimer = () => {
-    if (go) {
-      go('prayerStopwatch', { prayerId: prayer.id, title: prayer.title });
-    }
+    if (go) go('prayerStopwatch', { prayerId: prayer.id, title: prayer.title });
   };
 
+  const prayLabel = isOwner
+    ? 'Your Request'
+    : prayed
+      ? (prayer.prayerLimit === 'once' ? 'Already Prayed' : 'Prayed Today')
+      : "I'll Pray";
+
   return (
-    <CinematicScreen pageContent>
-      <Pressable onPress={onBack} style={styles.backButton}>
-        <Text style={styles.backText}>Back</Text>
-      </Pressable>
-      <PageHero scene="chapel" eyebrow="Prayer Request" title={prayer.title} subtitle={prayer.authorName} compact />
-        <View style={styles.card}>
-          <Text style={styles.body}>{prayer.body}</Text>
-          <Text style={styles.meta}>{prayer.prayedCount + prayerCountDelta} people praying</Text>
-          {prayer.createdAt && (
-            <Text style={styles.meta}>{new Date(prayer.createdAt.seconds * 1000).toLocaleDateString()}</Text>
-          )}
-          {prayer.urgent && <Text style={styles.urgent}>Urgent</Text>}
-          {prayer.privacy === 'private' && <Text style={styles.private}>Private</Text>}
-        </View>
+    <ScreenScaffold pageContent>
+      <AppHeader onBack={onBack} title="Prayer Request" />
 
-        <View style={styles.actionsRow}>
-          <Pressable onPress={pray} style={[styles.actionButton, (prayed || isOwner) && styles.actionButtonDisabled]} disabled={prayed || isOwner}>
-            <Text style={styles.actionButtonText}>
-              {isOwner ? 'Your Request' : prayed ? (prayer.prayerLimit === 'once' ? 'Already Prayed' : 'Prayed Today') : "I'll Pray"}
-            </Text>
-          </Pressable>
-          <Pressable onPress={toggleBookmark} style={styles.iconButton}>
-            <Text style={styles.iconText}>{bookmarked ? '★' : '☆'}</Text>
-          </Pressable>
-          <Pressable onPress={handleTimer} style={styles.iconButton}>
-            <Text style={styles.iconText}>⏱</Text>
-          </Pressable>
-          <Pressable onPress={() => setShowActions(!showActions)} style={styles.iconButton}>
-            <Text style={styles.iconText}>⋯</Text>
-          </Pressable>
-        </View>
+      <View style={styles.tagRow}>
+        {prayer.urgent ? <Tag label="Urgent" tone="urgent" /> : null}
+        {prayer.privacy === 'community' ? <Tag label="Community" tone="community" /> : null}
+        {prayer.privacy === 'private' ? <Tag label="Private" /> : null}
+      </View>
 
-        {showActions && (
-          <View style={styles.moreActions}>
-            <Pressable onPress={handleReport} style={styles.moreActionButton}>
-              <Text style={styles.moreActionText}>Report</Text>
-            </Pressable>
-            {isOwner && (
-              <>
-                <Pressable onPress={handleMarkAnswered} style={styles.moreActionButton}>
-                  <Text style={styles.moreActionText}>Mark Answered</Text>
-                </Pressable>
-                {go && (
-                  <Pressable onPress={() => go('editRequest', { prayer })} style={styles.moreActionButton}>
-                    <Text style={styles.moreActionText}>Edit</Text>
-                  </Pressable>
-                )}
-              </>
-            )}
+      <Heading level="h2" style={styles.title}>{prayer.title}</Heading>
+      <BodyText variant="small" style={styles.author}>{prayer.authorName}</BodyText>
+      <BodyText variant="body" style={styles.body}>{prayer.body}</BodyText>
+
+      <GlassCard style={styles.prayingCard}>
+        <View style={styles.prayingRow}>
+          <AvatarStack count={prayedCount} authorName={prayer.authorName} />
+          <View style={styles.prayingInfo}>
+            <View style={styles.prayingTitleRow}>
+              <Users size={16} color={colors.gold} />
+              <Heading level="h4" style={styles.prayingCount}>{prayedCount} people praying</Heading>
+            </View>
+            {prayer.createdAt ? (
+              <BodyText variant="caption">
+                Posted {new Date(prayer.createdAt.seconds * 1000).toLocaleDateString()}
+              </BodyText>
+            ) : null}
           </View>
-        )}
+        </View>
+      </GlassCard>
 
-        <EncouragementThread
-          threadId={prayer.id}
-          comments={comments}
-          loading={commentsLoading}
-          user={user}
-          onRefresh={onRefresh}
-        />
-    </CinematicScreen>
+      <PrimaryButton
+        label={prayLabel}
+        onPress={pray}
+        disabled={prayed || isOwner}
+        style={styles.prayBtn}
+      />
+
+      <View style={styles.actionsRow}>
+        <MotionPressable onPress={toggleBookmark} style={styles.iconButton}>
+          <Bookmark size={20} color={bookmarked ? colors.gold : alpha.ivory72} fill={bookmarked ? colors.gold : 'transparent'} />
+          <BodyText variant="caption">Save</BodyText>
+        </MotionPressable>
+        <MotionPressable onPress={handleTimer} style={styles.iconButton}>
+          <Clock size={20} color={colors.gold} />
+          <BodyText variant="caption">Start Timer</BodyText>
+        </MotionPressable>
+        <MotionPressable onPress={() => setShowActions(!showActions)} style={styles.iconButton}>
+          <MoreHorizontal size={20} color={colors.gold} />
+          <BodyText variant="caption">More</BodyText>
+        </MotionPressable>
+      </View>
+
+      {showActions ? (
+        <GlassCard style={styles.moreActions}>
+          <Pressable onPress={handleReport} style={styles.moreActionButton}>
+            <BodyText variant="label">Report</BodyText>
+          </Pressable>
+          {isOwner ? (
+            <>
+              <Pressable onPress={handleMarkAnswered} style={styles.moreActionButton}>
+                <BodyText variant="label">Mark Answered</BodyText>
+              </Pressable>
+              {go ? (
+                <Pressable onPress={() => go('editRequest', { prayer })} style={[styles.moreActionButton, styles.moreActionLast]}>
+                  <BodyText variant="label">Edit</BodyText>
+                </Pressable>
+              ) : null}
+            </>
+          ) : null}
+        </GlassCard>
+      ) : null}
+
+      <EncouragementThread
+        threadId={prayer.id}
+        comments={comments}
+        loading={commentsLoading}
+        user={user}
+        onRefresh={onRefresh}
+      />
+    </ScreenScaffold>
   );
 }
 
 const styles = StyleSheet.create({
-  backButton: { alignSelf: 'flex-start', marginTop: 16, marginBottom: 4, paddingVertical: 8, paddingRight: 16 },
-  backText: { color: colors.gold, fontWeight: '800' },
-  card: { borderWidth: 1, borderColor: 'rgba(248,243,234,0.16)', backgroundColor: 'rgba(248,243,234,0.11)', borderRadius: 24, padding: 18 },
-  body: { marginTop: 12, color: 'rgba(248,243,234,0.72)', fontSize: 14, lineHeight: 23 },
-  meta: { flexShrink: 1, color: 'rgba(248,243,234,0.55)', fontSize: 12, marginTop: 12 },
-  urgent: { marginTop: 8, color: '#ef4444', fontSize: 12, fontWeight: '700' },
-  private: { marginTop: 4, color: 'rgba(248,243,234,0.5)', fontSize: 12, fontWeight: '600' },
-  actionsRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 20 },
-  actionButton: { flex: 1, minHeight: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.gold },
-  actionButtonDisabled: { opacity: 0.5 },
-  actionButtonText: { color: colors.ink, fontSize: 15, fontWeight: '800' },
-  iconButton: { width: 52, height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(248,243,234,0.16)', backgroundColor: 'rgba(248,243,234,0.08)' },
-  iconText: { fontSize: 24, color: colors.gold },
-  moreActions: { marginTop: 12, borderWidth: 1, borderColor: 'rgba(248,243,234,0.16)', borderRadius: 16, overflow: 'hidden' },
-  moreActionButton: { paddingVertical: 14, paddingHorizontal: 18, borderBottomWidth: 1, borderBottomColor: 'rgba(248,243,234,0.08)' },
-  moreActionText: { color: colors.ivory, fontSize: 15, fontWeight: '600' },
+  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
+  tag: {
+    borderRadius: radii.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    backgroundColor: alpha.ivory12,
+  },
+  tagUrgent: { backgroundColor: alpha.ivory12, borderWidth: 1, borderColor: colors.urgent },
+  tagCommunity: { backgroundColor: alpha.ivory12, borderWidth: 1, borderColor: colors.community },
+  tagText: { fontFamily: fonts.sansSemiBold, fontSize: 11, color: alpha.ivory72 },
+  tagTextUrgent: { color: colors.urgent },
+  tagTextCommunity: { color: colors.community },
+  title: { marginTop: spacing.md },
+  author: { marginTop: spacing.xs, color: colors.gold },
+  body: { marginTop: spacing.lg },
+  prayingCard: { marginTop: spacing.lg },
+  prayingRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  prayingInfo: { flex: 1 },
+  prayingTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  prayingCount: { fontSize: 17 },
+  avatarStack: { flexDirection: 'row', alignItems: 'center' },
+  stackAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: alpha.gold22,
+    borderWidth: 2,
+    borderColor: colors.screen,
+  },
+  stackAvatarText: { fontFamily: fonts.sansBold, fontSize: 13, color: colors.gold },
+  prayBtn: { marginTop: spacing.lg },
+  actionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  iconButton: { alignItems: 'center', gap: spacing.xs, minWidth: 72 },
+  moreActions: { paddingVertical: 0, marginBottom: spacing.lg, overflow: 'hidden' },
+  moreActionButton: {
+    paddingVertical: spacing.md + 2,
+    borderBottomWidth: 1,
+    borderBottomColor: alpha.ivory10,
+  },
+  moreActionLast: { borderBottomWidth: 0 },
 });

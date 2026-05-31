@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   BackHandler,
   Pressable,
   SafeAreaView,
@@ -9,14 +8,13 @@ import {
   Text,
   View,
 } from 'react-native';
-import { ChevronLeft, ChevronRight, LogOut } from 'lucide-react-native';
 import { useAuth } from '../src/mobile/AuthProvider';
-import { colors } from '../src/mobile/theme';
+import { colors, alpha, radii, spacing } from '../src/mobile/theme';
 import { registerForPushNotifications } from '../src/mobile/notifications';
-import { back, createNavState, forward, go, reset } from '../src/mobile/navigation';
+import { back, createNavState, go, reset } from '../src/mobile/navigation';
 import { useSuspendedStatus } from '../src/mobile/useIsAdmin';
 import BottomTabs from '../src/mobile/components/BottomTabs';
-import CinematicScreen from '../src/mobile/components/CinematicScreen';
+import ScreenScaffold from '../src/mobile/components/ScreenScaffold';
 import AccountSuspendedScreen from '../src/mobile/screens/AccountSuspendedScreen';
 import AchievementsScreen from '../src/mobile/screens/AchievementsScreen';
 import AdminDashboardScreen from '../src/mobile/screens/AdminDashboardScreen';
@@ -59,11 +57,8 @@ import AboutScreen from '../src/mobile/screens/AboutScreen';
 import CopyrightScreen from '../src/mobile/screens/CopyrightScreen';
 import WelcomeScreen from '../src/mobile/screens/WelcomeScreen';
 
-
-const CinematicScroll = CinematicScreen;
-
 const AUTH_ROUTES = ['splash', 'welcome', 'reminderSetup', 'stayConnected', 'signIn', 'createAccount', 'resetPassword'];
-const MAIN_TAB_ROUTES = ['home', 'myPrayers', 'create', 'praise', 'myStats', 'profile'];
+const MAIN_TAB_ROUTES = ['home', 'discover', 'create', 'praise', 'profile'];
 
 export default function MobileApp() {
   const { user, loading, signIn, register, signOut, resetPassword } = useAuth();
@@ -109,81 +104,17 @@ export default function MobileApp() {
   const screen = nav.screen;
   const params = nav.params || {};
   const isMainTab = MAIN_TAB_ROUTES.includes(screen);
-  const canGoBack = nav.history.length > 0 || (user && screen !== 'home');
-  const canGoForward = (nav.future || []).length > 0;
 
   const handleGo = (s, p) => setNav((prev) => go(prev, s, p));
   const handleBack = (fallback) => setNav((prev) => back(prev, fallback || 'home'));
-  const handleForward = () => setNav((prev) => forward(prev));
-  const handleExit = () => {
-    Alert.alert('Exit PrayerStride', 'Close the app now?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Exit',
-        style: 'destructive',
-        onPress: () => {
-          if (BackHandler.exitApp) {
-            BackHandler.exitApp();
-            return;
-          }
-          Alert.alert('Exit unavailable', 'Use your device controls to close the app.');
-        },
-      },
-    ]);
-  };
 
   const content = renderScreen(screen, params, user, suspended, suspendedReason, signIn, register, signOut, resetPassword, handleGo, handleBack);
 
   return (
     <SafeAreaView style={styles.shell}>
       <View style={styles.appBody}>{content}</View>
-      {screen !== 'splash' && (
-        <NavigationControls
-          canGoBack={canGoBack}
-          canGoForward={canGoForward}
-          bottomOffset={isMainTab ? 86 : 18}
-          onBack={() => handleBack('home')}
-          onForward={handleForward}
-          onExit={handleExit}
-        />
-      )}
       {isMainTab && <BottomTabs active={screen} onChange={handleGo} />}
     </SafeAreaView>
-  );
-}
-
-function NavigationControls({ canGoBack, canGoForward, bottomOffset, onBack, onForward, onExit }) {
-  return (
-    <View style={[styles.navControls, { bottom: bottomOffset }]}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Go back"
-        disabled={!canGoBack}
-        onPress={onBack}
-        style={[styles.navButton, !canGoBack && styles.navButtonDisabled]}
-      >
-        <ChevronLeft size={21} color={colors.ivory} />
-        <Text style={styles.navButtonText}>Back</Text>
-      </Pressable>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Go forward"
-        disabled={!canGoForward}
-        onPress={onForward}
-        style={[styles.iconNavButton, !canGoForward && styles.navButtonDisabled]}
-      >
-        <ChevronRight size={21} color={colors.ivory} />
-      </Pressable>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Exit app"
-        onPress={onExit}
-        style={styles.exitButton}
-      >
-        <LogOut size={19} color={colors.gold} />
-        <Text style={styles.exitButtonText}>Exit</Text>
-      </Pressable>
-    </View>
   );
 }
 
@@ -205,12 +136,12 @@ function renderScreen(screen, params, user, suspended, suspendedReason, signIn, 
       return <ResetPasswordScreen onResetPassword={resetPassword} onBack={() => backFn('signIn')} />;
     }
     if (screen === 'createAccount') {
-      return <AuthScreen mode="register" onSignIn={signIn} onRegister={register} onResetPassword={() => goFn('resetPassword')} />;
+      return <AuthScreen mode="register" onSignIn={signIn} onRegister={register} onResetPassword={() => goFn('resetPassword')} onSwitchMode={() => goFn('signIn')} />;
     }
     if (screen === 'signIn') {
-      return <AuthScreen mode="signIn" onSignIn={signIn} onRegister={register} onResetPassword={() => goFn('resetPassword')} />;
+      return <AuthScreen mode="signIn" onSignIn={signIn} onRegister={register} onResetPassword={() => goFn('resetPassword')} onSwitchMode={() => goFn('createAccount')} />;
     }
-    return <AuthScreen mode="signIn" onSignIn={signIn} onRegister={register} onResetPassword={() => goFn('resetPassword')} />;
+    return <AuthScreen mode="signIn" onSignIn={signIn} onRegister={register} onResetPassword={() => goFn('resetPassword')} onSwitchMode={() => goFn('createAccount')} />;
   }
 
   if (suspended) {
@@ -219,56 +150,55 @@ function renderScreen(screen, params, user, suspended, suspendedReason, signIn, 
 
   switch (screen) {
     case 'home': return <HomeScreen onOpenPrayer={(p) => goFn('detail', { prayer: p })} go={goFn} />;
-    case 'myPrayers': return <MyPrayersScreen user={user} onOpenPrayer={(p) => goFn('detail', { prayer: p })} />;
+    case 'myPrayers': return <MyPrayersScreen user={user} onOpenPrayer={(p) => goFn('detail', { prayer: p })} onBack={() => backFn('profile')} />;
     case 'discover': return <DiscoverScreen onOpenPrayer={(p) => goFn('detail', { prayer: p })} />;
     case 'create': return <CreatePrayerScreen user={user} />;
     case 'praise': return <PraiseScreen onOpenTestimony={(t) => goFn('praiseDetail', { testimony: t })} />;
-    case 'myStats': return <MyStatsScreen user={user} />;
+    case 'myStats': return <MyStatsScreen user={user} onBack={() => backFn('profile')} />;
     case 'profile': return <ProfileScreen user={user} signOut={signOut} go={goFn} />;
-    case 'detail': return <PrayerDetailScreen prayer={params.prayer} user={user} onBack={() => backFn('home')} go={goFn} />;
+    case 'detail': return <PrayerDetailScreen prayer={params.prayer} user={user} onBack={() => backFn('discover')} go={goFn} />;
     case 'praiseDetail': return <PraiseDetailScreen testimony={params.testimony} onBack={() => backFn('praise')} />;
     case 'createTestimony': return <CreateTestimonyScreen user={user} linkedPrayerId={params.prayerId} onDone={() => backFn('praise')} />;
     case 'editRequest': return <EditRequestScreen prayer={params.prayer} user={user} onDone={() => backFn('myPrayers')} />;
     case 'prayerStopwatch': return <PrayerStopwatchScreen prayerId={params.prayerId} title={params.title} user={user} onDone={() => backFn('myStats')} />;
-    case 'answeredPrayers': return <AnsweredPrayersScreen user={user} onOpenPrayer={(p) => goFn('detail', { prayer: p })} />;
-    case 'settings': return <SettingsScreen go={goFn} signOut={signOut} />;
+    case 'answeredPrayers': return <AnsweredPrayersScreen user={user} onOpenPrayer={(p) => goFn('detail', { prayer: p })} onBack={() => backFn('profile')} />;
+    case 'settings': return <SettingsScreen go={goFn} signOut={signOut} onBack={() => backFn('profile')} />;
     case 'editProfile': return <EditProfileScreen user={user} onDone={() => backFn('profile')} />;
-    case 'notifications': return <NotificationsScreen user={user} />;
-    case 'notificationSettings': return <NotificationSettingsScreen user={user} />;
-    case 'privacyPolicy': return <PrivacyPolicyScreen />;
-    case 'termsOfService': return <TermsOfServiceScreen />;
-    case 'helpCenter': return <HelpCenterScreen />;
-    case 'support': return <SupportDonationScreen />;
-    case 'following': return <FollowingScreen user={user} />;
-    case 'announcements': return <AnnouncementsScreen />;
-    case 'devotions': return <DevotionsScreen go={goFn} />;
+    case 'notifications': return <NotificationsScreen user={user} onBack={() => backFn('profile')} />;
+    case 'notificationSettings': return <NotificationSettingsScreen user={user} onBack={() => backFn('settings')} />;
+    case 'privacyPolicy': return <PrivacyPolicyScreen onBack={() => backFn('settings')} />;
+    case 'termsOfService': return <TermsOfServiceScreen onBack={() => backFn('settings')} />;
+    case 'helpCenter': return <HelpCenterScreen onBack={() => backFn('settings')} />;
+    case 'support': return <SupportDonationScreen onBack={() => backFn('settings')} />;
+    case 'following': return <FollowingScreen user={user} onBack={() => backFn('profile')} />;
+    case 'announcements': return <AnnouncementsScreen onBack={() => backFn('profile')} />;
+    case 'devotions': return <DevotionsScreen go={goFn} onBack={() => backFn('profile')} />;
     case 'guideDetail': return <GuideDetailScreen guideId={params.guideId} go={goFn} back={() => backFn('devotions')} />;
-    case 'lessonReader': return <LessonReaderScreen guideId={params.guideId} lessonId={params.lessonId} />;
-    case 'calendar': return <CalendarScreen user={user} />;
-    case 'about': return <AboutScreen />;
-    case 'copyright': return <CopyrightScreen />;
-    case 'reminderSettings': return <RemindersScreen user={user} />;
-    case 'achievements': return <AchievementsScreen user={user} />;
-    case 'quickActions': return <QuickActionsScreen go={goFn} />;
-    case 'adminDashboard': return <AdminDashboardScreen user={user} go={goFn} />;
+    case 'lessonReader': return <LessonReaderScreen guideId={params.guideId} lessonId={params.lessonId} onBack={() => backFn('devotions')} />;
+    case 'calendar': return <CalendarScreen user={user} onBack={() => backFn('profile')} />;
+    case 'about': return <AboutScreen onBack={() => backFn('settings')} />;
+    case 'copyright': return <CopyrightScreen onBack={() => backFn('settings')} />;
+    case 'reminderSettings': return <RemindersScreen user={user} onBack={() => backFn('profile')} />;
+    case 'achievements': return <AchievementsScreen user={user} onBack={() => backFn('profile')} />;
+    case 'quickActions': return <QuickActionsScreen go={goFn} onBack={() => backFn('profile')} />;
+    case 'adminDashboard': return <AdminDashboardScreen user={user} go={goFn} onBack={() => backFn('profile')} />;
     case 'reportDetails': return <ReportDetailsScreen report={params.report} go={goFn} back={() => backFn('adminDashboard')} />;
     case 'accountSuspended': return <AccountSuspendedScreen reason={suspendedReason} onSignOut={signOut} />;
     default: return <PlaceholderScreen screen={screen} onBack={() => backFn('home')} />;
   }
 }
 
-
 function PlaceholderScreen({ screen, onBack }) {
   return (
-    <CinematicScroll>
+    <ScreenScaffold pageContent showLogo title={screen}>
       <Pressable onPress={onBack} style={styles.glassBackButton}>
         <Text style={styles.glassLinkText}>Back</Text>
       </Pressable>
       <View style={styles.glassCard}>
-        <Text style={styles.oldPrayerTitle}>{screen}</Text>
+        <Text style={styles.placeholderTitle}>{screen}</Text>
         <Text style={styles.glassBody}>This screen is coming soon.</Text>
       </View>
-    </CinematicScroll>
+    </ScreenScaffold>
   );
 }
 
@@ -282,33 +212,13 @@ function Centered({ label }) {
 }
 
 const styles = StyleSheet.create({
-  shell: { flex: 1, backgroundColor: colors.ink },
-  appBody: { flex: 1, backgroundColor: colors.ink },
-  navControls: {
-    position: 'absolute',
-    left: 16,
-    zIndex: 20,
-    minHeight: 46,
-    padding: 4,
-    borderRadius: 999,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(248,243,234,0.2)',
-    backgroundColor: 'rgba(8,11,19,0.86)',
-  },
-  navButton: { minHeight: 38, paddingHorizontal: 11, borderRadius: 999, flexDirection: 'row', alignItems: 'center', gap: 2, backgroundColor: 'rgba(248,243,234,0.1)' },
-  iconNavButton: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(248,243,234,0.1)' },
-  exitButton: { minHeight: 38, paddingHorizontal: 11, borderRadius: 999, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(248,243,234,0.1)' },
-  navButtonDisabled: { opacity: 0.36 },
-  navButtonText: { color: colors.ivory, fontSize: 13, fontWeight: '800' },
-  exitButtonText: { color: colors.gold, fontSize: 13, fontWeight: '800' },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.ink },
-  centeredText: { marginTop: 12, color: colors.ivory, fontWeight: '700' },
-  glassBackButton: { alignSelf: 'flex-start', marginTop: 16, marginBottom: 4, paddingVertical: 8, paddingRight: 16 },
+  shell: { flex: 1, backgroundColor: colors.screen },
+  appBody: { flex: 1, backgroundColor: colors.screen },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.screen },
+  centeredText: { marginTop: spacing.md, color: colors.ivory, fontWeight: '700' },
+  glassBackButton: { alignSelf: 'flex-start', marginTop: spacing.lg, marginBottom: spacing.xs, paddingVertical: spacing.sm, paddingRight: spacing.lg },
   glassLinkText: { color: colors.gold, fontWeight: '800' },
-  glassCard: { borderWidth: 1, borderColor: 'rgba(248,243,234,0.16)', backgroundColor: 'rgba(248,243,234,0.11)', borderRadius: 24, padding: 18 },
-  oldPrayerTitle: { marginTop: 10, color: colors.ivory, fontSize: 21, lineHeight: 26, fontWeight: '800' },
-  glassBody: { marginTop: 12, color: 'rgba(248,243,234,0.72)', fontSize: 14, lineHeight: 23 },
+  glassCard: { borderWidth: 1, borderColor: alpha.ivory16, backgroundColor: alpha.ivory11, borderRadius: radii.xxl, padding: spacing.xl - 2 },
+  placeholderTitle: { marginTop: spacing.sm + 2, color: colors.ivory, fontSize: 21, lineHeight: 26, fontWeight: '800' },
+  glassBody: { marginTop: spacing.md, color: alpha.ivory72, fontSize: 14, lineHeight: 23 },
 });
