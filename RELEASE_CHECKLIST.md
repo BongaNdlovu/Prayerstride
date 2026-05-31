@@ -11,7 +11,7 @@ PrayerStride is proprietary software owned by you. It is not open source. Third-
 Set production secrets with `wrangler secret put <NAME>`:
 
 | Secret | Purpose |
-|--------|---------|
+| -------- | --------- |
 | `OWNER_EMAIL` | Verified owner bootstrap email |
 | `FIREBASE_PRIVATE_KEY` | Service-account credential |
 | `FIREBASE_CLIENT_EMAIL` | Service-account identity |
@@ -68,15 +68,15 @@ not a substitute for legal advice.
 2. Restrict Firebase client keys by package name, SHA-256 certificate fingerprint, and required API allowlist.
 3. Run the admin migration in dry-run mode before applying it:
 
-```bash
-OWNER_EMAIL=you@example.com node scripts/admin-migrate-admins.mjs --dry-run
-```
+    ```bash
+    OWNER_EMAIL=you@example.com node scripts/admin-migrate-admins.mjs --dry-run
+    ```
 
 4. Run the anonymous-content migration in dry-run mode before applying it:
 
-```bash
-node scripts/migrate-anonymous-content.mjs --dry-run
-```
+    ```bash
+    node scripts/migrate-anonymous-content.mjs --dry-run
+    ```
 
 ## Resend
 
@@ -134,6 +134,5 @@ Verify public pages:
 ## Follow-ups
 
 - Custom claims for admin authorization
-- Web UI parity
 - Custom-domain routing
 - Re-acceptance UI when legal versions change

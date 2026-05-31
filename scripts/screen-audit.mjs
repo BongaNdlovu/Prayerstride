@@ -2,35 +2,32 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const root = process.cwd();
-const screenDir = join(root, 'src', 'components', 'screens');
+const screenDir = join(root, 'src', 'mobile', 'screens');
 const screens = readdirSync(screenDir).filter((file) => file.endsWith('.jsx')).sort();
 
 const rows = screens.map((file) => {
   const source = readFileSync(join(screenDir, file), 'utf8');
-  const cinematic = source.includes('cinematic-bg') || source.includes('SceneImage');
-  const appScreen = source.includes('<AppScreen');
-  const legacyShell = /className="[^"]*(?:h-full|flex h-full|relative flex h-full)[^"]*bg-sand/.test(source);
-  const warmCards = (source.match(/warm-panel|bg-white\/|bg-white|border-\[#e6ddcf\]/g) || []).length;
-  const likelyUnpolished = legacyShell && !cinematic && !appScreen;
+  const usesScene = source.includes('scenes.') || source.includes('SceneImage');
+  const usesScaffold = source.includes('ScreenScaffold');
+  const usesTheme = source.includes('theme') || source.includes('colors.');
 
   return {
     file,
-    status: likelyUnpolished ? 'review' : 'ok',
-    style: cinematic ? 'cinematic' : appScreen ? 'app-screen' : legacyShell ? 'legacy-light' : 'mixed',
-    warmCards,
+    status: usesScaffold || usesScene || usesTheme ? 'ok' : 'review',
+    style: usesScene ? 'scene' : usesScaffold ? 'scaffold' : 'mixed',
   };
 });
 
 const review = rows.filter((row) => row.status === 'review');
 
-console.log('Screen style audit');
+console.log('Mobile screen audit');
 for (const row of rows) {
-  console.log(`${row.status.padEnd(6)} ${row.file.padEnd(28)} ${row.style.padEnd(13)} warm/light refs: ${row.warmCards}`);
+  console.log(`${row.status.padEnd(6)} ${row.file.padEnd(36)} ${row.style}`);
 }
 
 if (review.length) {
-  console.log('\nScreens to review for the newer visual direction:');
+  console.log('\nScreens to review for shared layout or scene usage:');
   for (const row of review) console.log(`- ${row.file}`);
 } else {
-  console.log('\nNo obvious legacy full-screen shells found.');
+  console.log('\nAll mobile screens use shared layout or scene assets.');
 }

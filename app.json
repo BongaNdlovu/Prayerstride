@@ -11,7 +11,6 @@
       "assets/icon.png",
       "assets/adaptive-icon.png",
       "assets/favicon.png",
-      "src/assets/cinematic-prayer-scenes.jpg",
       "src/assets/compressed-scenes/*.jpg"
     ],
     "web": {

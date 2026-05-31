@@ -3,8 +3,10 @@ node_modules/
 
 # Build output
 dist/
-functions/lib/
 .expo/
+.wrangler/
+coverage/
+.firebase/
 .gradle-user-home*/
 
 # Environment files
@@ -36,3 +38,4 @@ android/.kotlin/
 android/build/
 android/app/.cxx/
 android/app/build/
+android-capacitor-legacy/

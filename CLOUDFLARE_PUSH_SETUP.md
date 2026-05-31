@@ -1,8 +1,8 @@
 # Cloudflare Native Push Setup
 
-PrayerStride now uses this path for native push notifications:
+PrayerStride uses this path for native push notifications:
 
-1. The Android app gets an FCM token through Capacitor Push Notifications.
+1. The Expo app gets an FCM token through Expo Notifications.
 2. The app sends that token to `/api/devices/register`.
 3. Cloudflare Worker stores the token under `users/{uid}/devices/{tokenHash}` in Firestore.
 4. Prayer/testimony actions call the Worker.
@@ -28,7 +28,7 @@ Keep the private key exactly as Firebase gives it, including the `-----BEGIN PRI
 
 ## Cloudflare Deploy
 
-This project now has `wrangler.toml` configured for:
+This project has `wrangler.toml` configured for:
 
 - Worker name: `prayerstride`
 - Worker entry: `worker/index.js`
@@ -43,12 +43,10 @@ wrangler deploy
 
 ## App Environment
 
-If the app and Worker are served from the same Cloudflare domain, `VITE_API_URL` can stay empty.
-
-For local/dev builds that call a deployed Worker, add:
+Set the Worker base URL in `.env.local`:
 
 ```txt
-VITE_API_URL=https://your-worker-domain.workers.dev
+EXPO_PUBLIC_API_URL=https://your-worker-domain.workers.dev
 ```
 
 ## Endpoints Added

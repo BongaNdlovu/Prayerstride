@@ -59,10 +59,6 @@ const textExtensions = new Set([
 
 const windowsDrivePath = /(?<![A-Za-z])[A-Za-z]:[\\/]/;
 const offenders = [];
-const ignoredFiles = new Set([
-  'scripts/visual-smoke.mjs',
-]);
-
 function shouldSkipDir(relativePath) {
   const normalized = relativePath.replaceAll('\\', '/');
   const topLevel = normalized.split('/')[0];
@@ -83,7 +79,6 @@ function scanDir(dir) {
 
     const extension = entry.slice(entry.lastIndexOf('.'));
     const normalizedRelPath = relPath.replaceAll('\\', '/');
-    if (ignoredFiles.has(normalizedRelPath)) continue;
     if (!textExtensions.has(extension)) continue;
 
     const contents = readFileSync(fullPath, 'utf8');

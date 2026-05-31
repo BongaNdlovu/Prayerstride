@@ -1,6 +1,6 @@
 # Expo Migration
 
-PrayerStride is now scaffolded as a mobile-first Expo app.
+PrayerStride is a mobile-first Expo app.
 
 ## Stack
 
@@ -52,6 +52,4 @@ npx eas build --platform ios --profile production
 
 ## Native Project Note
 
-The old Capacitor `android/` project is still in the repo until you explicitly approve removing or renaming it. Expo export currently uses `jsEngine: "jsc"` so it does not conflict with that old native folder.
-
-For a clean Expo production app, the next step is to remove or rename the old Capacitor `android/` folder, then switch `app.json` back to Hermes by removing `"jsEngine": "jsc"` or setting it to `"hermes"`.
+The active Android project lives in `android/` and is generated/maintained for Expo. The legacy Capacitor project and Vite web prototype have been removed from the repo.

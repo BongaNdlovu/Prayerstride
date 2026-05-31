@@ -1,10 +1,10 @@
 # PrayerStride
 
-A daily prayer companion app built with React + Vite + Tailwind CSS.
+A daily prayer companion app built with Expo and React Native.
 
 ## Features
 
-- **Splash & Onboarding** – Beautiful branded entry with welcome and reminder setup
+- **Splash & Onboarding** – Branded entry with welcome and reminder setup
 - **Home Feed** – Daily prayer mission, streak counter, and prayer requests
 - **Discover** – Search and browse prayers, people, and testimonies
 - **Prayer Detail** – Read full requests, pray with one tap, leave encouragements
@@ -14,10 +14,11 @@ A daily prayer companion app built with React + Vite + Tailwind CSS.
 
 ## Tech Stack
 
-- React 18
-- Vite
-- Tailwind CSS
-- Lucide React (icons)
+- Expo + React Native
+- Expo Router
+- Firebase Auth and Firestore
+- Expo Notifications
+- Cloudflare Worker API
 
 ## Getting Started
 
@@ -25,50 +26,37 @@ A daily prayer companion app built with React + Vite + Tailwind CSS.
 # Install dependencies
 npm install
 
-# Start development server
-npm run dev
+# Start Expo dev server
+npm start
 
-# Build for production
+# Run on Android
+npm run android
+
+# Export production bundle
 npm run build
 ```
 
 ## Project Structure
 
-```
-src/
-  components/
-    PrayingHandsIcon.jsx   # Custom SVG prayer icon
-    PhoneFrame.jsx         # Device mockup wrapper
-    TopLogo.jsx            # Branded logo component
-    BottomNav.jsx          # Tab navigation
-    screens/               # All app screens
-      Splash.jsx
-      Welcome.jsx
-      ReminderSetup.jsx
-      HomeScreen.jsx
-      Discover.jsx
-      Detail.jsx
-      Create.jsx
-      Praise.jsx
-      Profile.jsx
-    ui/
-      PrayerCard.jsx       # Reusable prayer request card
-  data/
-    constants.js           # App data and navigation maps
-  App.jsx                  # Main app with routing logic
-  main.jsx                 # Entry point
-  index.css                # Tailwind directives
+```text
+app/                 # Expo Router entry
+src/mobile/          # Mobile screens, hooks, API, and Firebase client
+android/             # Expo native Android project
+worker/              # Cloudflare Worker API
+src/assets/          # Bundled scene images and shared assets
 ```
 
-## Design Tokens
+## Environment
 
-| Token  | Value     | Usage                |
-|--------|-----------|----------------------|
-| Navy   | `#082A4A` | Primary brand, buttons |
-| Gold   | `#C8892B` | Accents, highlights  |
-| Ivory  | `#F8F3EA` | Page background      |
-| Stone  | `#E7DFD2` | Borders, dividers    |
-| Ink    | `#101820` | Text, dark elements  |
+Create `.env.local` with `EXPO_PUBLIC_*` values for Firebase and the Worker API URL. See [EXPO_MIGRATION.md](EXPO_MIGRATION.md) for the full list.
+
+## Tests
+
+```bash
+npm test
+npm run test:unit
+npm run test:restored
+```
 
 ## License
 

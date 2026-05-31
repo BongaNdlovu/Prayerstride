@@ -2,23 +2,21 @@
 node_modules/
 dist/
 .expo/
+.wrangler/
+coverage/
+.firebase/
 .gradle-user-home*/
 android/.gradle/
 android/.kotlin/
 android/build/
 android/app/.cxx/
 android/app/build/
-android-capacitor-legacy/
+
+# Environment files
+.env
+.env.local
+.env.*.local
 
 # Local logs and test artifacts
 *.log
 artifacts/
-
-# Development-only image artifacts
-/1.png
-/2.png
-/3.png
-/4.png
-/5.png
-/6.png
-/src/assets/cinematic-prayer-scenes.png
