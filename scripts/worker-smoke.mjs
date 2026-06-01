@@ -2,6 +2,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const worker = readFileSync(join(process.cwd(), 'worker', 'index.js'), 'utf8');
+const engagement = readFileSync(join(process.cwd(), 'worker', 'spiritual-engagement.js'), 'utf8');
+const workerSource = `${worker}\n${engagement}`;
 const failures = [];
 
 const assert = (condition, message) => {
@@ -17,6 +19,11 @@ assert(!worker.includes('/api/encouragements'), 'Worker should not expose commen
 assert(!worker.includes('createEncouragement(env'), 'Worker should not implement comment creation.');
 assert(worker.includes('blockUser(env'), 'Worker should implement blockUser handler.');
 assert(worker.includes("from './moderation.js'"), 'Worker should use moderation module.');
+assert(worker.includes("from './firestore-list.js'"), 'Worker should use paginated Firestore list helper.');
+assert(worker.includes('listAllDocumentPages'), 'Worker listDocuments should paginate with listAllDocumentPages.');
+assert(worker.includes("from './spiritual-engagement.js'"), 'Worker should use spiritual engagement module.');
+assert(worker.includes('normalizeEngagementDays'), 'Worker should normalize engagement days via shared helper.');
+assert(worker.includes('computeSpiritualEngagementMetrics'), 'Worker should compute engagement metrics via shared helper.');
 assert(worker.includes('ALLOW_DEV_ORIGINS'), 'Worker should gate dev CORS behind ALLOW_DEV_ORIGINS.');
 assert(worker.includes('OWNER_EMAIL'), 'Worker should read OWNER_EMAIL secret for bootstrap.');
 assert(worker.includes('completeRegistration(env'), 'Worker should implement complete-registration endpoint.');
@@ -61,14 +68,15 @@ assert(worker.includes('spiritual-engagement'), 'Worker should implement spiritu
 assert(worker.includes('spiritualEngagementMetrics'), 'Worker should implement spiritualEngagementMetrics function.');
 assert(worker.includes('runCollectionGroupQuery'), 'Worker should have collection-group query helper.');
 assert(worker.includes('allDescendants: true'), 'Collection-group query should use allDescendants.');
-assert(worker.includes('responseRate'), 'Engagement metrics should include responseRate.');
-assert(worker.includes('activePrayingUsers7d'), 'Engagement metrics should include activePrayingUsers7d.');
-assert(worker.includes('requestOnly'), 'Engagement metrics should include reciprocity requestOnly.');
-assert(worker.includes('prayOnly'), 'Engagement metrics should include reciprocity prayOnly.');
-assert(worker.includes('retentionRate'), 'Engagement metrics should include retentionRate.');
-assert(worker.includes('groupingAvailable'), 'Engagement metrics should include groupingAvailable.');
-assert(worker.includes('Math.min(90, Math.max(1, Math.floor(requestedDays)))'), 'Engagement window should clamp days to an integer between 1 and 90.');
-assert(worker.includes('windowTooShortForRetention'), 'Engagement metrics should flag windows that are too short for retention.');
+assert(workerSource.includes('responseRate'), 'Engagement metrics should include responseRate.');
+assert(workerSource.includes('activePrayingUsers7d'), 'Engagement metrics should include activePrayingUsers7d.');
+assert(workerSource.includes('requestOnly'), 'Engagement metrics should include reciprocity requestOnly.');
+assert(workerSource.includes('prayOnly'), 'Engagement metrics should include reciprocity prayOnly.');
+assert(workerSource.includes('retentionRate'), 'Engagement metrics should include retentionRate.');
+assert(workerSource.includes('groupingAvailable'), 'Engagement metrics should include groupingAvailable.');
+assert(workerSource.includes('windowTooShortForRetention'), 'Engagement metrics should flag windows that are too short for retention.');
+assert(engagement.includes('Math.min(90, Math.max(1, Math.floor(requestedDays)))'), 'Engagement window should clamp days to an integer between 1 and 90.');
+assert(!worker.includes('Math.min(90, Math.max(1, Math.floor(requestedDays)))'), 'Engagement day clamp should live in spiritual-engagement module.');
 assert(!worker.includes('metricTitle') && !worker.includes('metricBody'), 'Engagement endpoint must not expose prayer content.');
 assert(worker.includes('requireAdmin(env, user)') || worker.includes('requireAdmin('), 'Spiritual engagement endpoint must require admin.');
 

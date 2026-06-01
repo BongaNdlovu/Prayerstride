@@ -55,9 +55,9 @@ const screenFiles = {
 };
 
 const componentFiles = [
-  'CinematicScreen', 'PageHero', 'GlassCard', 'AppHeader', 'BottomTabs',
+  'PageHero', 'GlassCard', 'AppHeader', 'BottomTabs',
   'EmptyState', 'ToggleRow', 'StatCard', 'PrayerCard', 'TestimonyCard',
-  'MiniLineChart', 'StreakCalendar',
+  'StreakCalendar',
 ];
 
 const mobileFiles = [
@@ -65,7 +65,7 @@ const mobileFiles = [
   'usePrayerData', 'usePrayerSessions', 'useReports',
   'useUsers', 'useNotifications', 'useNotificationSettings', 'useIsAdmin',
   'useCalendarEvents', 'useAnnouncements',
-  'prayerFormHelpers',
+  'sessionStats', 'prayerFormOptions',
 ];
 
 let passed = 0;

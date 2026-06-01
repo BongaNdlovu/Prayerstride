@@ -66,17 +66,17 @@ not a substitute for legal advice.
 
 1. Grant the Worker service account Firestore read/write, `firebaseauth.users.delete`, Storage object delete, and FCM send permissions.
 2. Restrict Firebase client keys by package name, SHA-256 certificate fingerprint, and required API allowlist.
-3. Run the admin migration in dry-run mode before applying it:
-
-    ```bash
-    OWNER_EMAIL=you@example.com node scripts/admin-migrate-admins.mjs --dry-run
-    ```
-
-4. Run the anonymous-content migration in dry-run mode before applying it:
-
-    ```bash
-    node scripts/migrate-anonymous-content.mjs --dry-run
-    ```
+3. Bootstrap the verified owner once in production:
+   - Sign in with the `OWNER_EMAIL` account, verify the email address, then call `POST /api/account/bootstrap-owner` with a fresh ID token.
+   - Alternatively, use the Firebase Admin SDK or Console to set `users/{ownerUid}` with `role: "admin"` and `owner: true` for that account only.
+4. Audit stale admin flags before launch or after an incident (manual / Admin SDK):
+   - List `users` documents where `role == "admin"` or `owner == true`.
+   - For each UID, compare the Firebase Auth email to `OWNER_EMAIL`.
+   - Demote every non-owner match to `role: "user"` and `owner: false`. Log preserved and demoted UIDs.
+   - The repo no longer ships a helper script for this; run the audit with Firebase Console, a one-off Admin SDK script, or `gcloud firestore export` plus offline review.
+5. Backfill anonymous display names only if legacy content predates server-side masking (manual / Admin SDK):
+   - In `prayers` and `testimonies`, find documents where `isAnonymous == true` and `authorName != "Anonymous"`.
+   - Update `authorName` to `"Anonymous"`. New writes already mask anonymous names in the Worker.
 
 ## Resend
 

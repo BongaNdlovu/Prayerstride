@@ -3,6 +3,12 @@ import { Alert, StyleSheet, Text, TextInput, View } from 'react-native';
 import { EyeOff, Lock, Sparkles, Users } from 'lucide-react-native';
 import { alpha, colors, sharedStyles, spacing } from '../theme';
 import { addPrayer } from '../usePrayerData';
+import {
+  PRAYER_DETAILS_LIMIT,
+  PRAYER_FREQUENCY_OPTIONS,
+  prayerFrequencyHelper,
+  privacyOptionsWithIcons,
+} from '../prayerFormOptions';
 import ScreenScaffold from '../components/ScreenScaffold';
 import AppHeader from '../components/AppHeader';
 import GlassCard from '../components/GlassCard';
@@ -11,25 +17,7 @@ import SegmentedControl from '../components/SegmentedControl';
 import ToggleRow from '../components/ToggleRow';
 import PrimaryButton from '../components/PrimaryButton';
 
-const DETAILS_LIMIT = 1000;
-
-const PRIVACY_OPTIONS = [
-  { value: 'community', label: 'Community', icon: Users },
-  { value: 'private', label: 'Private', icon: Lock },
-  { value: 'hidden', label: 'Hidden', icon: EyeOff },
-];
-
-const FREQUENCY_OPTIONS = [
-  { value: 'once', label: 'One-time' },
-  { value: 'daily', label: 'Daily' },
-  { value: 'weekly', label: 'Weekly' },
-];
-
-function frequencyHelper(limit) {
-  if (limit === 'once') return 'Each person can pray for this once.';
-  if (limit === 'weekly') return 'Each person can pray for this once per week.';
-  return 'Each person can pray for this once per day.';
-}
+const PRIVACY_OPTIONS = privacyOptionsWithIcons({ Users, Lock, EyeOff });
 
 export default function CreatePrayerScreen({ user }) {
   const [title, setTitle] = useState('');
@@ -86,21 +74,21 @@ export default function CreatePrayerScreen({ user }) {
         <Text style={sharedStyles.fieldLabel}>Details</Text>
         <TextInput
           value={body}
-          onChangeText={(text) => setBody(text.slice(0, DETAILS_LIMIT))}
+          onChangeText={(text) => setBody(text.slice(0, PRAYER_DETAILS_LIMIT))}
           placeholder="What should people pray for?"
           multiline
-          maxLength={DETAILS_LIMIT}
+          maxLength={PRAYER_DETAILS_LIMIT}
           placeholderTextColor={alpha.ivory55}
           style={[sharedStyles.input, sharedStyles.textArea]}
         />
-        <BodyText variant="caption" style={styles.counter}>{body.length}/{DETAILS_LIMIT}</BodyText>
+        <BodyText variant="caption" style={styles.counter}>{body.length}/{PRAYER_DETAILS_LIMIT}</BodyText>
 
         <BodyText variant="label" style={styles.sectionLabel}>Privacy</BodyText>
         <SegmentedControl options={PRIVACY_OPTIONS} value={privacy} onChange={setPrivacy} />
 
         <BodyText variant="label" style={styles.sectionLabel}>Frequency</BodyText>
-        <SegmentedControl options={FREQUENCY_OPTIONS} value={prayerLimit} onChange={setPrayerLimit} />
-        <BodyText variant="caption" style={styles.helper}>{frequencyHelper(prayerLimit)}</BodyText>
+        <SegmentedControl options={PRAYER_FREQUENCY_OPTIONS} value={prayerLimit} onChange={setPrayerLimit} />
+        <BodyText variant="caption" style={styles.helper}>{prayerFrequencyHelper(prayerLimit)}</BodyText>
 
         <ToggleRow
           label="Post Anonymously"

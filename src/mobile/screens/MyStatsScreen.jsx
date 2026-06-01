@@ -5,6 +5,11 @@ import { colors, spacing } from '../theme';
 import { usePrayers } from '../usePrayerData';
 import { usePrayerSessions } from '../usePrayerSessions';
 import { useTestimonies } from '../usePrayerData';
+import {
+  buildWeeklyStats,
+  calculateStreak,
+  formatPrayerTime,
+} from '../sessionStats';
 import ScreenScaffold from '../components/ScreenScaffold';
 import AppHeader from '../components/AppHeader';
 import GlassCard from '../components/GlassCard';
@@ -15,70 +20,7 @@ import ProgressRing from '../components/ProgressRing';
 import WeeklyBarChart from '../components/WeeklyBarChart';
 import SectionDivider from '../components/SectionDivider';
 
-const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const WEEKLY_STREAK_GOAL = 7;
-
-function sessionDate(session) {
-  const value = session?.createdAt;
-  if (value?.toDate) return value.toDate();
-  if (value instanceof Date) return value;
-  if (typeof value === 'number' || typeof value === 'string') {
-    const parsed = new Date(value);
-    if (!Number.isNaN(parsed.getTime())) return parsed;
-  }
-  return null;
-}
-
-function dateKey(date) {
-  return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
-}
-
-function buildWeeklyStats(sessions, today = new Date()) {
-  const weekStart = new Date(today);
-  weekStart.setHours(0, 0, 0, 0);
-  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-
-  const counts = new Map();
-  sessions.forEach((session) => {
-    const date = sessionDate(session);
-    if (!date) return;
-    const day = new Date(date);
-    day.setHours(0, 0, 0, 0);
-    const offset = Math.floor((day - weekStart) / 86400000);
-    if (offset >= 0 && offset < 7) {
-      counts.set(offset, (counts.get(offset) || 0) + 1);
-    }
-  });
-
-  return DAY_LABELS.map((day, index) => ({ day, prayers: counts.get(index) || 0 }));
-}
-
-function calculateStreak(sessions, today = new Date()) {
-  const activeDates = new Set(
-    sessions
-      .map(sessionDate)
-      .filter(Boolean)
-      .map((date) => dateKey(date)),
-  );
-
-  let cursor = new Date(today);
-  cursor.setHours(0, 0, 0, 0);
-  let streak = 0;
-
-  while (activeDates.has(dateKey(cursor))) {
-    streak += 1;
-    cursor.setDate(cursor.getDate() - 1);
-  }
-
-  return streak;
-}
-
-function formatMinutes(totalSeconds) {
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  if (hours > 0) return `${hours}h ${minutes}m`;
-  return `${minutes}m`;
-}
 
 export default function MyStatsScreen({ user, onBack, go }) {
   const { prayers } = usePrayers(true, { userId: user?.uid });
@@ -137,7 +79,7 @@ export default function MyStatsScreen({ user, onBack, go }) {
         <View style={styles.streakRow}>
           <View style={styles.streakInfo}>
             <Heading level="eyebrow">Prayer Time</Heading>
-            <Heading level="stat" style={styles.timeValue}>{formatMinutes(totalSeconds)}</Heading>
+            <Heading level="stat" style={styles.timeValue}>{formatPrayerTime(totalSeconds)}</Heading>
             <BodyText variant="small">Time spent in prayer.</BodyText>
           </View>
           <View style={styles.timeIcon}>

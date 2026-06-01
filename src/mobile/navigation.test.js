@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createNavState, go, back, replace, reset, initialRoute } from './navigation';
+import { createNavState, go, back, reset, initialRoute } from './navigation';
 
 describe('navigation', () => {
   it('createNavState returns splash with empty params and history', () => {
@@ -31,14 +31,6 @@ describe('navigation', () => {
     expect(prev.screen).toBe('welcome');
     expect(prev.params).toEqual({});
     expect(prev.history).toEqual([]);
-  });
-
-  it('replace changes screen without adding history', () => {
-    const state = { screen: 'home', params: { a: 1 }, history: [{ screen: 'splash', params: {} }] };
-    const next = replace(state, 'discover', { b: 2 });
-    expect(next.screen).toBe('discover');
-    expect(next.params).toEqual({ b: 2 });
-    expect(next.history).toEqual([{ screen: 'splash', params: {} }]);
   });
 
   it('reset clears history', () => {

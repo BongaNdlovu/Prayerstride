@@ -23,7 +23,6 @@ describe('native UI kit', () => {
 
   it('shared components export successfully', { timeout: 15000 }, async () => {
     const modules = [
-      'CinematicScreen',
       'ScreenScaffold',
       'PageHero',
       'GlassCard',
@@ -34,7 +33,6 @@ describe('native UI kit', () => {
       'StatCard',
       'PrayerCard',
       'TestimonyCard',
-      'MiniLineChart',
       'WeeklyBarChart',
       'StreakCalendar',
       'AsyncState',
@@ -55,13 +53,8 @@ describe('native UI kit', () => {
     }
   });
 
-  it('MiniLineChart imports react-native-svg', async () => {
-    const source = await import('../components/MiniLineChart.jsx?raw');
-    expect(source.default).toMatch(/react-native-svg/);
-  });
-
   it('shared native components do not import react-dom or browser APIs', async () => {
-    const names = ['CinematicScreen', 'ScreenScaffold', 'PageHero', 'GlassCard', 'AppHeader', 'BottomTabs', 'EmptyState', 'ToggleRow', 'StatCard', 'PrayerCard', 'TestimonyCard', 'MiniLineChart', 'WeeklyBarChart', 'StreakCalendar', 'AsyncState', 'MotionPressable'];
+    const names = ['ScreenScaffold', 'PageHero', 'GlassCard', 'AppHeader', 'BottomTabs', 'EmptyState', 'ToggleRow', 'StatCard', 'PrayerCard', 'TestimonyCard', 'WeeklyBarChart', 'StreakCalendar', 'AsyncState', 'MotionPressable'];
 
     for (const name of names) {
       const source = await import(`../components/${name}.jsx?raw`);

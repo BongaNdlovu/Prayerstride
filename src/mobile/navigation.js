@@ -1,7 +1,7 @@
 export const initialRoute = 'splash';
 
 export function createNavState() {
-  return { screen: initialRoute, params: {}, history: [], future: [] };
+  return { screen: initialRoute, params: {}, history: [] };
 }
 
 export function go(state, screen, params = {}) {
@@ -13,21 +13,11 @@ export function go(state, screen, params = {}) {
     screen,
     params,
     history: [...state.history, { screen: state.screen, params: state.params }],
-    future: [],
-  };
-}
-
-export function replace(state, screen, params = {}) {
-  return {
-    screen,
-    params,
-    history: state.history || [],
-    future: state.future || [],
   };
 }
 
 export function reset(screen = initialRoute, params = {}) {
-  return { screen, params, history: [], future: [] };
+  return { screen, params, history: [] };
 }
 
 export function back(state, fallback = 'home') {
@@ -38,7 +28,6 @@ export function back(state, fallback = 'home') {
       screen: fallback,
       params: {},
       history: [],
-      future: [{ screen: state.screen, params: state.params }, ...(state.future || [])],
     };
   }
 
@@ -46,18 +35,5 @@ export function back(state, fallback = 'home') {
     screen: previous.screen,
     params: previous.params || {},
     history: state.history.slice(0, -1),
-    future: [{ screen: state.screen, params: state.params }, ...(state.future || [])],
-  };
-}
-
-export function forward(state) {
-  const next = state.future?.[0] || null;
-  if (!next) return state;
-
-  return {
-    screen: next.screen,
-    params: next.params || {},
-    history: [...(state.history || []), { screen: state.screen, params: state.params }],
-    future: state.future.slice(1),
   };
 }

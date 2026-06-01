@@ -1,9 +1,15 @@
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Bell, ChevronRight, Clock, Users } from 'lucide-react-native';
 import { alpha, colors, fonts, spacing } from '../theme';
 import { auth } from '../firebase';
 import { usePrayers } from '../usePrayerData';
 import { usePrayerSessions } from '../usePrayerSessions';
+import {
+  countUniqueAuthorsThisMonth,
+  formatPrayerTime,
+  todaySeconds,
+} from '../sessionStats';
 import ScreenScaffold from '../components/ScreenScaffold';
 import Heading from '../components/Heading';
 import BodyText from '../components/BodyText';
@@ -13,14 +19,6 @@ import PrayerCard from '../components/PrayerCard';
 import PrimaryButton from '../components/PrimaryButton';
 import AsyncState from '../components/AsyncState';
 import LogoMark from '../components/LogoMark';
-
-function formatPrayerTime(totalSeconds) {
-  if (!totalSeconds) return '0m';
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  if (hours) return `${hours}h ${minutes}m`;
-  return `${minutes}m`;
-}
 
 function greeting() {
   const hour = new Date().getHours();
@@ -32,11 +30,16 @@ function greeting() {
 export default function HomeScreen({ onOpenPrayer, go }) {
   const uid = auth.currentUser?.uid;
   const { prayers, loading, error } = usePrayers(true);
-  const { totalSeconds, loading: sessionsLoading, error: sessionsError } = usePrayerSessions(uid, Boolean(uid));
+  const { sessions, loading: sessionsLoading, error: sessionsError } = usePrayerSessions(uid, Boolean(uid));
   const featured = prayers[0];
   const listError = error || sessionsError;
   const listLoading = loading || sessionsLoading;
   const recentPrayers = prayers.slice(0, 3);
+  const todayTime = useMemo(() => formatPrayerTime(todaySeconds(sessions)), [sessions]);
+  const peopleHelpedThisMonth = useMemo(
+    () => countUniqueAuthorsThisMonth(prayers),
+    [prayers],
+  );
 
   return (
     <ScreenScaffold pageContent>
@@ -75,8 +78,8 @@ export default function HomeScreen({ onOpenPrayer, go }) {
       )}
 
       <View style={styles.statsGrid}>
-        <StatCard icon={Clock} value={formatPrayerTime(totalSeconds)} label="Prayer Time" sublabel="Today" />
-        <StatCard icon={Users} value={String(prayers.length)} label="People Helped" sublabel="This Month" />
+        <StatCard icon={Clock} value={todayTime} label="Prayer Time" sublabel="Today" />
+        <StatCard icon={Users} value={String(peopleHelpedThisMonth)} label="People Helped" sublabel="This Month" />
       </View>
 
       <View style={styles.sectionRow}>

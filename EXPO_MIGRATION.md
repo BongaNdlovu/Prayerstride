@@ -6,7 +6,7 @@ PrayerStride is a mobile-first Expo app.
 
 - Expo + React Native
 - Expo Router
-- NativeWind configured
+- React Native `StyleSheet` styling via `src/mobile/theme.js`
 - Firebase JS SDK for Auth and Firestore
 - Expo Notifications for device push-token registration
 - Cloudflare Worker for backend-triggered notifications

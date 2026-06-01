@@ -20,6 +20,11 @@ import { alpha, colors, fonts, radii, spacing } from '../theme';
 import { useUserProfile } from '../useUsers';
 import { usePrayerSessions } from '../usePrayerSessions';
 import { useIsAdmin } from '../useIsAdmin';
+import {
+  calculateStreak,
+  formatPrayerTime,
+  todaySeconds,
+} from '../sessionStats';
 import ScreenScaffold from '../components/ScreenScaffold';
 import AppHeader from '../components/AppHeader';
 import GlassCard from '../components/GlassCard';
@@ -53,58 +58,6 @@ const MORE_LINKS = [
   { label: 'Quick Actions', route: 'quickActions', icon: Zap },
   { label: 'Following', route: 'following', icon: Users },
 ];
-
-function sessionDate(session) {
-  const value = session?.createdAt;
-  if (value?.toDate) return value.toDate();
-  if (value instanceof Date) return value;
-  if (typeof value === 'number' || typeof value === 'string') {
-    const parsed = new Date(value);
-    if (!Number.isNaN(parsed.getTime())) return parsed;
-  }
-  return null;
-}
-
-function dateKey(date) {
-  return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
-}
-
-function calculateStreak(sessions, today = new Date()) {
-  const activeDates = new Set(
-    sessions
-      .map(sessionDate)
-      .filter(Boolean)
-      .map((date) => dateKey(date)),
-  );
-
-  let cursor = new Date(today);
-  cursor.setHours(0, 0, 0, 0);
-  let streak = 0;
-
-  while (activeDates.has(dateKey(cursor))) {
-    streak += 1;
-    cursor.setDate(cursor.getDate() - 1);
-  }
-
-  return streak;
-}
-
-function formatPrayerTime(totalSeconds) {
-  if (!totalSeconds) return '0m';
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  if (hours) return `${hours}h ${minutes}m`;
-  return `${minutes}m`;
-}
-
-function todaySeconds(sessions) {
-  const today = dateKey(new Date());
-  return sessions.reduce((sum, session) => {
-    const date = sessionDate(session);
-    if (!date || dateKey(date) !== today) return sum;
-    return sum + Number(session.seconds || 0);
-  }, 0);
-}
 
 export default function ProfileScreen({ user, signOut, go }) {
   const { profile } = useUserProfile(user?.uid, Boolean(user?.uid));
