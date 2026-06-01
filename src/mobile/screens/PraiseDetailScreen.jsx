@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 import { Heart, Star } from 'lucide-react-native';
 import { alpha, colors, fonts, radii, spacing } from '../theme';
-import { reactToTestimony } from '../api';
+import { auth } from '../firebase';
+import { deleteTestimony, reactToTestimony } from '../api';
+import { submitReport } from '../useReports';
 import ScreenScaffold from '../components/ScreenScaffold';
 import AppHeader from '../components/AppHeader';
 import GlassCard from '../components/GlassCard';
@@ -23,6 +25,8 @@ export default function PraiseDetailScreen({ testimony, onBack }) {
   const [praiseGod, setPraiseGod] = useState(testimony.praiseGod || 0);
   const [amen, setAmen] = useState(testimony.amen || 0);
   const reactingRef = useRef(new Set());
+  const user = auth.currentUser;
+  const isOwner = user?.uid === testimony.authorUid;
 
   useEffect(() => {
     setPraiseGod(testimony.praiseGod || 0);
@@ -33,7 +37,8 @@ export default function PraiseDetailScreen({ testimony, onBack }) {
     if (reactingRef.current.has(key)) return;
     reactingRef.current.add(key);
     try {
-      await reactToTestimony(testimony.id, key);
+      const result = await reactToTestimony(testimony.id, key);
+      if (result.duplicate) return;
       if (key === 'praiseGod') setPraiseGod((value) => value + 1);
       if (key === 'amen') setAmen((value) => value + 1);
     } catch (error) {
@@ -42,6 +47,15 @@ export default function PraiseDetailScreen({ testimony, onBack }) {
       reactingRef.current.delete(key);
     }
   };
+
+  const report = () => submitReport(testimony.id, 'testimony', 'User submitted report', user)
+    .then(() => Alert.alert('Report submitted', 'Thank you for helping keep PrayerStride safe.'))
+    .catch((error) => Alert.alert('Could not submit report', error.message));
+
+  const remove = () => Alert.alert('Delete testimony', 'Are you sure?', [
+    { text: 'Cancel', style: 'cancel' },
+    { text: 'Delete', style: 'destructive', onPress: () => deleteTestimony(testimony.id).then(onBack).catch((error) => Alert.alert('Could not delete', error.message)) },
+  ]);
 
   return (
     <ScreenScaffold pageContent>
@@ -68,6 +82,16 @@ export default function PraiseDetailScreen({ testimony, onBack }) {
         <View style={styles.actionRow}>
           <ReactionButton label="Praise God" count={praiseGod} onPress={() => react('praiseGod')} />
           <ReactionButton label="Amen" count={amen} onPress={() => react('amen')} />
+        </View>
+        <View style={styles.actionRow}>
+          <MotionPressable onPress={report} style={styles.reactionButton}>
+            <BodyText variant="label">Report</BodyText>
+          </MotionPressable>
+          {isOwner ? (
+            <MotionPressable onPress={remove} style={styles.reactionButton}>
+              <BodyText variant="label">Delete</BodyText>
+            </MotionPressable>
+          ) : null}
         </View>
       </GlassCard>
     </ScreenScaffold>

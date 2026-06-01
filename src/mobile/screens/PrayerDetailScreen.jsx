@@ -9,7 +9,7 @@ import {
   Users,
 } from 'lucide-react-native';
 import { alpha, colors, fonts, radii, spacing } from '../theme';
-import { createEncouragement, prayForRequest } from '../api';
+import { bookmarkPrayer, createEncouragement, followUser, getPrayerBookmark, prayForRequest, unbookmarkPrayer } from '../api';
 import { bumpGamificationRefresh } from '../gamificationRefresh';
 import { ENCOURAGEMENT_PRESETS } from '../../../shared/encouragementPresets.js';
 import { markAnswered } from '../usePrayerData';
@@ -79,9 +79,8 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
 
     const loadBookmark = async () => {
       try {
-        const key = `bookmark:prayer:${prayer.id}`;
-        const saved = await AsyncStorage.getItem(key);
-        setBookmarked(saved === 'true');
+        const result = await getPrayerBookmark(prayer.id);
+        setBookmarked(result.bookmarked === true);
       } catch (error) {
         warn('Failed to load bookmark', error);
       }
@@ -98,9 +97,9 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
 
   const toggleBookmark = async () => {
     try {
-      const key = `bookmark:prayer:${prayer.id}`;
       const newValue = !bookmarked;
-      await AsyncStorage.setItem(key, String(newValue));
+      if (newValue) await bookmarkPrayer(prayer.id);
+      else await unbookmarkPrayer(prayer.id);
       setBookmarked(newValue);
     } catch (error) {
       Alert.alert('Could not save bookmark', error.message);
@@ -183,6 +182,15 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
 
   const handleTimer = () => {
     if (go) go('prayerStopwatch', { prayerId: prayer.id, title: prayer.title });
+  };
+
+  const followAuthor = async () => {
+    try {
+      await followUser(prayer.authorUid);
+      Alert.alert('Following', 'This member has been added to your Following list.');
+    } catch (error) {
+      Alert.alert('Could not follow', error.message);
+    }
   };
 
   const sendEncouragement = () => {
@@ -301,6 +309,11 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
                 </Pressable>
               ) : null}
             </>
+          ) : null}
+          {!isOwner && prayer.authorUid ? (
+            <Pressable onPress={followAuthor} style={styles.moreActionButton}>
+              <BodyText variant="label">Follow Author</BodyText>
+            </Pressable>
           ) : null}
         </GlassCard>
       ) : null}

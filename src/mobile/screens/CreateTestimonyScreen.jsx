@@ -10,6 +10,7 @@ import GlassCard from '../components/GlassCard';
 import BodyText from '../components/BodyText';
 import PrimaryButton from '../components/PrimaryButton';
 import EmptyState from '../components/EmptyState';
+import ToggleRow from '../components/ToggleRow';
 
 const DETAILS_LIMIT = 1500;
 
@@ -19,6 +20,7 @@ export default function CreateTestimonyScreen({ user, linkedPrayerId, onDone }) 
   const [prayerId, setPrayerId] = useState(linkedPrayerId || null);
   const [busy, setBusy] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
+  const [isAnonymous, setIsAnonymous] = useState(false);
   const { prayers } = usePrayers(true, { userId: user?.uid });
   const myPrayers = prayers.filter((p) => p.authorUid === user?.uid && p.status === 'active');
 
@@ -29,7 +31,7 @@ export default function CreateTestimonyScreen({ user, linkedPrayerId, onDone }) 
     }
     setBusy(true);
     try {
-      await addTestimony({ title: title.trim(), body: body.trim(), prayerId, shared: true }, user);
+      await addTestimony({ title: title.trim(), body: body.trim(), prayerId, shared: true, isAnonymous }, user);
       bumpGamificationRefresh();
       setTitle('');
       setBody('');
@@ -96,6 +98,12 @@ export default function CreateTestimonyScreen({ user, linkedPrayerId, onDone }) 
             {myPrayers.length === 0 ? <EmptyState label="No active prayers to link." /> : null}
           </ScrollView>
         ) : null}
+        <ToggleRow
+          label="Share Anonymously"
+          subtext="Your name will be hidden from this testimony."
+          value={isAnonymous}
+          onToggle={setIsAnonymous}
+        />
 
         <PrimaryButton
           label="Share Testimony"

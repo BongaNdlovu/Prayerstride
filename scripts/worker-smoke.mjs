@@ -34,9 +34,8 @@ assert(worker.includes('computeSpiritualEngagementMetrics'), 'Worker should comp
 assert(worker.includes('ALLOW_DEV_ORIGINS'), 'Worker should gate dev CORS behind ALLOW_DEV_ORIGINS.');
 assert(worker.includes('OWNER_EMAIL'), 'Worker should read OWNER_EMAIL secret for bootstrap.');
 assert(worker.includes('completeRegistration(env'), 'Worker should implement complete-registration endpoint.');
-assert(worker.includes('const guardianEmailSent = await sendGuardianApprovalEmail'), 'Worker should report guardian email delivery truthfully.');
-assert(worker.includes('const tokenId = await hashToken(token)'), 'Worker should store guardian approval tokens by hash.');
-assert(worker.includes('escapeHtml(displayName'), 'Worker should escape display names included in guardian emails.');
+assert(worker.includes("ageBand !== 'adult'"), 'Worker should reject users under 18.');
+assert(worker.includes('You must be at least 18 years old to use PrayerStride.'), 'Worker should explain the 18+ age requirement.');
 assert(worker.includes('termsAcceptedAt'), 'Worker should persist a terms acceptance audit timestamp.');
 assert(worker.includes('CURRENT_TERMS_VERSION'), 'Worker should validate the accepted terms version.');
 assert(worker.includes('CURRENT_PRIVACY_VERSION'), 'Worker should validate the accepted privacy version.');

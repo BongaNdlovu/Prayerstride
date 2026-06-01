@@ -126,6 +126,50 @@ export function unblockUser(blockedUid) {
   });
 }
 
+export function followUser(followedUid) {
+  return apiFetch(`/api/following/${encodeURIComponent(followedUid)}`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
+
+export function unfollowUser(followedUid) {
+  return apiFetch(`/api/following/${encodeURIComponent(followedUid)}`, {
+    method: 'DELETE',
+  });
+}
+
+export function bookmarkPrayer(prayerId) {
+  return apiFetch(`/api/prayer-bookmarks/${encodeURIComponent(prayerId)}`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
+
+export function getPrayerBookmark(prayerId) {
+  return apiFetch(`/api/prayer-bookmarks/${encodeURIComponent(prayerId)}`);
+}
+
+export function unbookmarkPrayer(prayerId) {
+  return apiFetch(`/api/prayer-bookmarks/${encodeURIComponent(prayerId)}`, {
+    method: 'DELETE',
+  });
+}
+
+export function submitContentReport(payload) {
+  return apiFetch('/api/reports', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function adminUpdateReport(reportId, status) {
+  return apiFetch('/api/admin/reports/update', {
+    method: 'POST',
+    body: JSON.stringify({ reportId, status }),
+  });
+}
+
 export function adminDeleteContent(targetId, targetType) {
   return apiFetch('/api/admin/delete-content', {
     method: 'POST',
@@ -137,6 +181,13 @@ export function adminSuspendUser(targetUid, reason) {
   return apiFetch('/api/admin/suspend-user', {
     method: 'POST',
     body: JSON.stringify({ targetUid, reason }),
+  });
+}
+
+export function adminUnsuspendUser(targetUid) {
+  return apiFetch('/api/admin/unsuspend-user', {
+    method: 'POST',
+    body: JSON.stringify({ targetUid }),
   });
 }
 

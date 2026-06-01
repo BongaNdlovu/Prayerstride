@@ -35,12 +35,12 @@ export default function TestimonyCard({ testimony, onPress, onReact }) {
               style={styles.likeBtn}
             >
               <Heart size={16} color={colors.coral} />
-              <Text style={styles.likeCount}>{testimony.praiseGod || testimony.likes || 0}</Text>
+              <Text style={styles.likeCount}>{testimony.praiseGod ?? testimony.likes ?? 0}</Text>
             </Pressable>
           ) : (
             <View style={styles.likeBtn}>
               <Heart size={16} color={colors.coral} />
-              <Text style={styles.likeCount}>{testimony.praiseGod || testimony.likes || 0}</Text>
+              <Text style={styles.likeCount}>{testimony.praiseGod ?? testimony.likes ?? 0}</Text>
             </View>
           )}
         </View>

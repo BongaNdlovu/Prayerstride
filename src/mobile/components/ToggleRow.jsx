@@ -4,7 +4,7 @@ import BodyText from './BodyText';
 
 export default function ToggleRow({ label, subtext, value, onToggle, style }) {
   return (
-    <Pressable onPress={() => onToggle(!value)} style={[styles.row, style]}>
+    <Pressable onPress={() => onToggle?.(!value)} style={[styles.row, style]}>
       <View style={styles.textGroup}>
         <BodyText variant="label">{label}</BodyText>
         {subtext ? <BodyText variant="caption" style={styles.subtext}>{subtext}</BodyText> : null}

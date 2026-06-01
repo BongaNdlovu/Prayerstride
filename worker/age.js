@@ -1,4 +1,4 @@
-/** Age helpers for 16+ registration with guardian approval for 16–17. */
+/** Age helpers for 18+ registration. Users under 18 cannot access the app. */
 
 export function parseDateOfBirth(value) {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value.trim())) {
@@ -33,9 +33,8 @@ export function ageBandFromAge(age) {
 }
 
 export function communityAccessForAgeBand(ageBand) {
-  if (ageBand === 'under_16') return 'blocked';
-  if (ageBand === 'minor') return 'pending_guardian';
-  return 'active';
+  if (ageBand === 'adult') return 'active';
+  return 'blocked';
 }
 
 export function isValidEmail(value) {

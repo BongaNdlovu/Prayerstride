@@ -26,6 +26,7 @@ export default function CalendarScreen({ user, onBack }) {
   const [notes, setNotes] = useState('');
   const [dateKey, setDateKey] = useState(toDateKey());
   const [editingId, setEditingId] = useState(null);
+  const [editingTimes, setEditingTimes] = useState({ startsAt: null, endsAt: null });
   const [busy, setBusy] = useState(false);
 
   const sortedEvents = useMemo(
@@ -38,6 +39,7 @@ export default function CalendarScreen({ user, onBack }) {
     setNotes('');
     setDateKey(toDateKey());
     setEditingId(null);
+    setEditingTimes({ startsAt: null, endsAt: null });
   };
 
   const saveEvent = async () => {
@@ -48,7 +50,7 @@ export default function CalendarScreen({ user, onBack }) {
     setBusy(true);
     try {
       if (editingId) {
-        await updateCalendarEvent(editingId, { title, notes, dateKey, startsAt: null, endsAt: null });
+        await updateCalendarEvent(editingId, { title, notes, dateKey, ...editingTimes });
       } else {
         await createCalendarEvent({ title, notes, dateKey, startsAt: null, endsAt: null }, user);
       }
@@ -143,7 +145,7 @@ export default function CalendarScreen({ user, onBack }) {
             <View style={styles.actions}>
               <PrimaryButton
                 label="Edit"
-                onPress={() => { setEditingId(item.id); setTitle(item.title); setNotes(item.notes || ''); setDateKey(item.dateKey); }}
+                onPress={() => { setEditingId(item.id); setTitle(item.title); setNotes(item.notes || ''); setDateKey(item.dateKey); setEditingTimes({ startsAt: item.startsAt, endsAt: item.endsAt }); }}
                 style={styles.smallBtn}
                 textStyle={styles.smallBtnText}
               />

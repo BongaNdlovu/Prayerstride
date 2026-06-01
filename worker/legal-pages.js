@@ -47,7 +47,7 @@ export function privacyPageHtml() {
     <p><strong>Effective date:</strong> 31 May 2026</p>
     <p>PrayerStride is an independently operated startup. Contact us at <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>. ${SERVICE_ADDRESS}. This interim policy explains how we process personal information while formal legal review is pending.</p>
     <h2>Who may use PrayerStride</h2>
-    <p>PrayerStride is intended for users aged <strong>16 and older</strong>. Users aged 16-17 require verified guardian approval before community features are enabled. We do not knowingly collect data from children under 16.</p>
+    <p>PrayerStride is intended for users aged <strong>18 and older</strong>. We do not knowingly collect data from users under 18.</p>
     <h2>Information we collect</h2>
     <ul>
       <li>Account details: email, display name, date of birth, and optional profile information.</li>
@@ -58,7 +58,7 @@ export function privacyPageHtml() {
     <h2>How we use information</h2>
     <p>We use your information to operate the app, deliver notifications, enforce community safety, respond to support requests, and comply with law.</p>
     <h2>Processors</h2>
-    <p>We use Google Firebase for authentication, database, and messaging; Cloudflare for API hosting; and email delivery providers for guardian and support communications.</p>
+    <p>We use Google Firebase for authentication, database, and messaging; Cloudflare for API hosting; and email delivery providers for support communications.</p>
     <h2>Retention and deletion</h2>
     <p>You may delete your account in the app. Deletion removes user-owned content and profile data. Operational deletion records may be retained for up to 30 days for security and audit purposes before automatic purge.</p>
     <h2>Your rights</h2>

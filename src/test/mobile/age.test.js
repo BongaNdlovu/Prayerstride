@@ -13,14 +13,15 @@ describe('age registration helpers', () => {
     expect(parseDateOfBirth('2008-13-01')).toBeNull();
   });
 
-  it('assigns age bands for 16+ policy', () => {
+  it('assigns age bands for 18+ policy', () => {
     expect(ageBandFromAge(15)).toBe('under_16');
     expect(ageBandFromAge(16)).toBe('minor');
     expect(ageBandFromAge(18)).toBe('adult');
   });
 
   it('maps community access from age band', () => {
-    expect(communityAccessForAgeBand('minor')).toBe('pending_guardian');
+    expect(communityAccessForAgeBand('under_16')).toBe('blocked');
+    expect(communityAccessForAgeBand('minor')).toBe('blocked');
     expect(communityAccessForAgeBand('adult')).toBe('active');
   });
 

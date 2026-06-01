@@ -32,11 +32,11 @@ export default function ReportDetailsScreen({ report, go, back }) {
       <View style={styles.actions}>
         <PrimaryButton
           label="Resolve"
-          onPress={() => runReportAction(() => resolveReport(report.id), 'Could not resolve report')}
+          onPress={() => runReportAction(() => resolveReport(report.id), 'Could not resolve report', back)}
         />
         <PrimaryButton
           label="Dismiss"
-          onPress={() => runReportAction(() => dismissReport(report.id), 'Could not dismiss report')}
+          onPress={() => runReportAction(() => dismissReport(report.id), 'Could not dismiss report', back)}
           variant="ghost"
         />
         <PrimaryButton
@@ -55,9 +55,10 @@ export default function ReportDetailsScreen({ report, go, back }) {
   );
 }
 
-async function runReportAction(action, errorTitle) {
+async function runReportAction(action, errorTitle, onDone) {
   try {
     await action();
+    Alert.alert('Saved', 'The report has been updated.', [{ text: 'OK', onPress: onDone }]);
   } catch (error) {
     Alert.alert(errorTitle, error.message);
   }

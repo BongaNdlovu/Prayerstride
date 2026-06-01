@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -24,16 +24,14 @@ import Heading from '../components/Heading';
 import BodyText from '../components/BodyText';
 import PrimaryButton from '../components/PrimaryButton';
 import GlassCard from '../components/GlassCard';
-import { resendGuardianApproval } from '../api';
 
-export default function AuthScreen({ mode: initialMode, onSignIn, onRegister, onResetPassword, onSwitchMode }) {
+export default function AuthScreen({ mode: initialMode, onSignIn, onRegister, onResetPassword, onSwitchMode, resumeRegistration = false, onResumeRegistration }) {
   const [mode, setMode] = useState(initialMode || 'signIn');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
-  const [guardianEmail, setGuardianEmail] = useState('');
   const [isSeventhDayAdventist, setIsSeventhDayAdventist] = useState(false);
   const [churchName, setChurchName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -43,12 +41,6 @@ export default function AuthScreen({ mode: initialMode, onSignIn, onRegister, on
   useEffect(() => {
     if (initialMode) setMode(initialMode);
   }, [initialMode]);
-
-  const requiresGuardian = useMemo(() => {
-    const parsed = parseDateOfBirth(dateOfBirth);
-    if (!parsed) return false;
-    return ageBandFromAge(calculateAge(parsed)) === 'minor';
-  }, [dateOfBirth]);
 
   const toggleMode = () => {
     if (onSwitchMode) onSwitchMode();
@@ -62,15 +54,15 @@ export default function AuthScreen({ mode: initialMode, onSignIn, onRegister, on
   };
 
   const submit = async () => {
-    if (!isValidEmail(email)) {
+    if (!resumeRegistration && !isValidEmail(email)) {
       Alert.alert('Valid email required', 'Enter a valid email address.');
       return;
     }
-    if (mode === 'register' && password.length < 12) {
+    if (mode === 'register' && !resumeRegistration && password.length < 12) {
       Alert.alert('Password too short', 'Use at least 12 characters.');
       return;
     }
-    if (mode === 'register' && password !== confirmPassword) {
+    if (mode === 'register' && !resumeRegistration && password !== confirmPassword) {
       Alert.alert('Passwords do not match', 'Please confirm your password.');
       return;
     }
@@ -79,17 +71,17 @@ export default function AuthScreen({ mode: initialMode, onSignIn, onRegister, on
       return;
     }
     if (mode === 'register') {
+      if (!resumeRegistration && (!name.trim() || name.trim().length > 80)) {
+        Alert.alert('Display name required', 'Enter a display name with 80 characters or fewer.');
+        return;
+      }
       const parsedDob = parseDateOfBirth(dateOfBirth);
       if (!parsedDob) {
         Alert.alert('Date of birth required', 'Enter your date of birth as YYYY-MM-DD.');
         return;
       }
-      if (ageBandFromAge(calculateAge(parsedDob)) === 'under_16') {
-        Alert.alert('Age requirement', 'You must be at least 16 years old to use PrayerStride.');
-        return;
-      }
-      if (requiresGuardian && !guardianEmail.trim()) {
-        Alert.alert('Guardian email required', 'Users aged 16-17 need a parent or guardian email for approval.');
+      if (ageBandFromAge(calculateAge(parsedDob)) !== 'adult') {
+        Alert.alert('Age requirement', 'You must be at least 18 years old to use PrayerStride.');
         return;
       }
       if (isSeventhDayAdventist && !churchName.trim()) {
@@ -100,34 +92,15 @@ export default function AuthScreen({ mode: initialMode, onSignIn, onRegister, on
     setBusy(true);
     try {
       if (mode === 'register') {
-        const result = await onRegister(email.trim(), password, name.trim(), {
+        const registrationProfile = {
           dateOfBirth: dateOfBirth.trim(),
-          guardianEmail: guardianEmail.trim() || undefined,
           isSeventhDayAdventist,
           churchName: isSeventhDayAdventist ? churchName.trim() : undefined,
           termsAccepted: agreed,
-        });
-        if (result?.registration?.communityAccess === 'pending_guardian'
-          && result.registration.guardianEmailSent !== true) {
-          Alert.alert(
-            'Guardian email delayed',
-            'Your account was created, but we could not send the guardian approval email.',
-            [
-              { text: 'Contact support', style: 'cancel' },
-              {
-                text: 'Retry email',
-                onPress: () => resendGuardianApproval()
-                  .then(({ guardianEmailSent }) => Alert.alert(
-                    guardianEmailSent ? 'Email sent' : 'Email still delayed',
-                    guardianEmailSent
-                      ? 'The guardian approval email has been sent.'
-                      : 'Please contact support@prayerstride.app.',
-                  ))
-                  .catch((error) => Alert.alert('Could not resend email', error.message)),
-              },
-            ],
-          );
-        }
+        };
+        const result = resumeRegistration
+          ? { registration: await onResumeRegistration(registrationProfile) }
+          : await onRegister(email.trim(), password, name.trim(), registrationProfile);
       } else {
         await onSignIn(email.trim(), password);
       }
@@ -148,7 +121,7 @@ export default function AuthScreen({ mode: initialMode, onSignIn, onRegister, on
       </BodyText>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <GlassCard style={styles.card}>
-          {isRegister && (
+          {isRegister && !resumeRegistration && (
             <View style={styles.fieldWrap}>
               <BodyText variant="label" style={styles.fieldLabel}>Display Name</BodyText>
               <View style={styles.inputRow}>
@@ -157,13 +130,13 @@ export default function AuthScreen({ mode: initialMode, onSignIn, onRegister, on
               </View>
             </View>
           )}
-          <View style={styles.fieldWrap}>
+          {!resumeRegistration ? <View style={styles.fieldWrap}>
             <BodyText variant="label" style={styles.fieldLabel}>Email</BodyText>
             <View style={styles.inputRow}>
               <Mail size={18} color={colors.gold} />
               <TextInput value={email} onChangeText={setEmail} placeholder="you@example.com" autoCapitalize="none" keyboardType="email-address" style={styles.input} placeholderTextColor={colors.textMuted} />
             </View>
-          </View>
+          </View> : null}
           {isRegister && (
             <View style={styles.fieldWrap}>
               <BodyText variant="label" style={styles.fieldLabel}>Date of Birth</BodyText>
@@ -171,16 +144,7 @@ export default function AuthScreen({ mode: initialMode, onSignIn, onRegister, on
                 <User size={18} color={colors.gold} />
                 <TextInput value={dateOfBirth} onChangeText={setDateOfBirth} placeholder="YYYY-MM-DD" autoCapitalize="none" style={styles.input} placeholderTextColor={colors.textMuted} />
               </View>
-              <BodyText variant="caption" style={styles.helper}>You must be 16 or older. Ages 16-17 require guardian approval.</BodyText>
-            </View>
-          )}
-          {isRegister && requiresGuardian && (
-            <View style={styles.fieldWrap}>
-              <BodyText variant="label" style={styles.fieldLabel}>Parent / Guardian Email</BodyText>
-              <View style={styles.inputRow}>
-                <Mail size={18} color={colors.gold} />
-                <TextInput value={guardianEmail} onChangeText={setGuardianEmail} placeholder="guardian@example.com" autoCapitalize="none" keyboardType="email-address" style={styles.input} placeholderTextColor={colors.textMuted} />
-              </View>
+              <BodyText variant="caption" style={styles.helper}>You must be at least 18 years old to use PrayerStride.</BodyText>
             </View>
           )}
           {isRegister && (
@@ -207,7 +171,7 @@ export default function AuthScreen({ mode: initialMode, onSignIn, onRegister, on
               </View>
             </>
           )}
-          <View style={styles.fieldWrap}>
+          {!resumeRegistration ? <View style={styles.fieldWrap}>
             <BodyText variant="label" style={styles.fieldLabel}>Password</BodyText>
             <View style={styles.inputRow}>
               <Lock size={18} color={colors.gold} />
@@ -216,8 +180,8 @@ export default function AuthScreen({ mode: initialMode, onSignIn, onRegister, on
                 {showPassword ? <EyeOff size={18} color={colors.gold} /> : <Eye size={18} color={colors.gold} />}
               </Pressable>
             </View>
-          </View>
-          {isRegister && (
+          </View> : null}
+          {isRegister && !resumeRegistration && (
             <View style={styles.fieldWrap}>
               <BodyText variant="label" style={styles.fieldLabel}>Confirm Password</BodyText>
               <View style={styles.inputRow}>
@@ -249,7 +213,7 @@ export default function AuthScreen({ mode: initialMode, onSignIn, onRegister, on
             </Pressable>
           )}
           <PrimaryButton
-            label={busy ? 'One moment...' : isRegister ? 'Create Account' : 'Sign In'}
+            label={busy ? 'One moment...' : resumeRegistration ? 'Finish Registration' : isRegister ? 'Create Account' : 'Sign In'}
             onPress={submit}
             busy={busy}
             style={styles.submit}
@@ -266,8 +230,8 @@ export default function AuthScreen({ mode: initialMode, onSignIn, onRegister, on
           accessibilityRole="button"
           accessibilityLabel={isRegister ? 'Sign in' : 'Create account'}
         >
-          <BodyText variant="small">{isRegister ? 'Already have an account?' : "Don't have an account?"}</BodyText>
-          <BodyText variant="small" style={styles.link}>{isRegister ? 'Sign In' : 'Create Account'}</BodyText>
+          <BodyText variant="small">{resumeRegistration ? 'Need to use another account?' : isRegister ? 'Already have an account?' : "Don't have an account?"}</BodyText>
+          <BodyText variant="small" style={styles.link}>{resumeRegistration ? 'Sign Out' : isRegister ? 'Sign In' : 'Create Account'}</BodyText>
         </Pressable>
       </KeyboardAvoidingView>
     </ScreenScaffold>

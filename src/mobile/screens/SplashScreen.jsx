@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { ActivityIndicator, ImageBackground, SafeAreaView, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, fonts, onDark, scenes, spacing } from '../theme';
@@ -7,12 +7,14 @@ import Heading from '../components/Heading';
 import BodyText from '../components/BodyText';
 
 export default function SplashScreen({ onReady }) {
+  const onReadyRef = useRef(onReady);
+  onReadyRef.current = onReady;
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (onReady) onReady();
+      onReadyRef.current?.();
     }, 1800);
     return () => clearTimeout(timer);
-  }, [onReady]);
+  }, []);
 
   return (
     <View style={styles.shell}>

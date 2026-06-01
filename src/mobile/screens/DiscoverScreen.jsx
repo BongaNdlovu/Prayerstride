@@ -31,8 +31,8 @@ function matchesCategory(prayer, category) {
 
 export default function DiscoverScreen({ onOpenPrayer }) {
   const { prayers, loading, error, retry } = usePrayers(true);
-  const { blockedUids, error: blocksError, refresh: retryBlocks } = useBlocks(true);
-  const listError = error || blocksError;
+  const { blockedUids, loading: blocksLoading, refresh: retryBlocks } = useBlocks(true);
+  const listError = error;
   const retryAll = () => {
     retry();
     retryBlocks();
@@ -42,14 +42,14 @@ export default function DiscoverScreen({ onOpenPrayer }) {
   const [showFilters, setShowFilters] = useState(false);
 
   const filtered = useMemo(() => {
-    const visible = filterBlockedItems(prayers, blockedUids);
+    const visible = blocksLoading ? [] : filterBlockedItems(prayers, blockedUids);
     const normalized = query.trim().toLowerCase();
     return visible.filter((prayer) => {
       const matchesSearch = !normalized
         || `${prayer.title} ${prayer.body} ${prayer.authorName}`.toLowerCase().includes(normalized);
       return matchesSearch && matchesCategory(prayer, category);
     });
-  }, [prayers, blockedUids, query, category]);
+  }, [prayers, blockedUids, blocksLoading, query, category]);
 
   const header = (
     <View style={styles.header}>

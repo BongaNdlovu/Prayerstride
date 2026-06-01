@@ -195,7 +195,7 @@ async function runTests() {
   await assertFails(aDb.collection('testimonies').doc('testimony-a').delete());
 
   const reportRef = aDb.collection('reports').doc('report-a');
-  await assertSucceeds(reportRef.set({
+  await assertFails(reportRef.set({
     targetId: 'target-1',
     targetType: 'prayer',
     reason: 'Test report',
@@ -203,11 +203,21 @@ async function runTests() {
     status: 'pending',
     createdAt: new Date(),
   }));
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await context.firestore().doc('reports/report-a').set({
+      targetId: 'target-1',
+      targetType: 'prayer',
+      reason: 'Test report',
+      reportedByUid: 'user-a',
+      status: 'pending',
+      createdAt: new Date(),
+    });
+  });
 
   await assertFails(aDb.collection('reports').get());
   await assertSucceeds(adminDb.collection('reports').get());
   await assertFails(suspendedAdminDb.collection('reports').get());
-  await assertSucceeds(adminDb.collection('reports').doc('report-a').update({ status: 'resolved' }));
+  await assertFails(adminDb.collection('reports').doc('report-a').update({ status: 'resolved' }));
   await assertFails(adminDb.collection('reports').doc('report-a').update({ targetId: 'changed' }));
 
   await assertFails(aDb.collection('notifications').doc('bad-create').set({

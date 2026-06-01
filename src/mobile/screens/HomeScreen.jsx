@@ -23,6 +23,7 @@ import { alpha, colors, fonts, spacing } from '../theme';
 import { DAILY_PRAY_GOAL, XP_AWARDS } from '../gamification';
 import { auth } from '../firebase';
 import { usePrayers } from '../usePrayerData';
+import { filterBlockedItems, useBlocks } from '../useBlocks';
 import { useGamification } from '../useGamification';
 import ScreenScaffold from '../components/ScreenScaffold';
 import Heading from '../components/Heading';
@@ -65,6 +66,7 @@ function PrayerSessionButton({ onPress }) {
 export default function HomeScreen({ onOpenPrayer, go }) {
   const uid = auth.currentUser?.uid;
   const { prayers, loading: prayersLoading, error: prayersError, retry: retryPrayers } = usePrayers(true);
+  const { blockedUids, loading: blocksLoading, refresh: retryBlocks } = useBlocks(true);
   const {
     summary: gamified,
     loading: statsLoading,
@@ -72,12 +74,14 @@ export default function HomeScreen({ onOpenPrayer, go }) {
     retry: retryStats,
   } = useGamification(uid, Boolean(uid));
 
-  const featured = prayers[0];
-  const recentPrayers = prayers.slice(0, 3);
-  const listLoading = prayersLoading || statsLoading;
+  const visiblePrayers = useMemo(() => filterBlockedItems(prayers, blockedUids), [prayers, blockedUids]);
+  const featured = visiblePrayers[0];
+  const recentPrayers = visiblePrayers.slice(0, 3);
+  const listLoading = prayersLoading || blocksLoading || statsLoading;
   const listError = prayersError || statsError;
   const retry = () => {
     retryPrayers();
+    retryBlocks();
     retryStats();
   };
 

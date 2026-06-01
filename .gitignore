@@ -33,6 +33,7 @@ artifacts/
 *.keystore
 *.jks
 android/app/debug.keystore
+android/keystore.properties
 android/.gradle/
 android/.kotlin/
 android/build/

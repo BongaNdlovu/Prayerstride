@@ -25,6 +25,7 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, us
   const [readyToLog, setReadyToLog] = useState(false);
   const [privateTitle, setPrivateTitle] = useState('');
   const intervalRef = useRef(null);
+  const loggingRef = useRef(false);
   const isDirectPrivateSession = !prayerId;
   const sessionTitle = prayerTitle || privateTitle.trim() || 'Private prayer session';
 
@@ -52,6 +53,7 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, us
   };
 
   const logPrayer = async () => {
+    if (loggingRef.current) return;
     if (!seconds) {
       Alert.alert('No time recorded', 'Start the timer before logging prayer time.');
       return;
@@ -61,6 +63,7 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, us
       return;
     }
 
+    loggingRef.current = true;
     setBusy(true);
     try {
       let sessionPrayerId = prayerId;
@@ -87,6 +90,7 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, us
     } catch (error) {
       Alert.alert('Could not save', error.message);
     } finally {
+      loggingRef.current = false;
       setBusy(false);
     }
   };

@@ -18,7 +18,7 @@ const CATEGORY_ICONS = {
 
 export default function PrayerCard({ prayer, onPress, variant = 'glass' }) {
   const icon = CATEGORY_ICONS[prayer.category?.toLowerCase()] || '🙏';
-  const prayedCount = prayer.prayedCount || prayer.count || 0;
+  const prayedCount = prayer.prayedCount ?? prayer.count ?? 0;
   const isActive = prayer.status !== 'answered';
 
   if (variant === 'list') {

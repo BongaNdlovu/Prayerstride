@@ -16,13 +16,13 @@ const TABS = ['All', 'Following', 'Recent'];
 
 export default function PraiseScreen({ onOpenTestimony }) {
   const { testimonies, loading, error, retry } = useTestimonies(true);
-  const { blockedUids, error: blocksError, refresh: retryBlocks } = useBlocks(true);
+  const { blockedUids, loading: blocksLoading, refresh: retryBlocks } = useBlocks(true);
   const uid = auth.currentUser?.uid;
   const { following } = useFollowing(uid, Boolean(uid));
   const [tab, setTab] = useState('All');
   const [pendingReactions, setPendingReactions] = useState({});
   const reactingRef = useRef(new Set());
-  const listError = error || blocksError;
+  const listError = error;
   const retryAll = () => {
     retry();
     retryBlocks();
@@ -34,7 +34,7 @@ export default function PraiseScreen({ onOpenTestimony }) {
   );
 
   const visible = useMemo(() => {
-    const unblocked = filterBlockedItems(testimonies, blockedUids);
+    const unblocked = blocksLoading ? [] : filterBlockedItems(testimonies, blockedUids);
     if (tab === 'Following') {
       return unblocked.filter((item) => followingIds.has(item.authorUid));
     }
@@ -46,7 +46,7 @@ export default function PraiseScreen({ onOpenTestimony }) {
       });
     }
     return unblocked;
-  }, [testimonies, blockedUids, tab, followingIds]);
+  }, [testimonies, blockedUids, blocksLoading, tab, followingIds]);
 
   useEffect(() => {
     setPendingReactions((current) => {
@@ -79,7 +79,14 @@ export default function PraiseScreen({ onOpenTestimony }) {
     reactingRef.current.add(reactionKey);
     setPendingReactions((current) => ({ ...current, [reactionKey]: baseline }));
     try {
-      await reactToTestimony(id, key);
+      const result = await reactToTestimony(id, key);
+      if (result.duplicate) {
+        setPendingReactions((current) => {
+          const next = { ...current };
+          delete next[reactionKey];
+          return next;
+        });
+      }
     } catch (error) {
       setPendingReactions((current) => {
         const next = { ...current };

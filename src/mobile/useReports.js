@@ -1,27 +1,17 @@
 import { useEffect, useState } from 'react';
-import {
-  addDoc,
-  collection,
-  doc,
-  onSnapshot,
-  orderBy,
-  query,
-  serverTimestamp,
-  updateDoc,
-} from 'firebase/firestore';
+import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { db } from './firebase';
 import { useIsAdmin } from './useIsAdmin';
+import { adminUpdateReport, submitContentReport } from './api';
 
 export async function submitReport(targetId, targetType, reason, user) {
   if (!user) throw new Error('You must be signed in to report content.');
 
-  return addDoc(collection(db, 'reports'), {
+  return submitContentReport({
     targetId,
     targetType,
     reason,
     reportedByUid: user.uid,
-    createdAt: serverTimestamp(),
-    status: 'pending',
   });
 }
 
@@ -72,9 +62,9 @@ export function useReports(user, enabled = true) {
 }
 
 export async function resolveReport(reportId) {
-  return updateDoc(doc(db, 'reports', reportId), { status: 'resolved' });
+  return adminUpdateReport(reportId, 'resolved');
 }
 
 export async function dismissReport(reportId) {
-  return updateDoc(doc(db, 'reports', reportId), { status: 'dismissed' });
+  return adminUpdateReport(reportId, 'dismissed');
 }

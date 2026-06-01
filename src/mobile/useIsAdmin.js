@@ -39,6 +39,8 @@ export function useIsAdmin(user) {
 export function useSuspendedStatus(user) {
   const [suspended, setSuspended] = useState(false);
   const [suspendedReason, setSuspendedReason] = useState('');
+  const [registrationState, setRegistrationState] = useState('');
+  const [profileUid, setProfileUid] = useState('');
   const [loading, setLoading] = useState(Boolean(user));
   const [error, setError] = useState(null);
 
@@ -46,6 +48,8 @@ export function useSuspendedStatus(user) {
     if (!user) {
       setSuspended(false);
       setSuspendedReason('');
+      setRegistrationState('');
+      setProfileUid('');
       setLoading(false);
       setError(null);
       return undefined;
@@ -59,6 +63,8 @@ export function useSuspendedStatus(user) {
         const data = snapshot.data();
         setSuspended(Boolean(data?.suspended));
         setSuspendedReason(data?.suspendedReason || '');
+        setRegistrationState(data?.registrationState || '');
+        setProfileUid(user.uid);
         setError(null);
         setLoading(false);
       },
@@ -69,5 +75,5 @@ export function useSuspendedStatus(user) {
     );
   }, [user]);
 
-  return { suspended, suspendedReason, loading, error };
+  return { suspended, suspendedReason, registrationState, profileUid, loading, error };
 }

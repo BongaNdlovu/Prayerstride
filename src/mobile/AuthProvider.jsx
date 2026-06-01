@@ -24,6 +24,7 @@ const MIN_PASSWORD_LENGTH = 12;
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [registering, setRegistering] = useState(false);
   const bootstrappedUidRef = useRef('');
 
   useEffect(() => onAuthStateChanged(auth,
@@ -45,6 +46,7 @@ export function AuthProvider({ children }) {
   const value = useMemo(() => ({
     user,
     loading,
+    registering,
     async signIn(email, password) {
       return signInWithEmailAndPassword(auth, email, password);
     },
@@ -52,8 +54,10 @@ export function AuthProvider({ children }) {
       if (!password || password.length < MIN_PASSWORD_LENGTH) {
         throw new Error(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
       }
-      const credential = await createUserWithEmailAndPassword(auth, email, password);
+      setRegistering(true);
+      let credential;
       try {
+        credential = await createUserWithEmailAndPassword(auth, email, password);
         const displayName = name;
         await updateProfile(credential.user, { displayName });
         await setDoc(doc(db, 'users', credential.user.uid), {
@@ -68,22 +72,44 @@ export function AuthProvider({ children }) {
         });
         const registration = await completeRegistration({
           dateOfBirth: profile.dateOfBirth,
-          guardianEmail: profile.guardianEmail,
           isSeventhDayAdventist: profile.isSeventhDayAdventist === true,
           churchName: profile.churchName,
           termsAccepted: profile.termsAccepted === true,
           termsVersion: TERMS_VERSION,
           privacyVersion: PRIVACY_VERSION,
         });
-        await sendEmailVerification(credential.user);
+        try {
+          await sendEmailVerification(credential.user);
+        } catch (error) {
+          logError('Email verification delivery failed', error);
+        }
         return { credential, registration };
       } catch (error) {
-        try {
-          await deleteOwnAccount();
-        } catch {
-          await deleteUser(credential.user).catch(() => {});
+        if (credential?.user) {
+          try {
+            await deleteOwnAccount();
+          } catch {
+            await deleteUser(credential.user).catch(() => {});
+          }
         }
         throw error;
+      } finally {
+        setRegistering(false);
+      }
+    },
+    async completePendingRegistration(profile = {}) {
+      setRegistering(true);
+      try {
+        return await completeRegistration({
+          dateOfBirth: profile.dateOfBirth,
+          isSeventhDayAdventist: profile.isSeventhDayAdventist === true,
+          churchName: profile.churchName,
+          termsAccepted: profile.termsAccepted === true,
+          termsVersion: TERMS_VERSION,
+          privacyVersion: PRIVACY_VERSION,
+        });
+      } finally {
+        setRegistering(false);
       }
     },
     async signOut() {

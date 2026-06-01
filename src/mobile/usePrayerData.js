@@ -4,6 +4,7 @@ import {
   onSnapshot,
   orderBy,
   query,
+  limit,
   where,
 } from 'firebase/firestore';
 import { auth, db } from './firebase';
@@ -23,6 +24,7 @@ function mapPrayer(docSnap) {
     body: data.body,
     authorUid: data.authorUid,
     authorName: data.isAnonymous ? 'Anonymous' : data.authorName,
+    isAnonymous: Boolean(data.isAnonymous),
     prayedCount: data.prayedCount || 0,
     status: data.status || 'active',
     privacy: data.privacy || 'community',
@@ -70,11 +72,12 @@ export function usePrayers(enabled, options = {}) {
     const currentUid = options.userId || auth.currentUser?.uid;
     const includeAll = Boolean(options.includeAll);
     const prayerRef = collection(db, 'prayers');
+    const pageSize = Number(options.pageSize || 100);
     const queries = includeAll
-      ? [query(prayerRef, orderBy('createdAt', 'desc'))]
+      ? [query(prayerRef, orderBy('createdAt', 'desc'), limit(pageSize))]
       : [
-          query(prayerRef, where('privacy', '==', 'community'), orderBy('createdAt', 'desc')),
-          ...(currentUid ? [query(prayerRef, where('authorUid', '==', currentUid), orderBy('createdAt', 'desc'))] : []),
+          query(prayerRef, where('privacy', '==', 'community'), orderBy('createdAt', 'desc'), limit(pageSize)),
+          ...(currentUid ? [query(prayerRef, where('authorUid', '==', currentUid), orderBy('createdAt', 'desc'), limit(pageSize))] : []),
         ];
 
     const sourceMaps = queries.map(() => new Map());
@@ -111,7 +114,7 @@ export function usePrayers(enabled, options = {}) {
     ));
 
     return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
-  }, [enabled, options.includeAll, options.userId, retryVersion]);
+  }, [enabled, options.includeAll, options.pageSize, options.userId, retryVersion]);
 
   return { prayers: items, loading, error, retry };
 }
@@ -134,7 +137,7 @@ export function useTestimonies(enabled) {
     setError(null);
 
     return onSnapshot(
-      query(collection(db, 'testimonies'), orderBy('createdAt', 'desc')),
+      query(collection(db, 'testimonies'), orderBy('createdAt', 'desc'), limit(100)),
       (snapshot) => {
         setItems(snapshot.docs.map(mapTestimony));
         setError(null);

@@ -247,6 +247,35 @@ async function handleApi(request, env, url, requestId) {
     return unblockUser(env, user, decodeURIComponent(match[1]));
   }
 
+  match = url.pathname.match(/^\/api\/following\/([^/]+)$/);
+  if (match && request.method === 'POST') {
+    await checkNotSuspended(env, user.uid);
+    return followUser(env, user, decodeURIComponent(match[1]));
+  }
+  if (match && request.method === 'DELETE') {
+    await checkNotSuspended(env, user.uid);
+    return unfollowUser(env, user, decodeURIComponent(match[1]));
+  }
+
+  match = url.pathname.match(/^\/api\/prayer-bookmarks\/([^/]+)$/);
+  if (match && request.method === 'GET') {
+    return getPrayerBookmark(env, user, decodeURIComponent(match[1]));
+  }
+  if (match && request.method === 'POST') {
+    await checkNotSuspended(env, user.uid);
+    return savePrayerBookmark(env, user, decodeURIComponent(match[1]));
+  }
+  if (match && request.method === 'DELETE') {
+    await checkNotSuspended(env, user.uid);
+    return deletePrayerBookmark(env, user, decodeURIComponent(match[1]));
+  }
+
+  match = url.pathname.match(/^\/api\/reports$/);
+  if (match && request.method === 'POST') {
+    await checkNotSuspended(env, user.uid);
+    return submitReport(env, user, body);
+  }
+
   match = url.pathname.match(/^\/api\/admin\/delete-content$/);
   if (match && request.method === 'POST') {
     return adminDeleteContent(env, user, body);
@@ -255,6 +284,16 @@ async function handleApi(request, env, url, requestId) {
   match = url.pathname.match(/^\/api\/admin\/suspend-user$/);
   if (match && request.method === 'POST') {
     return adminSuspendUser(env, user, body);
+  }
+
+  match = url.pathname.match(/^\/api\/admin\/unsuspend-user$/);
+  if (match && request.method === 'POST') {
+    return adminUnsuspendUser(env, user, body);
+  }
+
+  match = url.pathname.match(/^\/api\/admin\/reports\/update$/);
+  if (match && request.method === 'POST') {
+    return adminUpdateReport(env, user, body);
   }
 
   match = url.pathname.match(/^\/api\/admin\/delete-account$/);
@@ -279,6 +318,7 @@ async function handleApi(request, env, url, requestId) {
 
   match = url.pathname.match(/^\/api\/admin\/spiritual-engagement$/);
   if (match && request.method === 'GET') {
+    await requireAdmin(env, user);
     const days = normalizeEngagementDays(url.searchParams.get('days'));
     return spiritualEngagementMetrics(env, user, days);
   }
@@ -306,7 +346,10 @@ function knownApiPath(pathname) {
     /^\/api\/prayers(?:\/[^/]+(?:\/update|\/mark-answered|\/pray)?)?$/,
     /^\/api\/testimonies(?:\/[^/]+(?:\/update|\/react)?)?$/,
     /^\/api\/blocks(?:\/[^/]+)?$/,
-    /^\/api\/admin\/(?:delete-content|suspend-user|delete-account|spiritual-engagement|announcements\/(?:create|update|archive))$/,
+    /^\/api\/following\/[^/]+$/,
+    /^\/api\/prayer-bookmarks\/[^/]+$/,
+    /^\/api\/reports$/,
+    /^\/api\/admin\/(?:delete-content|suspend-user|unsuspend-user|delete-account|reports\/update|spiritual-engagement|announcements\/(?:create|update|archive))$/,
   ].some((pattern) => pattern.test(pathname));
 }
 
@@ -333,14 +376,9 @@ async function completeRegistration(env, user, body) {
 
   const age = calculateAge(dateOfBirth);
   const ageBand = ageBandFromAge(age);
-  if (ageBand === 'under_16') {
+  if (ageBand !== 'adult') {
     await deleteUserData(env, user.uid);
-    return json({ error: 'You must be at least 16 years old to use PrayerStride.' }, 400);
-  }
-
-  const guardianEmail = body.guardianEmail ? String(body.guardianEmail).trim().toLowerCase() : '';
-  if (ageBand === 'minor' && !isValidEmail(guardianEmail)) {
-    return json({ error: 'A parent or guardian email is required for users aged 16-17.' }, 400);
+    return json({ error: 'You must be at least 18 years old to use PrayerStride.' }, 400);
   }
 
   const isSeventhDayAdventist = body.isSeventhDayAdventist === true;
@@ -353,13 +391,13 @@ async function completeRegistration(env, user, body) {
   if (!userDoc.exists) return json({ error: 'User profile not found.' }, 404);
 
   const data = fromFirestoreFields(userDoc.fields);
-  if (data.dateOfBirth && data.communityAccess && data.communityAccess !== 'pending_guardian') {
+  if (data.dateOfBirth && data.communityAccess) {
     return json({ ok: true, alreadyCompleted: true, communityAccess: data.communityAccess });
   }
 
   const communityAccess = communityAccessForAgeBand(ageBand);
   const now = new Date().toISOString();
-  const writes = [{
+  await firestoreCommit(env, [{
     update: {
       name: userDoc.name,
       fields: toFirestoreFields({
@@ -367,7 +405,7 @@ async function completeRegistration(env, user, body) {
         dateOfBirth,
         ageBand,
         communityAccess,
-        guardianEmail: ageBand === 'minor' ? guardianEmail : null,
+        guardianEmail: null,
         isSeventhDayAdventist,
         churchName: isSeventhDayAdventist ? churchName : null,
         termsAcceptedAt: now,
@@ -377,34 +415,8 @@ async function completeRegistration(env, user, body) {
         updatedAt: now,
       }),
     },
-  }];
-
-  if (ageBand === 'minor') {
-    const token = crypto.randomUUID();
-    const tokenId = await hashToken(token);
-    const expiresAt = new Date(Date.now() + 2 * 86400000).toISOString();
-    writes.push({
-      update: {
-        name: docName(env, 'guardianApprovals', tokenId),
-        fields: toFirestoreFields({
-          uid: user.uid,
-          guardianEmail,
-          expiresAt,
-          createdAt: now,
-        }),
-      },
-    });
-    await firestoreCommit(env, writes);
-    const guardianEmailSent = await sendGuardianApprovalEmail(env, {
-      guardianEmail,
-      token,
-      displayName: data.displayName || user.email,
-    });
-    return json({ ok: true, communityAccess, guardianEmailSent });
-  }
-
-  await firestoreCommit(env, writes);
-  return json({ ok: true, communityAccess, guardianEmailSent: false });
+  }]);
+  return json({ ok: true, communityAccess });
 }
 
 async function handleGuardianApprove(env, url) {
@@ -857,9 +869,17 @@ async function deleteContentAndActions(env, collectionName, contentDoc) {
       value: { stringValue: relatedId },
     },
   }], [], [], false);
+  const reportDocs = await runCollectionGroupQuery(env, 'reports', [{
+    fieldFilter: {
+      field: { fieldPath: 'targetId' },
+      op: 'EQUAL',
+      value: { stringValue: relatedId },
+    },
+  }], [], [], false);
   await commitInChunks(env, [
     ...actionDocs.map((document) => ({ delete: document.name })),
     ...notificationDocs.map((document) => ({ delete: document.name })),
+    ...reportDocs.map((document) => ({ delete: document.name })),
     { delete: contentDoc.name },
   ]);
 }
@@ -901,6 +921,76 @@ async function blockUser(env, user, blockedUid) {
   }]);
 
   return json({ ok: true, blockedUid });
+}
+
+async function followUser(env, user, followedUid) {
+  if (!followedUid || followedUid === user.uid) return json({ error: 'Choose another user to follow.' }, 400);
+  const target = await getDocument(env, docName(env, 'users', followedUid));
+  if (!target.exists) return json({ error: 'User not found' }, 404);
+  const data = fromFirestoreFields(target.fields);
+  await firestoreCommit(env, [{
+    update: {
+      name: docName(env, 'users', user.uid, 'following', followedUid),
+      fields: toFirestoreFields({
+        followedUid,
+        displayName: data.displayName || 'Community member',
+        handle: data.handle || null,
+        createdAt: new Date().toISOString(),
+      }),
+    },
+  }]);
+  return json({ ok: true, followedUid });
+}
+
+async function unfollowUser(env, user, followedUid) {
+  await firestoreCommit(env, [{ delete: docName(env, 'users', user.uid, 'following', followedUid) }]);
+  return json({ ok: true, followedUid });
+}
+
+async function getPrayerBookmark(env, user, prayerId) {
+  const bookmark = await getDocument(env, docName(env, 'prayerBookmarks', `${user.uid}_${prayerId}`));
+  return json({ ok: true, bookmarked: bookmark.exists });
+}
+
+async function savePrayerBookmark(env, user, prayerId) {
+  if (!(await canAccessPrayer(env, prayerId, user))) return json({ error: 'Prayer not found' }, 404);
+  await firestoreCommit(env, [{
+    update: {
+      name: docName(env, 'prayerBookmarks', `${user.uid}_${prayerId}`),
+      fields: toFirestoreFields({ ownerUid: user.uid, prayerId, createdAt: new Date().toISOString() }),
+    },
+  }]);
+  return json({ ok: true, prayerId });
+}
+
+async function deletePrayerBookmark(env, user, prayerId) {
+  await firestoreCommit(env, [{ delete: docName(env, 'prayerBookmarks', `${user.uid}_${prayerId}`) }]);
+  return json({ ok: true, prayerId });
+}
+
+async function submitReport(env, user, body) {
+  if (!body.targetId || !['prayer', 'testimony', 'user'].includes(body.targetType) || !body.reason) {
+    return json({ error: 'Missing or invalid report details' }, 400);
+  }
+  const reportId = `${user.uid}_${body.targetType}_${body.targetId}`;
+  const existing = await getDocument(env, docName(env, 'reports', reportId));
+  if (existing.exists) return json({ ok: true, duplicate: true, reportId });
+  await enforceCooldown(env, user.uid, 'report', 5);
+  await firestoreCommit(env, [{
+    update: {
+      name: docName(env, 'reports', reportId),
+      fields: toFirestoreFields({
+        targetId: String(body.targetId).slice(0, 160),
+        targetType: body.targetType,
+        reason: String(body.reason).slice(0, 800),
+        reportedByUid: user.uid,
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+      }),
+    },
+    currentDocument: { exists: false },
+  }], { allowAlreadyExists: true });
+  return json({ ok: true, reportId });
 }
 
 async function unblockUser(env, user, blockedUid) {
@@ -1150,7 +1240,57 @@ async function adminSuspendUser(env, user, body) {
   ];
 
   await firestoreCommit(env, writes);
+  await sendPushToUser(env, body.targetUid, {
+    title: 'PrayerStride',
+    body: `Your account has been suspended: ${reason}`,
+    data: { type: 'account_suspended' },
+    bypassQuietHours: true,
+  });
   return json({ ok: true });
+}
+
+async function adminUnsuspendUser(env, user, body) {
+  await requireAdmin(env, user);
+  if (!body.targetUid) return json({ error: 'Missing targetUid' }, 400);
+  const targetUser = await getDocument(env, docName(env, 'users', body.targetUid));
+  if (!targetUser.exists) return json({ error: 'User not found' }, 404);
+  const data = fromFirestoreFields(targetUser.fields);
+  await firestoreCommit(env, [{
+    update: {
+      name: targetUser.name,
+      fields: toFirestoreFields({
+        ...data,
+        suspended: false,
+        suspendedReason: null,
+        suspendedAt: null,
+        suspendedBy: null,
+        updatedAt: new Date().toISOString(),
+      }),
+    },
+  }]);
+  return json({ ok: true });
+}
+
+async function adminUpdateReport(env, user, body) {
+  await requireAdmin(env, user);
+  if (!body.reportId || !['resolved', 'dismissed'].includes(body.status)) {
+    return json({ error: 'Missing or invalid report update' }, 400);
+  }
+  const report = await getDocument(env, docName(env, 'reports', body.reportId));
+  if (!report.exists) return json({ error: 'Report not found' }, 404);
+  const data = fromFirestoreFields(report.fields);
+  await firestoreCommit(env, [{
+    update: {
+      name: report.name,
+      fields: toFirestoreFields({
+        ...data,
+        status: body.status,
+        resolvedBy: user.uid,
+        resolvedAt: new Date().toISOString(),
+      }),
+    },
+  }]);
+  return json({ ok: true, reportId: body.reportId, status: body.status });
 }
 
 const ANNOUNCEMENT_CATEGORIES = ['events', 'prayer', 'updates'];
@@ -1550,6 +1690,7 @@ function notificationWrite(env, recipientUid, notification) {
 }
 
 async function sendPushToUser(env, uid, payload) {
+  if (!payload.bypassQuietHours && await pushPausedForQuietHours(env, uid)) return;
   const devices = await listDocuments(env, docName(env, 'users', uid, 'devices'));
   const staleCutoff = Date.now() - 90 * 86400000;
   const mappedDevices = devices
@@ -1581,6 +1722,24 @@ async function sendPushToUser(env, uid, payload) {
       log(env, 'info', { uid, deviceName: device.name }, 'invalid-token-cleaned');
     }
   }));
+}
+
+async function pushPausedForQuietHours(env, uid, now = new Date()) {
+  const prefs = await getNotificationSettings(env, uid);
+  if (prefs.pushEnabled === false) return true;
+  const profile = await getUserProfile(env, uid);
+  const timeZone = profile?.timeZone || 'UTC';
+  let hour;
+  try {
+    hour = Number(new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      hour: 'numeric',
+      hour12: false,
+    }).format(now));
+  } catch {
+    hour = now.getUTCHours();
+  }
+  return hour >= 22 || hour < 7;
 }
 
 function sleep(ms) {

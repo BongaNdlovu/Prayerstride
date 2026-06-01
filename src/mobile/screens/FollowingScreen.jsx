@@ -1,4 +1,4 @@
-import { FlatList, StyleSheet, View } from 'react-native';
+import { Alert, FlatList, StyleSheet, View } from 'react-native';
 import { alpha, colors, spacing } from '../theme';
 import { useFollowing } from '../useContentCollections';
 import ScreenScaffold from '../components/ScreenScaffold';
@@ -7,6 +7,8 @@ import GlassCard from '../components/GlassCard';
 import BodyText from '../components/BodyText';
 import EmptyState from '../components/EmptyState';
 import AsyncState from '../components/AsyncState';
+import PrimaryButton from '../components/PrimaryButton';
+import { unfollowUser } from '../api';
 
 export default function FollowingScreen({ user, onBack }) {
   const { following, loading, error } = useFollowing(user?.uid, true);
@@ -35,6 +37,12 @@ export default function FollowingScreen({ user, onBack }) {
                   <BodyText variant="label">{item.displayName || item.name || item.handle || 'Follower'}</BodyText>
                   <BodyText variant="caption">{item.subtitle || item.title || item.handle || 'Community member'}</BodyText>
                 </View>
+                <PrimaryButton
+                  label="Unfollow"
+                  variant="ghost"
+                  onPress={() => unfollowUser(item.followedUid || item.id).catch((err) => Alert.alert('Could not unfollow', err.message))}
+                  style={styles.unfollow}
+                />
               </View>
             </GlassCard>
           )}
@@ -59,4 +67,5 @@ const styles = StyleSheet.create({
   },
   avatarText: { color: colors.navy },
   info: { flex: 1 },
+  unfollow: { minHeight: 36, paddingHorizontal: spacing.sm },
 });

@@ -12,6 +12,7 @@ const CATEGORY_LABELS = {
 export function mapAnnouncement(docSnap) {
   const data = docSnap.data();
   const startsAt = data.startsAt?.toDate?.() || (data.startsAt ? new Date(data.startsAt) : null);
+  const endsAt = data.endsAt?.toDate?.() || (data.endsAt ? new Date(data.endsAt) : null);
   return {
     id: docSnap.id,
     title: data.title || '',
@@ -19,7 +20,7 @@ export function mapAnnouncement(docSnap) {
     category: data.category || 'updates',
     categoryLabel: CATEGORY_LABELS[data.category] || 'Updates',
     startsAt: data.startsAt,
-    endsAt: data.endsAt ?? null,
+    endsAt,
     status: data.status || 'active',
     createdByUid: data.createdByUid,
     createdAt: data.createdAt,
@@ -73,7 +74,7 @@ export function useAnnouncements(enabled = true, options = {}) {
   }, [enabled, includeArchived]);
 
   const activeAnnouncements = useMemo(
-    () => items.filter((item) => item.status === 'active'),
+    () => items.filter((item) => item.status === 'active' && (!item.endsAt || item.endsAt > new Date())),
     [items],
   );
 

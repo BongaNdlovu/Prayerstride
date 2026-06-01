@@ -64,9 +64,10 @@ const AUTH_ROUTES = ['splash', 'welcome', 'reminderSetup', 'stayConnected', 'sig
 const MAIN_TAB_ROUTES = ['home', 'discover', 'create', 'praise', 'profile'];
 
 export default function MobileApp() {
-  const { user, loading, signIn, register, signOut, resetPassword, deleteAccount } = useAuth();
+  const { user, loading, registering, signIn, register, completePendingRegistration, signOut, resetPassword, deleteAccount } = useAuth();
   const [nav, setNav] = useState(() => createNavState());
-  const { suspended, suspendedReason } = useSuspendedStatus(user);
+  const { suspended, suspendedReason, registrationState, profileUid, loading: accountLoading } = useSuspendedStatus(user);
+  const waitingForAccountProfile = Boolean(user && profileUid !== user.uid);
 
   useEffect(() => {
     if (!user) return;
@@ -76,7 +77,7 @@ export default function MobileApp() {
   }, [user]);
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || registering || accountLoading || waitingForAccountProfile) return;
     const screen = nav.screen;
 
     if (!user) {
@@ -90,7 +91,7 @@ export default function MobileApp() {
     }
 
     if (AUTH_ROUTES.includes(screen) || screen === 'splash') setNav(reset('home'));
-  }, [user, loading, suspended, nav.screen]);
+  }, [user, loading, registering, accountLoading, waitingForAccountProfile, suspended, nav.screen]);
 
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -102,7 +103,15 @@ export default function MobileApp() {
     return () => subscription.remove();
   }, [loading, nav.screen, user]);
 
-  if (loading) return <Centered label="Preparing PrayerStride..." />;
+  if (loading || registering || accountLoading || waitingForAccountProfile) return <Centered label="Preparing PrayerStride..." />;
+
+  if (user && registrationState === 'pending_completion') {
+    return (
+      <SafeAreaView style={styles.shell}>
+        <AuthScreen mode="register" resumeRegistration onResumeRegistration={completePendingRegistration} onSwitchMode={signOut} />
+      </SafeAreaView>
+    );
+  }
 
   const screen = nav.screen;
   const params = nav.params || {};

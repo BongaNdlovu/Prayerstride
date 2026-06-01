@@ -5,7 +5,7 @@ import { useReports, resolveReport, dismissReport } from '../useReports';
 import { useUsers } from '../useUsers';
 import { usePrayers, useTestimonies } from '../usePrayerData';
 import { useIsAdmin } from '../useIsAdmin';
-import { adminArchiveAnnouncement, adminCreateAnnouncement, adminDeleteContent, adminDeleteAccount, adminSuspendUser, adminUpdateAnnouncement, getSpiritualEngagementMetrics } from '../api';
+import { adminArchiveAnnouncement, adminCreateAnnouncement, adminDeleteContent, adminDeleteAccount, adminSuspendUser, adminUnsuspendUser, adminUpdateAnnouncement, getSpiritualEngagementMetrics } from '../api';
 import { useAnnouncements } from '../useAnnouncements';
 import ScreenScaffold from '../components/ScreenScaffold';
 import AppHeader from '../components/AppHeader';
@@ -63,7 +63,7 @@ export default function AdminDashboardScreen({ user, go, onBack }) {
       <AsyncState loading={dataLoading} error={dataError}>
         {tab === 'Overview' && <OverviewStats users={users} prayers={prayers} reports={reports} testimonies={testimonies} />}
         {tab === 'Reports' && <ReportsList reports={reports} go={go} onResolve={resolveReport} onDismiss={dismissReport} />}
-        {tab === 'Members' && <MembersList users={users} currentUid={user?.uid} onSuspend={adminSuspendUser} onDelete={adminDeleteAccount} />}
+        {tab === 'Members' && <MembersList users={users} currentUid={user?.uid} onSuspend={adminSuspendUser} onUnsuspend={adminUnsuspendUser} onDelete={adminDeleteAccount} />}
         {tab === 'Content' && <ContentList prayers={prayers} testimonies={testimonies} onDelete={adminDeleteContent} />}
         {tab === 'Announcements' && <AnnouncementsAdminList announcements={announcements} />}
         {tab === 'Analytics' && <AnalyticsPanel user={user} />}
@@ -230,7 +230,7 @@ function ReportsList({ reports, go, onResolve, onDismiss }) {
   );
 }
 
-function MembersList({ users, currentUid, onSuspend, onDelete }) {
+function MembersList({ users, currentUid, onSuspend, onUnsuspend, onDelete }) {
   const [search, setSearch] = useState('');
   const filtered = users.filter((u) => `${u.displayName || ''} ${u.email || ''}`.toLowerCase().includes(search.toLowerCase()));
 
@@ -250,12 +250,12 @@ function MembersList({ users, currentUid, onSuspend, onDelete }) {
             {item.id !== currentUid && item.role !== 'admin' ? (
               <View style={styles.cardActions}>
                 <PrimaryButton
-                  label="Suspend"
+                  label={item.suspended ? 'Restore' : 'Suspend'}
                   variant="ghost"
                   onPress={() => {
-                    Alert.alert('Suspend User', 'Are you sure?', [
+                    Alert.alert(item.suspended ? 'Restore User' : 'Suspend User', 'Are you sure?', [
                       { text: 'Cancel', style: 'cancel' },
-                      { text: 'Suspend', style: 'destructive', onPress: () => runAdminAction(() => onSuspend(item.id, 'Admin action'), 'Could not suspend user') },
+                      { text: item.suspended ? 'Restore' : 'Suspend', style: item.suspended ? 'default' : 'destructive', onPress: () => runAdminAction(() => item.suspended ? onUnsuspend(item.id) : onSuspend(item.id, 'Admin action'), item.suspended ? 'Could not restore user' : 'Could not suspend user') },
                     ]);
                   }}
                   style={styles.actionBtnOutline}
