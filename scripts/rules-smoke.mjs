@@ -34,6 +34,16 @@ async function seedFixtures() {
       createdAt: new Date(),
     });
 
+    await db.doc('users/suspended-admin').set({
+      uid: 'suspended-admin',
+      email: 'suspended-admin@test.com',
+      displayName: 'Suspended Admin',
+      role: 'admin',
+      owner: false,
+      suspended: true,
+      createdAt: new Date(),
+    });
+
     await db.doc('users/user-b').set({
       uid: 'user-b',
       email: 'b@test.com',
@@ -143,6 +153,7 @@ async function runTests() {
   const aDb = testEnv.authenticatedContext('user-a', { email: 'a@test.com' }).firestore();
   const bDb = testEnv.authenticatedContext('user-b', { email: 'b@test.com' }).firestore();
   const adminDb = testEnv.authenticatedContext('admin-user', { email: 'admin@test.com' }).firestore();
+  const suspendedAdminDb = testEnv.authenticatedContext('suspended-admin', { email: 'suspended-admin@test.com' }).firestore();
   const unauthDb = testEnv.unauthenticatedContext().firestore();
 
   await assertSucceeds(aDb.doc('users/user-a').get());
@@ -182,6 +193,7 @@ async function runTests() {
 
   await assertFails(aDb.collection('reports').get());
   await assertSucceeds(adminDb.collection('reports').get());
+  await assertFails(suspendedAdminDb.collection('reports').get());
   await assertSucceeds(adminDb.collection('reports').doc('report-a').update({ status: 'resolved' }));
   await assertFails(adminDb.collection('reports').doc('report-a').update({ targetId: 'changed' }));
 
@@ -325,6 +337,7 @@ async function runTests() {
   await assertSucceeds(aDb.collection('announcements').doc('announcement-a').get());
   await assertFails(aDb.collection('announcements').doc('announcement-archived').get());
   await assertSucceeds(adminDb.collection('announcements').doc('announcement-archived').get());
+  await assertFails(suspendedAdminDb.collection('announcements').doc('announcement-archived').get());
   await assertFails(aDb.collection('announcements').doc('announcement-new').set({
     title: 'Blocked',
     body: 'Client write',

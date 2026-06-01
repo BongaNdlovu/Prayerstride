@@ -486,7 +486,8 @@ function moderationBlocklist(env) {
 async function userIsAdmin(env, user) {
   const userDoc = await getDocument(env, docName(env, 'users', user.uid));
   if (!userDoc.exists) return false;
-  return fromFirestoreFields(userDoc.fields).role === 'admin';
+  const data = fromFirestoreFields(userDoc.fields);
+  return data.role === 'admin' && data.suspended !== true;
 }
 
 async function loadAuthorContent(env, collection, contentId, user, { adminAllowed = true } = {}) {
@@ -600,7 +601,7 @@ async function markPrayerAnswered(env, user, prayerId) {
 
 async function deletePrayer(env, user, prayerId) {
   const { contentDoc } = await loadAuthorContent(env, 'prayers', prayerId, user);
-  await firestoreCommit(env, [{ delete: contentDoc.name }]);
+  await deleteContentAndActions(env, 'prayers', contentDoc);
   return json({ ok: true, prayerId });
 }
 
@@ -694,8 +695,17 @@ async function updateTestimony(env, user, testimonyId, body) {
 
 async function deleteTestimony(env, user, testimonyId) {
   const { contentDoc } = await loadAuthorContent(env, 'testimonies', testimonyId, user);
-  await firestoreCommit(env, [{ delete: contentDoc.name }]);
+  await deleteContentAndActions(env, 'testimonies', contentDoc);
   return json({ ok: true, testimonyId });
+}
+
+async function deleteContentAndActions(env, collectionName, contentDoc) {
+  const subcollectionName = collectionName === 'prayers' ? 'prays' : 'reactions';
+  const actionDocs = await listDocuments(env, docName(env, collectionName, dataId(contentDoc), subcollectionName));
+  await commitInChunks(env, [
+    ...actionDocs.map((document) => ({ delete: document.name })),
+    { delete: contentDoc.name },
+  ]);
 }
 
 async function listBlocks(env, user) {
@@ -941,7 +951,7 @@ async function adminDeleteContent(env, user, body) {
   const targetDoc = await getDocument(env, docName(env, collection, body.targetId));
   if (!targetDoc.exists) return json({ error: 'Content not found' }, 404);
 
-  await firestoreCommit(env, [{ delete: targetDoc.name }]);
+  await deleteContentAndActions(env, collection, targetDoc);
   return json({ ok: true });
 }
 
@@ -1080,10 +1090,13 @@ async function adminDeleteAccount(env, user, body) {
   if (body.targetUid === user.uid) return json({ error: 'Cannot delete your own admin account via this endpoint. Use /api/account instead.' }, 400);
 
   const targetUser = await getDocument(env, docName(env, 'users', body.targetUid));
-  if (!targetUser.exists) return json({ error: 'User not found' }, 404);
+  const existingDeletionJob = await getDocument(env, docName(env, 'accountDeletionJobs', body.targetUid));
+  if (!targetUser.exists && !existingDeletionJob.exists) return json({ error: 'User not found' }, 404);
 
-  const targetData = fromFirestoreFields(targetUser.fields);
-  if (targetData.role === 'admin') return json({ error: 'Cannot delete another admin account' }, 400);
+  if (targetUser.exists) {
+    const targetData = fromFirestoreFields(targetUser.fields);
+    if (targetData.role === 'admin') return json({ error: 'Cannot delete another admin account' }, 400);
+  }
 
   return deleteUserData(env, body.targetUid);
 }
@@ -1165,26 +1178,47 @@ async function deleteUserData(env, uid, options = {}) {
 
 async function collectUserDeletionWrites(env, uid) {
   const userDoc = await getDocument(env, docName(env, 'users', uid));
-  if (!userDoc.exists) throw Object.assign(new Error('User not found'), { status: 404 });
 
-  const writes = [{ delete: userDoc.name }];
+  const writes = [];
+  const deletedNames = new Set();
+  const addDelete = (name) => {
+    if (deletedNames.has(name)) return;
+    deletedNames.add(name);
+    writes.push({ delete: name });
+  };
+  if (userDoc.exists) addDelete(userDoc.name);
 
   const processCollection = async (collectionName, matchField) => {
     const docs = await listDocuments(env, docName(env, collectionName));
     for (const d of docs) {
       const data = fromFirestoreFields(d.fields || {});
       if (!matchField(data, d)) continue;
-      writes.push({ delete: d.name });
+      addDelete(d.name);
       if (collectionName === 'prayers' || collectionName === 'testimonies') {
         const subName = collectionName === 'prayers' ? 'prays' : 'reactions';
         const subs = await listDocuments(env, docName(env, collectionName, dataId(d), subName));
-        for (const s of subs) writes.push({ delete: s.name });
+        for (const s of subs) addDelete(s.name);
       }
+    }
+  };
+
+  const processOwnedActionCollection = async (collectionName) => {
+    const docs = await runCollectionGroupQuery(env, collectionName, [{
+      fieldFilter: {
+        field: { fieldPath: 'uid' },
+        op: 'EQUAL',
+        value: { stringValue: uid },
+      },
+    }]);
+    for (const d of docs) {
+      if (fromFirestoreFields(d.fields || {}).uid === uid) addDelete(d.name);
     }
   };
 
   await processCollection('prayers', (d) => d.authorUid === uid);
   await processCollection('testimonies', (d) => d.authorUid === uid);
+  await processOwnedActionCollection('prays');
+  await processOwnedActionCollection('reactions');
   await processCollection('encouragements', (d) => d.authorUid === uid);
   await processCollection('prayerSessions', (d) => d.authorUid === uid);
   await processCollection('calendarEvents', (d) => d.ownerUid === uid);
@@ -1196,16 +1230,16 @@ async function collectUserDeletionWrites(env, uid) {
   const apiDocs = await listDocuments(env, docName(env, 'apiRateLimits'));
   for (const d of apiDocs) {
     const data = fromFirestoreFields(d.fields || {});
-    if (data.uid === uid) writes.push({ delete: d.name });
+    if (data.uid === uid) addDelete(d.name);
   }
 
   const deviceDocs = await listDocuments(env, docName(env, 'users', uid, 'devices'));
-  for (const d of deviceDocs) writes.push({ delete: d.name });
+  for (const d of deviceDocs) addDelete(d.name);
 
   const followingDocs = await listDocuments(env, docName(env, 'users', uid, 'following'));
-  for (const d of followingDocs) writes.push({ delete: d.name });
+  for (const d of followingDocs) addDelete(d.name);
 
-  writes.push({ delete: docName(env, 'notificationSettings', uid) });
+  addDelete(docName(env, 'notificationSettings', uid));
   return writes;
 }
 
@@ -1227,7 +1261,9 @@ async function deleteFirebaseAuthUser(env, uid) {
   });
   if (!response.ok) {
     const result = await response.json().catch(() => ({}));
-    throw new Error(result.error?.message || 'Auth deletion failed');
+    const message = result.error?.message || 'Auth deletion failed';
+    if (response.status === 404 || result.error?.status === 'NOT_FOUND' || String(message).includes('USER_NOT_FOUND')) return;
+    throw new Error(message);
   }
 }
 
@@ -1415,6 +1451,7 @@ async function requireAdmin(env, user) {
   const userDoc = await getDocument(env, docName(env, 'users', user.uid));
   if (!userDoc.exists) throw Object.assign(new Error('User profile not found'), { status: 403 });
   const data = fromFirestoreFields(userDoc.fields);
+  if (data.suspended === true) throw Object.assign(new Error('Your account has been suspended.'), { status: 403, publicMessage: 'Account suspended' });
   if (data.role !== 'admin') throw Object.assign(new Error('Admin access required'), { status: 403 });
 }
 
@@ -1637,7 +1674,7 @@ async function enforceGlobalRateLimit(env, request, requestId) {
   if (current.exists) {
     const data = fromFirestoreFields(current.fields);
     if (data.window === minuteWindow && data.count >= maxPerMinute) {
-      log(env, 'warn', { requestId, clientIp, count: data.count }, 'rate-limited');
+      log(env, 'warn', { requestId, ipHashPrefix: ipKey.slice(0, 10), count: data.count }, 'rate-limited');
       throw Object.assign(new Error('Too many requests. Please slow down.'), { status: 429, publicMessage: 'Rate limit exceeded' });
     }
   }
@@ -1649,7 +1686,7 @@ async function enforceGlobalRateLimit(env, request, requestId) {
     update: {
       name: rateDoc,
       fields: toFirestoreFields({
-        clientIp,
+        ipHash: ipKey,
         window: minuteWindow,
         count,
         updatedAt: new Date().toISOString(),
@@ -1657,7 +1694,7 @@ async function enforceGlobalRateLimit(env, request, requestId) {
     },
   }], { precondition });
   if (result.preconditionFailed) {
-    log(env, 'warn', { requestId, clientIp }, 'rate-limit-precondition-failed');
+    log(env, 'warn', { requestId, ipHashPrefix: ipKey.slice(0, 10) }, 'rate-limit-precondition-failed');
     throw Object.assign(new Error('Too many concurrent requests. Please retry shortly.'), {
       status: 429,
       publicMessage: 'Rate limit exceeded',

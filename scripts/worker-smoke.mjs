@@ -40,6 +40,11 @@ assert(worker.includes('accountDeletionJobs'), 'Worker should write account dele
 assert(worker.includes('deleteFirebaseAuthUser'), 'Worker should delete Firebase Auth user last.');
 assert(worker.includes('purgeExpiredDeletionTombstones'), 'Worker should purge expired deletion tombstones.');
 assert(worker.includes('deleteStoragePrefix'), 'Worker should delete Storage objects during account deletion.');
+assert(worker.includes('deleteContentAndActions'), 'Worker should cascade content deletion to nested pray and reaction records.');
+assert(worker.includes("processOwnedActionCollection('prays')") && worker.includes("processOwnedActionCollection('reactions')"), 'Account deletion should remove actions made on other users content.');
+assert(worker.includes('if (userDoc.exists) addDelete(userDoc.name)'), 'Account deletion retries should tolerate an already-removed profile.');
+assert(worker.includes("String(message).includes('USER_NOT_FOUND')"), 'Account deletion retries should tolerate an already-removed Firebase Auth user.');
+assert(worker.includes('!targetUser.exists && !existingDeletionJob.exists'), 'Admin account deletion retries should continue existing cleanup jobs after profile removal.');
 assert(worker.includes('async scheduled'), 'Worker should define a scheduled handler for cron jobs.');
 assert(worker.includes('weekly'), 'Worker should support weekly prayer limits.');
 assert(worker.includes('fieldTransforms'), 'Worker should use Firestore transform writes for aggregate counts.');
@@ -50,6 +55,7 @@ assert(worker.includes('getNotificationSettings'), 'Worker should read notificat
 assert(worker.includes('...targetData') && worker.includes('suspended: true'), 'Suspending a user should preserve existing profile fields.');
 assert(worker.includes("currentDocument: { exists: false }"), 'Worker should create notifications and action docs without overwriting existing documents.');
 assert(worker.includes("publicMessage: 'Rate limit exceeded'"), 'Rate-limit write collisions should fail closed.');
+assert(worker.includes('ipHash: ipKey') && !worker.includes('{ requestId, clientIp'), 'Rate limiting should store and log hashed IP identifiers instead of raw client IPs.');
 assert(worker.includes("op: 'EQUAL'") && worker.includes("fieldPath: 'blockerUid'"), 'Block listing should query only the current user blocks.');
 assert(worker.includes("(?:\\.\\d+)?Z$"), 'Worker timestamp detection should require a complete timestamp string.');
 assert(worker.includes("fieldPath.endsWith('At')"), 'Worker timestamp detection should only apply to timestamp fields.');
@@ -67,6 +73,8 @@ assert(worker.includes('adminUpdateAnnouncement'), 'Worker should implement admi
 assert(worker.includes('adminArchiveAnnouncement'), 'Worker should implement adminArchiveAnnouncement handler.');
 assert(worker.includes('validateAnnouncementFields'), 'Worker should validate announcement required fields.');
 assert(worker.includes('requireAdmin'), 'Worker announcement routes should require admin access.');
+assert(worker.includes("data.suspended === true") && worker.includes("publicMessage: 'Account suspended'"), 'Worker admin access should deny suspended admins.');
+assert(worker.includes("data.role === 'admin' && data.suspended !== true"), 'Worker shared admin checks should deny suspended admins.');
 assert(worker.includes("status: 'archived'"), 'Worker should support archiving announcements.');
 assert(worker.includes("return json({ error:"), 'Worker should return JSON error responses.');
 

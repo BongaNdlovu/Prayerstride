@@ -16,18 +16,37 @@ import StatCard from '../components/StatCard';
 import Heading from '../components/Heading';
 import BodyText from '../components/BodyText';
 import EmptyState from '../components/EmptyState';
+import AsyncState from '../components/AsyncState';
 
 const TABS = ['Overview', 'Reports', 'Members', 'Content', 'Announcements', 'Analytics'];
 const ANNOUNCEMENT_CATEGORIES = ['events', 'prayer', 'updates'];
 
 export default function AdminDashboardScreen({ user, go, onBack }) {
-  const { isAdmin } = useIsAdmin(user);
-  const { reports } = useReports(user, true);
-  const { users } = useUsers(user, true);
-  const { prayers } = usePrayers(isAdmin, { includeAll: isAdmin });
-  const { testimonies } = useTestimonies(isAdmin);
-  const { announcements } = useAnnouncements(isAdmin, { includeArchived: true });
+  const { isAdmin, loading: adminLoading, error: adminError } = useIsAdmin(user);
+  const { reports, loading: reportsLoading, error: reportsError } = useReports(user, true);
+  const { users, loading: usersLoading, error: usersError } = useUsers(user, true);
+  const { prayers, loading: prayersLoading, error: prayersError } = usePrayers(isAdmin, { includeAll: isAdmin });
+  const { testimonies, loading: testimoniesLoading, error: testimoniesError } = useTestimonies(isAdmin);
+  const { announcements, loading: announcementsLoading, error: announcementsError } = useAnnouncements(isAdmin, { includeArchived: true, user });
   const [tab, setTab] = useState('Overview');
+  const dataLoading = reportsLoading || usersLoading || prayersLoading || testimoniesLoading || announcementsLoading;
+  const dataError = reportsError || usersError || prayersError || testimoniesError || announcementsError;
+
+  if (adminLoading) {
+    return (
+      <ScreenScaffold scroll={false} style={styles.deniedShell}>
+        <AsyncState loading />
+      </ScreenScaffold>
+    );
+  }
+
+  if (adminError) {
+    return (
+      <ScreenScaffold scroll={false} style={styles.deniedShell}>
+        <AsyncState error={adminError} />
+      </ScreenScaffold>
+    );
+  }
 
   if (!isAdmin) {
     return (
@@ -41,14 +60,24 @@ export default function AdminDashboardScreen({ user, go, onBack }) {
     <ScreenScaffold scroll={false} style={styles.shell}>
       <AppHeader title="Admin Console" subtitle="Manage reports, members, and content." onBack={onBack} />
       <PillTabs tabs={TABS} active={tab} onChange={setTab} style={styles.tabs} />
-      {tab === 'Overview' && <OverviewStats users={users} prayers={prayers} reports={reports} testimonies={testimonies} />}
-      {tab === 'Reports' && <ReportsList reports={reports} go={go} onResolve={resolveReport} onDismiss={dismissReport} />}
-      {tab === 'Members' && <MembersList users={users} currentUid={user?.uid} onSuspend={adminSuspendUser} onDelete={adminDeleteAccount} />}
-      {tab === 'Content' && <ContentList prayers={prayers} testimonies={testimonies} onDelete={adminDeleteContent} />}
-      {tab === 'Announcements' && <AnnouncementsAdminList announcements={announcements} />}
-      {tab === 'Analytics' && <AnalyticsPanel user={user} />}
+      <AsyncState loading={dataLoading} error={dataError}>
+        {tab === 'Overview' && <OverviewStats users={users} prayers={prayers} reports={reports} testimonies={testimonies} />}
+        {tab === 'Reports' && <ReportsList reports={reports} go={go} onResolve={resolveReport} onDismiss={dismissReport} />}
+        {tab === 'Members' && <MembersList users={users} currentUid={user?.uid} onSuspend={adminSuspendUser} onDelete={adminDeleteAccount} />}
+        {tab === 'Content' && <ContentList prayers={prayers} testimonies={testimonies} onDelete={adminDeleteContent} />}
+        {tab === 'Announcements' && <AnnouncementsAdminList announcements={announcements} />}
+        {tab === 'Analytics' && <AnalyticsPanel user={user} />}
+      </AsyncState>
     </ScreenScaffold>
   );
+}
+
+async function runAdminAction(action, errorTitle) {
+  try {
+    await action();
+  } catch (error) {
+    Alert.alert(errorTitle, error.message);
+  }
 }
 
 function AnalyticsPanel({ user }) {
@@ -120,24 +149,24 @@ function AnalyticsPanel({ user }) {
       <BodyText variant="caption" style={styles.sectionSubtitle}>Last {metrics.window?.days || 30} days</BodyText>
 
       <View style={styles.statsGrid}>
-        <StatCard value={String(m.requestCount)} label="Prayer Requests" />
-        <StatCard value={`${m.responseRate}%`} label="Response Rate" />
-        <StatCard value={String(m.density)} label="Prayers per Request" />
-        <StatCard value={String(m.activePrayingUsers7d)} label="Active Praying Users (7d)" />
+        <StatCard value={String(m.requestCount)} label="Prayer Requests" style={styles.adminStatCard} />
+        <StatCard value={`${m.responseRate}%`} label="Response Rate" style={styles.adminStatCard} />
+        <StatCard value={String(m.density)} label="Prayers per Request" style={styles.adminStatCard} />
+        <StatCard value={String(m.activePrayingUsers7d)} label="Active Praying Users (7d)" style={styles.adminStatCard} />
       </View>
 
       <View style={styles.statsGrid}>
-        <StatCard value={String(m.requestOnly)} label="Request Only" />
-        <StatCard value={String(m.prayOnly)} label="Pray Only" />
-        <StatCard value={String(m.both)} label="Both" />
-        <StatCard value={retentionValue} label="7-Day Retention" />
+        <StatCard value={String(m.requestOnly)} label="Request Only" style={styles.adminStatCard} />
+        <StatCard value={String(m.prayOnly)} label="Pray Only" style={styles.adminStatCard} />
+        <StatCard value={String(m.both)} label="Both" style={styles.adminStatCard} />
+        <StatCard value={retentionValue} label="7-Day Retention" style={styles.adminStatCard} />
       </View>
 
       <View style={styles.statsGrid}>
-        <StatCard value={String(m.averageTimeToFirstPrayerMinutes ?? '-')} label="Avg Time to First Prayer (min)" />
-        <StatCard value={String(m.medianTimeToFirstPrayerMinutes ?? '-')} label="Median Time to First Prayer (min)" />
-        <StatCard value={String(m.retentionEligible)} label="Retention Eligible" />
-        <StatCard value={String(m.totalPrayActions)} label="Total Pray Actions" />
+        <StatCard value={String(m.averageTimeToFirstPrayerMinutes ?? '-')} label="Avg Time to First Prayer (min)" style={styles.adminStatCard} />
+        <StatCard value={String(m.medianTimeToFirstPrayerMinutes ?? '-')} label="Median Time to First Prayer (min)" style={styles.adminStatCard} />
+        <StatCard value={String(m.retentionEligible)} label="Retention Eligible" style={styles.adminStatCard} />
+        <StatCard value={String(m.totalPrayActions)} label="Total Pray Actions" style={styles.adminStatCard} />
       </View>
 
       {chartActivity.length > 0 ? (
@@ -166,10 +195,10 @@ function OverviewStats({ users, prayers, reports, testimonies }) {
   return (
     <View style={styles.section}>
       <View style={styles.statsGrid}>
-        <StatCard value={String(users.length)} label="Users" />
-        <StatCard value={String(prayers.length)} label="Prayers" />
-        <StatCard value={String(reports.filter((r) => r.status === 'pending').length)} label="Open Reports" />
-        <StatCard value={String(testimonies.length)} label="Testimonies" />
+        <StatCard value={String(users.length)} label="Users" style={styles.adminStatCard} />
+        <StatCard value={String(prayers.length)} label="Prayers" style={styles.adminStatCard} />
+        <StatCard value={String(reports.filter((r) => r.status === 'pending').length)} label="Open Reports" style={styles.adminStatCard} />
+        <StatCard value={String(testimonies.length)} label="Testimonies" style={styles.adminStatCard} />
       </View>
     </View>
   );
@@ -191,8 +220,8 @@ function ReportsList({ reports, go, onResolve, onDismiss }) {
             </View>
             <BodyText variant="body" style={styles.cardReason}>{item.reason}</BodyText>
             <View style={styles.cardActions}>
-              <PrimaryButton label="Resolve" onPress={() => onResolve(item.id)} style={styles.actionBtn} textStyle={styles.actionText} />
-              <PrimaryButton label="Dismiss" onPress={() => onDismiss(item.id)} variant="ghost" style={styles.actionBtnOutline} />
+              <PrimaryButton label="Resolve" onPress={() => runAdminAction(() => onResolve(item.id), 'Could not resolve report')} style={styles.actionBtn} textStyle={styles.actionText} />
+              <PrimaryButton label="Dismiss" onPress={() => runAdminAction(() => onDismiss(item.id), 'Could not dismiss report')} variant="ghost" style={styles.actionBtnOutline} />
             </View>
           </GlassCard>
         </Pressable>
@@ -226,7 +255,7 @@ function MembersList({ users, currentUid, onSuspend, onDelete }) {
                   onPress={() => {
                     Alert.alert('Suspend User', 'Are you sure?', [
                       { text: 'Cancel', style: 'cancel' },
-                      { text: 'Suspend', style: 'destructive', onPress: () => onSuspend(item.id, 'Admin action') },
+                      { text: 'Suspend', style: 'destructive', onPress: () => runAdminAction(() => onSuspend(item.id, 'Admin action'), 'Could not suspend user') },
                     ]);
                   }}
                   style={styles.actionBtnOutline}
@@ -237,7 +266,7 @@ function MembersList({ users, currentUid, onSuspend, onDelete }) {
                   onPress={() => {
                     Alert.alert('Delete Account', 'This cannot be undone.', [
                       { text: 'Cancel', style: 'cancel' },
-                      { text: 'Delete', style: 'destructive', onPress: () => onDelete(item.id) },
+                      { text: 'Delete', style: 'destructive', onPress: () => runAdminAction(() => onDelete(item.id), 'Could not delete account') },
                     ]);
                   }}
                   style={styles.dangerBtn}
@@ -363,7 +392,7 @@ function ContentList({ prayers, testimonies, onDelete }) {
             onPress={() => {
               Alert.alert('Delete Content', 'Are you sure?', [
                 { text: 'Cancel', style: 'cancel' },
-                { text: 'Delete', style: 'destructive', onPress: () => onDelete(item.id, item.contentType) },
+                { text: 'Delete', style: 'destructive', onPress: () => runAdminAction(() => onDelete(item.id, item.contentType), 'Could not delete content') },
               ]);
             }}
             style={[styles.dangerBtn, styles.deleteContentBtn]}
@@ -382,6 +411,7 @@ const styles = StyleSheet.create({
   section: { flex: 1, paddingHorizontal: spacing.lg },
   list: { paddingBottom: spacing.tabBar, gap: spacing.md },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.sm },
+  adminStatCard: { minWidth: 140 },
   card: { marginBottom: 0 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   cardReason: { marginTop: spacing.sm },

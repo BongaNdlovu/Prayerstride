@@ -5,6 +5,7 @@ service firebase.storage {
       allow read: if request.auth != null;
       allow write: if request.auth != null
         && request.auth.uid == uid
+        && fileName == 'profile.jpg'
         && request.resource.size < 2 * 1024 * 1024
         && request.resource.contentType in ['image/jpeg', 'image/png', 'image/webp'];
     }

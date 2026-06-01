@@ -4,9 +4,9 @@ import Heading from './Heading';
 import BodyText from './BodyText';
 import GlassCard from './GlassCard';
 
-export default function StatCard({ icon: Icon, value, label, sublabel }) {
+export default function StatCard({ icon: Icon, value, label, sublabel, style }) {
   return (
-    <GlassCard style={styles.card}>
+    <GlassCard style={[styles.card, style]}>
       {Icon ? <Icon color={colors.gold} size={21} /> : null}
       <Heading level="stat" style={styles.value}>{value}</Heading>
       <BodyText variant="caption" style={styles.label}>{label}</BodyText>

@@ -73,4 +73,22 @@ describe('native UI kit', () => {
     expect(source.default).toMatch(/flexGrow:\s*1/);
     expect(source.default).toMatch(/width:\s*'100%'/);
   });
+
+  it('uses the supplied transparent logo for in-app branding', async () => {
+    const source = await import('../components/LogoMark.jsx?raw');
+    expect(source.default).toMatch(/logo-transparent\.png/);
+    expect(source.default).toMatch(/<Image/);
+    expect(source.default).toMatch(/resizeMode="contain"/);
+    expect(source.default).not.toMatch(/react-native-svg/);
+  });
+
+  it('configures bundled and web logo assets without duplicating native Android config', async () => {
+    const source = await import('../../../app.json?raw');
+    expect(source.default).toMatch(/"assets\/icon\.png"/);
+    expect(source.default).toMatch(/"assets\/adaptive-icon\.png"/);
+    expect(source.default).toMatch(/"assets\/logo-transparent\.png"/);
+    expect(source.default).toMatch(/"favicon": "\.\/assets\/favicon\.png"/);
+    expect(source.default).not.toMatch(/"adaptiveIcon"/);
+    expect(source.default).not.toMatch(/"splash"/);
+  });
 });

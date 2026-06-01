@@ -11,6 +11,7 @@
       "assets/icon.png",
       "assets/adaptive-icon.png",
       "assets/favicon.png",
+      "assets/logo-transparent.png",
       "src/assets/compressed-scenes/*.jpg"
     ],
     "web": {

@@ -60,4 +60,31 @@ describe('admin flow', () => {
     expect(source.default).toMatch(/export function useIsAdmin/);
     expect(source.default).toMatch(/export function useSuspendedStatus/);
   });
+
+  it('Admin loading and data failures render shared async states before content', async () => {
+    const source = await import('./screens/AdminDashboardScreen.jsx?raw');
+    expect(source.default).toMatch(/adminLoading/);
+    expect(source.default).toMatch(/dataError/);
+    expect(source.default).toMatch(/<AsyncState/);
+  });
+
+  it('Admin mutations surface rejected actions', async () => {
+    const dashboard = await import('./screens/AdminDashboardScreen.jsx?raw');
+    const details = await import('./screens/ReportDetailsScreen.jsx?raw');
+    expect(dashboard.default).toMatch(/runAdminAction/);
+    expect(details.default).toMatch(/runReportAction/);
+    expect(details.default).not.toMatch(/Alert\.alert\('Error'/);
+  });
+
+  it('Archived announcement loading checks the signed-in admin user', async () => {
+    const hook = await import('./useAnnouncements.js?raw');
+    const dashboard = await import('./screens/AdminDashboardScreen.jsx?raw');
+    expect(hook.default).toMatch(/useIsAdmin\(options\.user\)/);
+    expect(dashboard.default).toMatch(/includeArchived:\s*true,\s*user/);
+  });
+
+  it('Client admin state excludes suspended profiles', async () => {
+    const source = await import('./useIsAdmin.js?raw');
+    expect(source.default).toMatch(/data\?\.role === 'admin' && data\?\.suspended !== true/);
+  });
 });

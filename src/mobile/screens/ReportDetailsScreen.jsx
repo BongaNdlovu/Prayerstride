@@ -32,11 +32,11 @@ export default function ReportDetailsScreen({ report, go, back }) {
       <View style={styles.actions}>
         <PrimaryButton
           label="Resolve"
-          onPress={async () => { try { await resolveReport(report.id); } catch (e) { Alert.alert('Error', e.message); } }}
+          onPress={() => runReportAction(() => resolveReport(report.id), 'Could not resolve report')}
         />
         <PrimaryButton
           label="Dismiss"
-          onPress={async () => { try { await dismissReport(report.id); } catch (e) { Alert.alert('Error', e.message); } }}
+          onPress={() => runReportAction(() => dismissReport(report.id), 'Could not dismiss report')}
           variant="ghost"
         />
         <PrimaryButton
@@ -44,7 +44,7 @@ export default function ReportDetailsScreen({ report, go, back }) {
           onPress={() => {
             Alert.alert('Delete Content', 'Are you sure?', [
               { text: 'Cancel', style: 'cancel' },
-              { text: 'Delete', style: 'destructive', onPress: async () => { try { await adminDeleteContent(report.targetId, report.targetType); } catch (e) { Alert.alert('Error', e.message); } } },
+              { text: 'Delete', style: 'destructive', onPress: () => runReportAction(() => adminDeleteContent(report.targetId, report.targetType), 'Could not delete content') },
             ]);
           }}
           variant="ghost"
@@ -53,6 +53,14 @@ export default function ReportDetailsScreen({ report, go, back }) {
       </View>
     </ScreenScaffold>
   );
+}
+
+async function runReportAction(action, errorTitle) {
+  try {
+    await action();
+  } catch (error) {
+    Alert.alert(errorTitle, error.message);
+  }
 }
 
 const styles = StyleSheet.create({

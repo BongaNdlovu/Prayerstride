@@ -5,44 +5,69 @@ import { db } from './firebase';
 export function useIsAdmin(user) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(Boolean(user));
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!user) {
       setIsAdmin(false);
       setLoading(false);
+      setError(null);
       return undefined;
     }
 
-    return onSnapshot(doc(db, 'users', user.uid), (snapshot) => {
-      const data = snapshot.data();
-      setIsAdmin(data?.role === 'admin');
-      setLoading(false);
-    });
+    setLoading(true);
+    setError(null);
+    return onSnapshot(
+      doc(db, 'users', user.uid),
+      (snapshot) => {
+        const data = snapshot.data();
+        setIsAdmin(data?.role === 'admin' && data?.suspended !== true);
+        setError(null);
+        setLoading(false);
+      },
+      (err) => {
+        setIsAdmin(false);
+        setError(err);
+        setLoading(false);
+      },
+    );
   }, [user]);
 
-  return { isAdmin, loading };
+  return { isAdmin, loading, error };
 }
 
 export function useSuspendedStatus(user) {
   const [suspended, setSuspended] = useState(false);
   const [suspendedReason, setSuspendedReason] = useState('');
   const [loading, setLoading] = useState(Boolean(user));
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!user) {
       setSuspended(false);
       setSuspendedReason('');
       setLoading(false);
+      setError(null);
       return undefined;
     }
 
-    return onSnapshot(doc(db, 'users', user.uid), (snapshot) => {
-      const data = snapshot.data();
-      setSuspended(Boolean(data?.suspended));
-      setSuspendedReason(data?.suspendedReason || '');
-      setLoading(false);
-    });
+    setLoading(true);
+    setError(null);
+    return onSnapshot(
+      doc(db, 'users', user.uid),
+      (snapshot) => {
+        const data = snapshot.data();
+        setSuspended(Boolean(data?.suspended));
+        setSuspendedReason(data?.suspendedReason || '');
+        setError(null);
+        setLoading(false);
+      },
+      (err) => {
+        setError(err);
+        setLoading(false);
+      },
+    );
   }, [user]);
 
-  return { suspended, suspendedReason, loading };
+  return { suspended, suspendedReason, loading, error };
 }

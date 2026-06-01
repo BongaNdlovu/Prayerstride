@@ -34,7 +34,7 @@ export function mapAnnouncement(docSnap) {
 }
 
 export function useAnnouncements(enabled = true, options = {}) {
-  const { isAdmin } = useIsAdmin();
+  const { isAdmin } = useIsAdmin(options.user);
   const includeArchived = Boolean(options.includeArchived && isAdmin);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(enabled);
