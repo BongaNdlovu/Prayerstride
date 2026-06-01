@@ -15,7 +15,10 @@ export default function PageHero({ scene = 'dawn', eyebrow, title, subtitle, com
       <View style={[styles.heroContent, compact && styles.heroContentCompact]}>
         {eyebrow ? <Heading level="eyebrow" style={onDarkTypography.eyebrow}>{eyebrow}</Heading> : null}
         {title ? (
-          <Heading level={compact ? 'h2' : 'h1'} style={[styles.title, onDarkTypography.h1, compact && styles.titleCompact]}>
+          <Heading
+            level={compact ? 'h2' : 'h1'}
+            style={[styles.title, compact ? onDarkTypography.h2 : onDarkTypography.h1, compact && styles.titleCompact]}
+          >
             {title}
           </Heading>
         ) : null}
