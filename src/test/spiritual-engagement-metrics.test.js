@@ -96,13 +96,16 @@ function computeMetrics(prayers, prays, days = 30) {
       }
     }
   }
-  const retentionRate = retentionEligible > 0 ? Math.round((retentionCount / retentionEligible) * 100) : 0;
+  const windowTooShortForRetention = days < 14;
+  const retentionRate = windowTooShortForRetention
+    ? null
+    : retentionEligible > 0 ? Math.round((retentionCount / retentionEligible) * 100) : 0;
 
   return {
     requestCount, respondedCount, responseRate, totalPrayActions, density,
     activePrayingUsers7d, requestOnly, prayOnly, both,
     medianTimeToFirstPrayerMinutes, averageTimeToFirstPrayerMinutes,
-    retentionRate, retentionEligible, retentionCount,
+    retentionRate, retentionEligible, retentionCount, windowTooShortForRetention,
   };
 }
 
@@ -203,5 +206,11 @@ describe('spiritual engagement metrics', () => {
     expect(m.retentionRate).toBe(0);
     expect(m.averageTimeToFirstPrayerMinutes).toBeNull();
     expect(m.medianTimeToFirstPrayerMinutes).toBeNull();
+  });
+
+  it('marks retention unavailable for windows shorter than 14 days', () => {
+    const m = computeMetrics([], [], 7);
+    expect(m.retentionRate).toBeNull();
+    expect(m.windowTooShortForRetention).toBe(true);
   });
 });

@@ -204,7 +204,11 @@ async function handleApi(request, env, url, requestId) {
   match = url.pathname.match(/^\/api\/admin\/spiritual-engagement$/);
   if (match && request.method === 'GET') {
     await requireAdmin(env, user);
-    const days = Math.min(Number(url.searchParams.get('days')) || 30, 90);
+    const requestedDaysParam = url.searchParams.get('days');
+    const requestedDays = requestedDaysParam === null ? 30 : Number(requestedDaysParam);
+    const days = Number.isFinite(requestedDays)
+      ? Math.min(90, Math.max(1, Math.floor(requestedDays)))
+      : 30;
     return spiritualEngagementMetrics(env, user, days);
   }
 
@@ -1545,7 +1549,7 @@ async function spiritualEngagementMetrics(env, user, days) {
     },
   ], [
     { field: { fieldPath: 'createdAt' }, direction: 'DESCENDING' },
-  ], ['authorUid', 'createdAt', 'prayedCount']);
+  ], ['authorUid', 'createdAt']);
 
   const prayers = prayerDocs.map((d) => ({
     id: d.name.split('/').pop(),
@@ -1563,7 +1567,7 @@ async function spiritualEngagementMetrics(env, user, days) {
     },
   ], [
     { field: { fieldPath: 'createdAt' }, direction: 'DESCENDING' },
-  ], ['uid', 'prayerId', 'authorUid', 'createdAt']);
+  ], ['uid', 'prayerId', 'createdAt']);
 
   const prays = prayDocs.map((d) => ({
     id: d.name.split('/').pop(),
@@ -1692,7 +1696,10 @@ async function spiritualEngagementMetrics(env, user, days) {
     }
   }
 
-  const retentionRate = retentionEligible > 0 ? Math.round((retentionCount / retentionEligible) * 100) : 0;
+  const windowTooShortForRetention = days < 14;
+  const retentionRate = windowTooShortForRetention
+    ? null
+    : retentionEligible > 0 ? Math.round((retentionCount / retentionEligible) * 100) : 0;
 
   return json({
     ok: true,
@@ -1715,6 +1722,7 @@ async function spiritualEngagementMetrics(env, user, days) {
       activityByDay: activityByDaySorted,
     },
     groupingAvailable: false,
+    windowTooShortForRetention,
   });
 }
 

@@ -67,6 +67,8 @@ assert(worker.includes('requestOnly'), 'Engagement metrics should include recipr
 assert(worker.includes('prayOnly'), 'Engagement metrics should include reciprocity prayOnly.');
 assert(worker.includes('retentionRate'), 'Engagement metrics should include retentionRate.');
 assert(worker.includes('groupingAvailable'), 'Engagement metrics should include groupingAvailable.');
+assert(worker.includes('Math.min(90, Math.max(1, Math.floor(requestedDays)))'), 'Engagement window should clamp days to an integer between 1 and 90.');
+assert(worker.includes('windowTooShortForRetention'), 'Engagement metrics should flag windows that are too short for retention.');
 assert(!worker.includes('metricTitle') && !worker.includes('metricBody'), 'Engagement endpoint must not expose prayer content.');
 assert(worker.includes('requireAdmin(env, user)') || worker.includes('requireAdmin('), 'Spiritual engagement endpoint must require admin.');
 

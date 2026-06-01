@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { alpha, colors, fonts, sharedStyles, spacing } from '../theme';
 import { useReports, resolveReport, dismissReport } from '../useReports';
@@ -55,12 +55,34 @@ function AnalyticsPanel({ user }) {
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const mountedRef = useRef(false);
+  const requestIdRef = useRef(0);
+
+  const loadMetrics = () => {
+    const requestId = ++requestIdRef.current;
+    setLoading(true);
+    setError('');
+    getSpiritualEngagementMetrics(30)
+      .then((result) => {
+        if (mountedRef.current && requestId === requestIdRef.current) setMetrics(result);
+      })
+      .catch((err) => {
+        if (mountedRef.current && requestId === requestIdRef.current) {
+          setError(err.message || 'Failed to load analytics');
+        }
+      })
+      .finally(() => {
+        if (mountedRef.current && requestId === requestIdRef.current) setLoading(false);
+      });
+  };
 
   useEffect(() => {
-    getSpiritualEngagementMetrics(30)
-      .then(setMetrics)
-      .catch((err) => setError(err.message || 'Failed to load analytics'))
-      .finally(() => setLoading(false));
+    mountedRef.current = true;
+    loadMetrics();
+    return () => {
+      mountedRef.current = false;
+      requestIdRef.current++;
+    };
   }, []);
 
   if (loading) {
@@ -78,7 +100,8 @@ function AnalyticsPanel({ user }) {
         <BodyText variant="body" style={styles.errorText}>{error}</BodyText>
         <PrimaryButton
           label="Retry"
-          onPress={() => { setLoading(true); setError(''); getSpiritualEngagementMetrics(30).then(setMetrics).catch((err) => setError(err.message || 'Failed')).finally(() => setLoading(false)); }}
+          onPress={loadMetrics}
+          disabled={loading}
           style={styles.retryButton}
         />
       </View>
@@ -88,6 +111,8 @@ function AnalyticsPanel({ user }) {
   if (!metrics?.metrics) return <EmptyState label="No analytics data available." />;
 
   const m = metrics.metrics;
+  const chartActivity = m.activityByDay?.slice(-14) || [];
+  const retentionValue = metrics.windowTooShortForRetention ? '-' : `${m.retentionRate}%`;
 
   return (
     <View style={styles.section}>
@@ -105,7 +130,7 @@ function AnalyticsPanel({ user }) {
         <StatCard value={String(m.requestOnly)} label="Request Only" />
         <StatCard value={String(m.prayOnly)} label="Pray Only" />
         <StatCard value={String(m.both)} label="Both" />
-        <StatCard value={`${m.retentionRate}%`} label="7-Day Retention" />
+        <StatCard value={retentionValue} label="7-Day Retention" />
       </View>
 
       <View style={styles.statsGrid}>
@@ -115,12 +140,12 @@ function AnalyticsPanel({ user }) {
         <StatCard value={String(m.totalPrayActions)} label="Total Pray Actions" />
       </View>
 
-      {m.activityByDay && m.activityByDay.length > 0 ? (
+      {chartActivity.length > 0 ? (
         <GlassCard style={styles.chartCard}>
-          <BodyText variant="caption" style={styles.chartTitle}>Request Activity (30 days)</BodyText>
+          <BodyText variant="caption" style={styles.chartTitle}>Request Activity (latest 14 active days)</BodyText>
           <View style={styles.chartBars}>
-            {m.activityByDay.map((entry) => {
-              const maxCount = Math.max(...m.activityByDay.map((e) => e.count), 1);
+            {chartActivity.map((entry) => {
+              const maxCount = Math.max(...chartActivity.map((e) => e.count), 1);
               const height = Math.max(4, (entry.count / maxCount) * 80);
               return (
                 <View key={entry.day} style={styles.barWrap}>

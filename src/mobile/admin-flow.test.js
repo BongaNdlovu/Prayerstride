@@ -42,6 +42,13 @@ describe('admin flow', () => {
     expect(source.default).toMatch(/denied/);
   });
 
+  it('Analytics panel guards stale requests and limits chart labels', async () => {
+    const source = await import('./screens/AdminDashboardScreen.jsx?raw');
+    expect(source.default).toMatch(/requestIdRef/);
+    expect(source.default).toMatch(/disabled=\{loading\}/);
+    expect(source.default).toMatch(/slice\(-14\)/);
+  });
+
   it('Admin and suspended hooks are separate', async () => {
     const source = await import('./useIsAdmin.js?raw');
     expect(source.default).toMatch(/export function useIsAdmin/);
