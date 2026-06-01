@@ -42,7 +42,7 @@ export default function WeeklyEncouragersScreen({ user, onBack }) {
 
         <FlatList
           data={data?.entries || []}
-          keyExtractor={(item) => item.uid}
+          keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
           ListEmptyComponent={(
             <EmptyState label="No encouragements yet this week. Be the first to lift someone up." />

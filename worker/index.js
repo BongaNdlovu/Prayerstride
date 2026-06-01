@@ -36,6 +36,10 @@ import {
   createEncouragementRecord,
   getWeeklyEncouragers,
 } from './encouragements.js';
+import {
+  dayKeyInTimeZone,
+  isoWeekKeyFromDayKey,
+} from '../shared/gamificationLogic.js';
 
 const FIREBASE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const FIREBASE_SCOPE = 'https://www.googleapis.com/auth/datastore https://www.googleapis.com/auth/firebase.messaging https://www.googleapis.com/auth/identitytoolkit https://www.googleapis.com/auth/devstorage.read_write';
@@ -911,17 +915,6 @@ async function unblockUser(env, user, blockedUid) {
   return json({ ok: true, removed: true });
 }
 
-function isoWeekKey(isoDate) {
-  const date = new Date(isoDate);
-  if (Number.isNaN(date.getTime())) throw Object.assign(new Error('Invalid date'), { status: 400 });
-  const utc = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
-  const day = utc.getUTCDay() || 7;
-  utc.setUTCDate(utc.getUTCDate() + 4 - day);
-  const yearStart = new Date(Date.UTC(utc.getUTCFullYear(), 0, 1));
-  const week = Math.ceil((((utc - yearStart) / 86400000) + 1) / 7);
-  return `${utc.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
-}
-
 async function registerDevice(env, user, body) {
   if (!body.token) return json({ error: 'Missing device token' }, 400);
   const deviceId = await hashToken(body.token);
@@ -955,8 +948,9 @@ async function prayForRequest(env, user, prayerId) {
     return json({ error: 'You cannot pray for your own prayer request.' }, 403);
   }
   const now = new Date().toISOString();
-  const dayKey = now.slice(0, 10);
-  const weekKey = isoWeekKey(now);
+  const timeZone = await resolveUserTimeZone(gamificationFirestore, env, user.uid, null);
+  const dayKey = dayKeyInTimeZone(new Date(now), timeZone);
+  const weekKey = isoWeekKeyFromDayKey(dayKey);
   const prayerLimit = ['once', 'weekly'].includes(data.prayerLimit) ? data.prayerLimit : 'daily';
   const prayDocId = prayerLimit === 'once'
     ? user.uid
@@ -1019,7 +1013,6 @@ async function prayForRequest(env, user, prayerId) {
     });
   }
 
-  const timeZone = await resolveUserTimeZone(gamificationFirestore, env, user.uid, null);
   const xp = await awardPrayActionXp(gamificationFirestore, env, {
     uid: user.uid,
     prayerId,

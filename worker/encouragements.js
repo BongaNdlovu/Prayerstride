@@ -126,7 +126,7 @@ function buildWeeklyRankings(encouragements, profilesByUid, viewerUid) {
       const isSelf = uid === viewerUid;
       const showName = isSelf || profile.showOnEncouragementBoard === true;
       return {
-        uid,
+        sourceUid: uid,
         count,
         displayName: showName
           ? (profile.displayName || 'Community member')
@@ -136,7 +136,17 @@ function buildWeeklyRankings(encouragements, profilesByUid, viewerUid) {
     })
     .sort((a, b) => b.count - a.count || a.displayName.localeCompare(b.displayName));
 
-  return entries.map((entry, index) => ({ ...entry, rank: index + 1 }));
+  return entries.map((entry, index) => {
+    const rank = index + 1;
+    const { sourceUid, ...publicEntry } = entry;
+    return {
+      ...publicEntry,
+      id: entry.isSelf || entry.displayName !== 'Anonymous'
+        ? sourceUid
+        : `anonymous-${rank}`,
+      rank,
+    };
+  });
 }
 
 export async function getWeeklyEncouragers(fs, env, viewerUid, requestedTimeZone) {

@@ -102,6 +102,8 @@ assert(worker.includes("from './gamification.js'"), 'Worker should use gamificat
 assert(worker.includes('buildGamificationSummary'), 'Worker should expose gamification summary endpoint.');
 assert(worker.includes('createPrayerSessionRecord'), 'Worker should create prayer sessions with XP.');
 assert(worker.includes('awardPrayActionXp'), 'Worker should award pray-action XP after praying.');
+assert(worker.includes('dayKeyInTimeZone(new Date(now), timeZone)'), 'Worker should enforce pray limits using the user time zone.');
+assert(worker.includes('isoWeekKeyFromDayKey(dayKey)'), 'Worker should enforce weekly pray limits using the local day key.');
 assert(worker.includes('awardTestimonyXp'), 'Worker should award testimony XP after sharing.');
 assert(worker.includes('backfillGamificationXp'), 'Worker should support idempotent gamification backfill.');
 assert(worker.includes('deleteUserXpEvents'), 'Account deletion should remove xpEvents.');
@@ -134,6 +136,8 @@ assert(worker.includes("d.senderUid === uid || d.receiverUid === uid"), 'Account
 assert(encouragements.includes('getEncouragementPreset'), 'Encouragements should validate reviewed presets.');
 assert(encouragements.includes('showOnEncouragementBoard'), 'Weekly board should respect encouragement opt-in.');
 assert(encouragements.includes('Anonymous'), 'Weekly board should anonymize opted-out users.');
+assert(encouragements.includes('anonymous-${rank}'), 'Weekly board should expose opaque IDs for anonymous entries.');
+assert(encouragements.includes('const { sourceUid, ...publicEntry } = entry'), 'Weekly board should remove internal user IDs from public entries.');
 assert(encouragements.includes('enforceCooldown'), 'Encouragement creation should enforce cooldowns.');
 assert(encouragementPresets.includes('praying-with-you'), 'Shared encouragement presets should include reviewed messages.');
 

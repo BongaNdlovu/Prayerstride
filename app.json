@@ -7,6 +7,18 @@
       "ios",
       "android"
     ],
+    "android": {
+      "package": "com.lift.prayer"
+    },
+    "ios": {
+      "bundleIdentifier": "com.lift.prayer"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/b9037650-d868-4974-be17-28e248d5669c"
+    },
     "assetBundlePatterns": [
       "assets/icon.png",
       "assets/adaptive-icon.png",

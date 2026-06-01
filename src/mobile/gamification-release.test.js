@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { prayActionPrayerIdsForDay } from '../../shared/gamificationLogic.js';
+import { gamificationBackfillKey } from './useGamification.js';
 
 describe('gamification release hardening', () => {
   it('HomeScreen renders gamified streak, journey, and weekly encouragers entry', async () => {
@@ -61,5 +62,10 @@ describe('gamification release hardening', () => {
       { type: 'pray_action', dayKey: '2026-05-31', sourceId: 'prayer-c_2026-05-31' },
     ], '2026-06-01');
     expect(ids).toEqual(['prayer-a', 'prayer-b']);
+  });
+
+  it('scopes the backfill marker to the signed-in account', () => {
+    expect(gamificationBackfillKey('user-a')).toBe('gamificationBackfillV2:user-a');
+    expect(gamificationBackfillKey('user-b')).toBe('gamificationBackfillV2:user-b');
   });
 });

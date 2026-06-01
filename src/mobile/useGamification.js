@@ -12,6 +12,10 @@ import { usePrayerSessions } from './usePrayerSessions';
 
 const BACKFILL_KEY = 'gamificationBackfillV2';
 
+export function gamificationBackfillKey(userId) {
+  return `${BACKFILL_KEY}:${userId}`;
+}
+
 export function useGamification(userId, enabled = true) {
   const active = Boolean(userId && enabled);
   const { prayers, loading: prayersLoading, error: prayersError, retry: retryPrayers } = usePrayers(active, { userId });
@@ -36,10 +40,11 @@ export function useGamification(userId, enabled = true) {
 
     try {
       await updateGamificationTimeZone(timeZone).catch(() => {});
-      const backfillDone = await AsyncStorage.getItem(BACKFILL_KEY);
+      const backfillKey = gamificationBackfillKey(userId);
+      const backfillDone = await AsyncStorage.getItem(backfillKey);
       if (!backfillDone) {
-        await backfillGamification(timeZone).catch(() => {});
-        await AsyncStorage.setItem(BACKFILL_KEY, '1');
+        await backfillGamification(timeZone);
+        await AsyncStorage.setItem(backfillKey, '1');
       }
       const next = await getGamificationSummary(timeZone);
       setSummary(next);
@@ -48,7 +53,7 @@ export function useGamification(userId, enabled = true) {
     } finally {
       setSummaryLoading(false);
     }
-  }, [active]);
+  }, [active, userId]);
 
   useEffect(() => {
     refreshSummary();
