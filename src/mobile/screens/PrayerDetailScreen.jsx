@@ -225,7 +225,7 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
 
       <View style={styles.actionsRow}>
         <MotionPressable onPress={toggleBookmark} style={styles.iconButton}>
-          <Bookmark size={20} color={bookmarked ? colors.gold : alpha.ivory72} fill={bookmarked ? colors.gold : 'transparent'} />
+          <Bookmark size={20} color={bookmarked ? colors.gold : colors.textSecondary} fill={bookmarked ? colors.gold : 'transparent'} />
           <BodyText variant="caption">Save</BodyText>
         </MotionPressable>
         <MotionPressable onPress={handleTimer} style={styles.iconButton}>
@@ -268,11 +268,11 @@ const styles = StyleSheet.create({
     borderRadius: radii.pill,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
-    backgroundColor: alpha.ivory12,
+    backgroundColor: alpha.navy10,
   },
-  tagUrgent: { backgroundColor: alpha.ivory12, borderWidth: 1, borderColor: colors.urgent },
-  tagCommunity: { backgroundColor: alpha.ivory12, borderWidth: 1, borderColor: colors.community },
-  tagText: { fontFamily: fonts.sansSemiBold, fontSize: 11, color: alpha.ivory72 },
+  tagUrgent: { backgroundColor: alpha.navy10, borderWidth: 1, borderColor: colors.urgent },
+  tagCommunity: { backgroundColor: alpha.navy10, borderWidth: 1, borderColor: colors.community },
+  tagText: { fontFamily: fonts.sansSemiBold, fontSize: 11, color: colors.textSecondary },
   tagTextUrgent: { color: colors.urgent },
   tagTextCommunity: { color: colors.community },
   title: { marginTop: spacing.md },
@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
   moreActionButton: {
     paddingVertical: spacing.md + 2,
     borderBottomWidth: 1,
-    borderBottomColor: alpha.ivory10,
+    borderBottomColor: colors.border,
   },
   moreActionLast: { borderBottomWidth: 0 },
 });

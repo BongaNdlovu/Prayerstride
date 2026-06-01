@@ -105,7 +105,7 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, us
               onChangeText={setPrivateTitle}
               editable={!running && seconds === 0 && !readyToLog}
               placeholder="What are you praying about?"
-              placeholderTextColor={alpha.ivory55}
+              placeholderTextColor={colors.textMuted}
               style={[sharedStyles.input, styles.input]}
             />
             <BodyText variant="caption" style={styles.privateNote}>

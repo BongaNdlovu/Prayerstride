@@ -1,6 +1,6 @@
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { ChevronRight } from 'lucide-react-native';
-import { alpha, spacing } from '../theme';
+import { colors, spacing } from '../theme';
 import { useDevotions } from '../useContentCollections';
 import ScreenScaffold from '../components/ScreenScaffold';
 import AppHeader from '../components/AppHeader';
@@ -38,7 +38,7 @@ export default function DevotionsScreen({ go, onBack }) {
                       {item.dateLabel || item.date || ''}{item.day ? ` · Day ${item.day}` : ''}
                     </BodyText>
                   </View>
-                  <ChevronRight size={18} color={alpha.ivory55} />
+                  <ChevronRight size={18} color={colors.textMuted} />
                 </View>
               </GlassCard>
             </Pressable>
@@ -55,5 +55,5 @@ const styles = StyleSheet.create({
   card: { marginBottom: 0 },
   cardRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   cardInfo: { flex: 1 },
-  date: { marginTop: spacing.xs, color: alpha.ivory55 },
+  date: { marginTop: spacing.xs, color: colors.textMuted },
 });

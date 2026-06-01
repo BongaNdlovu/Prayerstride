@@ -56,7 +56,7 @@ export default function CreateTestimonyScreen({ user, linkedPrayerId, onDone }) 
           value={title}
           onChangeText={setTitle}
           placeholder="Testimony title"
-          placeholderTextColor={alpha.ivory55}
+          placeholderTextColor={colors.textMuted}
           style={sharedStyles.input}
         />
 
@@ -67,7 +67,7 @@ export default function CreateTestimonyScreen({ user, linkedPrayerId, onDone }) 
           placeholder="Tell your story..."
           multiline
           maxLength={DETAILS_LIMIT}
-          placeholderTextColor={alpha.ivory55}
+          placeholderTextColor={colors.textMuted}
           style={[sharedStyles.input, sharedStyles.textArea]}
         />
         <BodyText variant="caption" style={styles.counter}>{body.length}/{DETAILS_LIMIT}</BodyText>
@@ -115,8 +115,8 @@ const styles = StyleSheet.create({
     minHeight: 48,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: alpha.ivory16,
-    backgroundColor: alpha.ivory10,
+    borderColor: colors.border,
+    backgroundColor: alpha.navy06,
     paddingHorizontal: spacing.md,
     justifyContent: 'center',
   },
@@ -125,15 +125,15 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: alpha.ivory16,
-    backgroundColor: alpha.ivory10,
+    borderColor: colors.border,
+    backgroundColor: alpha.navy06,
     overflow: 'hidden',
   },
   pickerItem: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: alpha.ivory10,
+    borderBottomColor: colors.border,
   },
   pickerItemActive: { color: colors.gold },
   submit: { marginTop: spacing.xl },

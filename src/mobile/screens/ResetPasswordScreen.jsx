@@ -41,7 +41,7 @@ export default function ResetPasswordScreen({ onResetPassword, onBack }) {
             <>
               <View style={styles.inputRow}>
                 <Mail size={18} color={colors.gold} />
-                <TextInput value={email} onChangeText={setEmail} placeholder="Email" autoCapitalize="none" keyboardType="email-address" style={styles.input} placeholderTextColor={alpha.ivory55} />
+                <TextInput value={email} onChangeText={setEmail} placeholder="Email" autoCapitalize="none" keyboardType="email-address" style={styles.input} placeholderTextColor={colors.textMuted} />
               </View>
               <PrimaryButton label={busy ? 'Sending...' : 'Send Reset Link'} onPress={submit} busy={busy} disabled={busy} style={styles.submit} />
             </>
@@ -60,7 +60,7 @@ export default function ResetPasswordScreen({ onResetPassword, onBack }) {
 const styles = StyleSheet.create({
   subtitle: { textAlign: 'center', marginBottom: spacing.lg },
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm + 2, ...sharedStyles.input, marginTop: 0 },
-  input: { flex: 1, color: colors.ivory, fontFamily: fonts.sans, fontSize: 15 },
+  input: { flex: 1, color: colors.textPrimary, fontFamily: fonts.sans, fontSize: 15 },
   submit: { marginTop: spacing.lg },
   linkWrap: { alignItems: 'center', marginTop: spacing.lg, paddingVertical: spacing.sm },
   link: { color: colors.gold, fontFamily: fonts.sansSemiBold },

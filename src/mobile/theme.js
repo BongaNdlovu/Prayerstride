@@ -20,8 +20,7 @@ export const colors = {
   textSecondary: '#50607A',
   textMuted: '#8595AD',
 
-  // Legacy aliases (light-theme remaps)
-  ivory: '#0B2A4A',
+  // Legacy aliases (still used in a few places)
   ink: '#0B2A4A',
   screen: '#F4F7FB',
   screenAlt: '#EEF3F9',
@@ -61,19 +60,6 @@ export const alpha = {
   gold30: 'rgba(224,161,6,0.30)',
   overlay: 'rgba(7,32,59,0.72)',
   overlayLight: 'rgba(7,32,59,0.48)',
-
-  // Legacy aliases → navy-based light-theme values
-  ivory10: 'rgba(11,42,74,0.06)',
-  ivory11: 'rgba(11,42,74,0.08)',
-  ivory12: 'rgba(11,42,74,0.10)',
-  ivory16: 'rgba(11,42,74,0.12)',
-  ivory20: 'rgba(11,42,74,0.16)',
-  ivory55: 'rgba(11,42,74,0.55)',
-  ivory58: 'rgba(11,42,74,0.58)',
-  ivory62: 'rgba(11,42,74,0.62)',
-  ivory68: 'rgba(11,42,74,0.68)',
-  ivory72: 'rgba(11,42,74,0.72)',
-  ivory78: 'rgba(11,42,74,0.78)',
 };
 
 export const gradients = {

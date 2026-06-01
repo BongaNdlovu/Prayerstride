@@ -106,7 +106,7 @@ export default function EditRequestScreen({ prayer, user, onDone }) {
           value={title}
           onChangeText={setTitle}
           placeholder="Prayer title"
-          placeholderTextColor={alpha.ivory55}
+          placeholderTextColor={colors.textMuted}
           style={sharedStyles.input}
         />
 
@@ -117,7 +117,7 @@ export default function EditRequestScreen({ prayer, user, onDone }) {
           placeholder="What should people pray for?"
           multiline
           maxLength={PRAYER_DETAILS_LIMIT}
-          placeholderTextColor={alpha.ivory55}
+          placeholderTextColor={colors.textMuted}
           style={[sharedStyles.input, sharedStyles.textArea]}
         />
         <BodyText variant="caption" style={styles.counter}>{body.length}/{PRAYER_DETAILS_LIMIT}</BodyText>

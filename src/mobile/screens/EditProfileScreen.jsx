@@ -181,7 +181,7 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
               </View>
             )}
             <View style={styles.avatarBadge}>
-              <Camera size={14} color={colors.ivory} />
+              <Camera size={14} color={colors.textPrimary} />
             </View>
           </Pressable>
           <BodyText variant="caption" style={styles.avatarHint}>Tap to change profile photo</BodyText>
@@ -192,7 +192,7 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
             onChangeText={setName}
             placeholder="Your name"
             style={styles.input}
-            placeholderTextColor={alpha.ivory55}
+            placeholderTextColor={colors.textMuted}
           />
 
           <Heading level="eyebrow" style={styles.fieldLabel}>Username</Heading>
@@ -204,7 +204,7 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
               placeholder="username"
               autoCapitalize="none"
               style={styles.handleInput}
-              placeholderTextColor={alpha.ivory55}
+              placeholderTextColor={colors.textMuted}
             />
           </View>
 
@@ -216,7 +216,7 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
             multiline
             maxLength={BIO_MAX}
             style={[styles.input, styles.textArea]}
-            placeholderTextColor={alpha.ivory55}
+            placeholderTextColor={colors.textMuted}
           />
           <BodyText variant="caption" style={styles.charCount}>{bio.length}/{BIO_MAX}</BodyText>
 
@@ -232,7 +232,7 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
             placeholder="Current password"
             secureTextEntry
             style={styles.input}
-            placeholderTextColor={alpha.ivory55}
+            placeholderTextColor={colors.textMuted}
           />
           <TextInput
             value={newPassword}
@@ -240,7 +240,7 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
             placeholder="New password"
             secureTextEntry
             style={styles.input}
-            placeholderTextColor={alpha.ivory55}
+            placeholderTextColor={colors.textMuted}
           />
           <PrimaryButton label="Change Password" onPress={savePassword} style={styles.saveButton} />
         </GlassCard>
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.navyMid,
     borderWidth: 2,
-    borderColor: alpha.ivory16,
+    borderColor: colors.border,
   },
   avatarHint: { textAlign: 'center', marginBottom: spacing.lg },
   fieldLabel: { marginTop: spacing.lg, marginBottom: spacing.sm },
@@ -285,8 +285,8 @@ const styles = StyleSheet.create({
     paddingTop: 0,
     paddingBottom: 0,
   },
-  handlePrefix: { color: alpha.ivory55 },
-  handleInput: { flex: 1, color: colors.ivory, fontFamily: fonts.sans, fontSize: 15, paddingVertical: spacing.md },
+  handlePrefix: { color: colors.textMuted },
+  handleInput: { flex: 1, color: colors.textPrimary, fontFamily: fonts.sans, fontSize: 15, paddingVertical: spacing.md },
   textArea: { ...sharedStyles.textArea, minHeight: 100 },
   charCount: { marginTop: spacing.xs, textAlign: 'right' },
   saveButton: { marginTop: spacing.xl },

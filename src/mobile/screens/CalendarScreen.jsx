@@ -97,9 +97,9 @@ export default function CalendarScreen({ user, onBack }) {
         ListHeaderComponent={(
           <GlassCard style={styles.formCard}>
             <BodyText variant="label" style={styles.fieldLabel}>Date (YYYY-MM-DD)</BodyText>
-            <TextInput value={dateKey} onChangeText={setDateKey} style={styles.input} placeholderTextColor={alpha.ivory55} />
-            <TextInput value={title} onChangeText={setTitle} placeholder="Event title" style={styles.input} placeholderTextColor={alpha.ivory55} />
-            <TextInput value={notes} onChangeText={setNotes} placeholder="Notes (optional)" multiline style={[styles.input, styles.textArea]} placeholderTextColor={alpha.ivory55} />
+            <TextInput value={dateKey} onChangeText={setDateKey} style={styles.input} placeholderTextColor={colors.textMuted} />
+            <TextInput value={title} onChangeText={setTitle} placeholder="Event title" style={styles.input} placeholderTextColor={colors.textMuted} />
+            <TextInput value={notes} onChangeText={setNotes} placeholder="Notes (optional)" multiline style={[styles.input, styles.textArea]} placeholderTextColor={colors.textMuted} />
             <View style={styles.row}>
               <PrimaryButton
                 label={busy ? 'Saving...' : editingId ? 'Update Event' : 'Add Event'}

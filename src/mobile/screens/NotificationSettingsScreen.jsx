@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: alpha.ivory10,
+    borderTopColor: colors.border,
     gap: spacing.md,
   },
   quietIcon: {

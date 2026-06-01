@@ -153,7 +153,7 @@ export default function AuthScreen({ mode: initialMode, onSignIn, onRegister, on
               <BodyText variant="label" style={styles.fieldLabel}>Display Name</BodyText>
               <View style={styles.inputRow}>
                 <User size={18} color={colors.gold} />
-                <TextInput value={name} onChangeText={setName} placeholder="Your name" style={styles.input} placeholderTextColor={alpha.ivory55} />
+                <TextInput value={name} onChangeText={setName} placeholder="Your name" style={styles.input} placeholderTextColor={colors.textMuted} />
               </View>
             </View>
           )}
@@ -161,7 +161,7 @@ export default function AuthScreen({ mode: initialMode, onSignIn, onRegister, on
             <BodyText variant="label" style={styles.fieldLabel}>Email</BodyText>
             <View style={styles.inputRow}>
               <Mail size={18} color={colors.gold} />
-              <TextInput value={email} onChangeText={setEmail} placeholder="you@example.com" autoCapitalize="none" keyboardType="email-address" style={styles.input} placeholderTextColor={alpha.ivory55} />
+              <TextInput value={email} onChangeText={setEmail} placeholder="you@example.com" autoCapitalize="none" keyboardType="email-address" style={styles.input} placeholderTextColor={colors.textMuted} />
             </View>
           </View>
           {isRegister && (
@@ -169,7 +169,7 @@ export default function AuthScreen({ mode: initialMode, onSignIn, onRegister, on
               <BodyText variant="label" style={styles.fieldLabel}>Date of Birth</BodyText>
               <View style={styles.inputRow}>
                 <User size={18} color={colors.gold} />
-                <TextInput value={dateOfBirth} onChangeText={setDateOfBirth} placeholder="YYYY-MM-DD" autoCapitalize="none" style={styles.input} placeholderTextColor={alpha.ivory55} />
+                <TextInput value={dateOfBirth} onChangeText={setDateOfBirth} placeholder="YYYY-MM-DD" autoCapitalize="none" style={styles.input} placeholderTextColor={colors.textMuted} />
               </View>
               <BodyText variant="caption" style={styles.helper}>You must be 16 or older. Ages 16-17 require guardian approval.</BodyText>
             </View>
@@ -179,7 +179,7 @@ export default function AuthScreen({ mode: initialMode, onSignIn, onRegister, on
               <BodyText variant="label" style={styles.fieldLabel}>Parent / Guardian Email</BodyText>
               <View style={styles.inputRow}>
                 <Mail size={18} color={colors.gold} />
-                <TextInput value={guardianEmail} onChangeText={setGuardianEmail} placeholder="guardian@example.com" autoCapitalize="none" keyboardType="email-address" style={styles.input} placeholderTextColor={alpha.ivory55} />
+                <TextInput value={guardianEmail} onChangeText={setGuardianEmail} placeholder="guardian@example.com" autoCapitalize="none" keyboardType="email-address" style={styles.input} placeholderTextColor={colors.textMuted} />
               </View>
             </View>
           )}
@@ -202,7 +202,7 @@ export default function AuthScreen({ mode: initialMode, onSignIn, onRegister, on
                 <BodyText variant="label" style={styles.fieldLabel}>Name of your church {isSeventhDayAdventist ? '' : '(optional)'}</BodyText>
                 <View style={styles.inputRow}>
                   <MapPin size={18} color={colors.gold} />
-                  <TextInput value={churchName} onChangeText={setChurchName} placeholder="Write out the name of your church" style={styles.input} placeholderTextColor={alpha.ivory55} />
+                  <TextInput value={churchName} onChangeText={setChurchName} placeholder="Write out the name of your church" style={styles.input} placeholderTextColor={colors.textMuted} />
                 </View>
               </View>
             </>
@@ -211,7 +211,7 @@ export default function AuthScreen({ mode: initialMode, onSignIn, onRegister, on
             <BodyText variant="label" style={styles.fieldLabel}>Password</BodyText>
             <View style={styles.inputRow}>
               <Lock size={18} color={colors.gold} />
-              <TextInput value={password} onChangeText={setPassword} placeholder="At least 12 characters" secureTextEntry={!showPassword} style={styles.input} placeholderTextColor={alpha.ivory55} />
+              <TextInput value={password} onChangeText={setPassword} placeholder="At least 12 characters" secureTextEntry={!showPassword} style={styles.input} placeholderTextColor={colors.textMuted} />
               <Pressable onPress={() => setShowPassword(!showPassword)}>
                 {showPassword ? <EyeOff size={18} color={colors.gold} /> : <Eye size={18} color={colors.gold} />}
               </Pressable>
@@ -222,7 +222,7 @@ export default function AuthScreen({ mode: initialMode, onSignIn, onRegister, on
               <BodyText variant="label" style={styles.fieldLabel}>Confirm Password</BodyText>
               <View style={styles.inputRow}>
                 <Lock size={18} color={colors.gold} />
-                <TextInput value={confirmPassword} onChangeText={setConfirmPassword} placeholder="********" secureTextEntry={!showPassword} style={styles.input} placeholderTextColor={alpha.ivory55} />
+                <TextInput value={confirmPassword} onChangeText={setConfirmPassword} placeholder="********" secureTextEntry={!showPassword} style={styles.input} placeholderTextColor={colors.textMuted} />
               </View>
             </View>
           )}
@@ -287,7 +287,7 @@ const styles = StyleSheet.create({
     ...sharedStyles.input,
     marginTop: 0,
   },
-  input: { flex: 1, color: colors.ivory, fontFamily: fonts.sans, fontSize: 15 },
+  input: { flex: 1, color: colors.textPrimary, fontFamily: fonts.sans, fontSize: 15 },
   checkRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm + 2, marginTop: spacing.lg },
   checkbox: { width: 20, height: 20, borderRadius: 4, borderWidth: 1, borderColor: colors.navy, marginTop: 2 },
   checkboxChecked: { backgroundColor: colors.navy },

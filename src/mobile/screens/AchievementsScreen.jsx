@@ -89,7 +89,7 @@ export default function AchievementsScreen({ user, onBack }) {
                     {item.completed ? (
                       <Star size={20} color={colors.gold} fill={colors.gold} />
                     ) : (
-                      <Award size={20} color={alpha.ivory55} />
+                      <Award size={20} color={colors.textMuted} />
                     )}
                   </View>
                   <View style={styles.cardBody}>
@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.pill,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: alpha.ivory12,
+    backgroundColor: alpha.navy10,
   },
   iconWrapCompleted: { backgroundColor: alpha.gold22 },
   cardBody: { flex: 1 },
@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     height: 6,
     borderRadius: 3,
-    backgroundColor: alpha.ivory12,
+    backgroundColor: alpha.navy10,
     overflow: 'hidden',
   },
   progressFill: { height: 6, borderRadius: 3, backgroundColor: colors.violet },

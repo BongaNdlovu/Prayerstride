@@ -79,9 +79,9 @@ const styles = StyleSheet.create({
   notifRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
   dot: { width: 10, height: 10, borderRadius: radii.pill, marginTop: 6 },
   dotUnread: { backgroundColor: colors.gold },
-  dotRead: { backgroundColor: alpha.ivory20 },
+  dotRead: { backgroundColor: alpha.navy16 },
   notifContent: { flex: 1 },
-  notifText: { color: colors.ivory },
+  notifText: { color: colors.textPrimary },
   notifTime: { marginTop: spacing.xs },
   pressed: { opacity: 0.92 },
 });

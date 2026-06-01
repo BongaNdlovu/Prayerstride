@@ -236,7 +236,7 @@ function MembersList({ users, currentUid, onSuspend, onDelete }) {
 
   return (
     <View style={styles.section}>
-      <TextInput value={search} onChangeText={setSearch} placeholder="Search members..." style={styles.searchInput} placeholderTextColor={alpha.ivory55} />
+      <TextInput value={search} onChangeText={setSearch} placeholder="Search members..." style={styles.searchInput} placeholderTextColor={colors.textMuted} />
       <FlatList
         data={filtered}
         keyExtractor={(item) => item.id}
@@ -336,9 +336,9 @@ function AnnouncementsAdminList({ announcements }) {
   return (
     <View style={styles.section}>
       <GlassCard style={styles.formCard}>
-        <TextInput value={title} onChangeText={setTitle} placeholder="Announcement title" style={styles.searchInput} placeholderTextColor={alpha.ivory55} />
-        <TextInput value={body} onChangeText={setBody} placeholder="Announcement body" multiline style={[styles.searchInput, styles.textArea]} placeholderTextColor={alpha.ivory55} />
-        <TextInput value={startsAt} onChangeText={setStartsAt} placeholder="Starts at ISO timestamp" style={styles.searchInput} placeholderTextColor={alpha.ivory55} />
+        <TextInput value={title} onChangeText={setTitle} placeholder="Announcement title" style={styles.searchInput} placeholderTextColor={colors.textMuted} />
+        <TextInput value={body} onChangeText={setBody} placeholder="Announcement body" multiline style={[styles.searchInput, styles.textArea]} placeholderTextColor={colors.textMuted} />
+        <TextInput value={startsAt} onChangeText={setStartsAt} placeholder="Starts at ISO timestamp" style={styles.searchInput} placeholderTextColor={colors.textMuted} />
         <PillTabs tabs={ANNOUNCEMENT_CATEGORIES} active={category} onChange={setCategory} style={styles.categoryTabs} />
         <PrimaryButton label={busy ? 'Saving...' : editingId ? 'Update Announcement' : 'Create Announcement'} onPress={saveAnnouncement} disabled={busy} busy={busy} />
       </GlassCard>

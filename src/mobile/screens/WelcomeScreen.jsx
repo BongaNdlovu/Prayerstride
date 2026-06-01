@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
   headline: { textAlign: 'center', fontSize: 30, marginBottom: spacing.md },
   copy: { textAlign: 'center', marginBottom: spacing.xxl },
   dots: { flexDirection: 'row', justifyContent: 'center', gap: spacing.sm, marginBottom: spacing.xxl },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: alpha.ivory20 },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: alpha.navy16 },
   dotActive: { backgroundColor: colors.gold, width: 24 },
   cta: { marginBottom: spacing.md },
   ghostCta: { marginTop: spacing.xs },
