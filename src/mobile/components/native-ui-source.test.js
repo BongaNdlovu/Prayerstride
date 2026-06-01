@@ -65,4 +65,12 @@ describe('native UI kit', () => {
       expect(source.default).not.toMatch(/tailwind/);
     }
   });
+
+  it('ScreenScaffold constrains content to the smartphone viewport', async () => {
+    const source = await import('../components/ScreenScaffold.jsx?raw');
+    expect(source.default).toMatch(/style=\{styles\.scroll\}/);
+    expect(source.default).toMatch(/horizontal=\{false\}/);
+    expect(source.default).toMatch(/flexGrow:\s*1/);
+    expect(source.default).toMatch(/width:\s*'100%'/);
+  });
 });

@@ -17,6 +17,7 @@ import BodyText from '../components/BodyText';
 import PrimaryButton from '../components/PrimaryButton';
 
 const BIO_MAX = 150;
+const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 
 function normalizeHandle(value) {
   const trimmed = value.trim();
@@ -25,7 +26,17 @@ function normalizeHandle(value) {
   return handle.slice(0, 40);
 }
 
-export default function EditProfileScreen({ user, onDone }) {
+function getUploadErrorMessage(error) {
+  if (error?.code === 'storage/quota-exceeded') {
+    return 'Profile photo uploads are temporarily unavailable because storage capacity has been reached. You can still save your profile details and try the photo again later.';
+  }
+  if (error?.code === 'storage/unauthorized') {
+    return 'This photo could not be uploaded. Choose an image smaller than 2 MB and try again.';
+  }
+  return error?.message || 'This photo could not be uploaded. Please try again.';
+}
+
+export default function EditProfileScreen({ user, onBack, onDone }) {
   const { resetPassword, changePassword } = useAuth();
   const { profile } = useUserProfile(user?.uid, Boolean(user?.uid));
   const [name, setName] = useState(user?.displayName || '');
@@ -62,12 +73,16 @@ export default function EditProfileScreen({ user, onDone }) {
       const asset = result.assets[0];
       const response = await fetch(asset.uri);
       const blob = await response.blob();
+      if (blob.size >= MAX_AVATAR_BYTES) {
+        Alert.alert('Photo too large', 'Choose an image smaller than 2 MB and try again.');
+        return;
+      }
       const fileRef = ref(storage, `avatars/${user.uid}/profile.jpg`);
       await uploadBytes(fileRef, blob, { contentType: blob.type || 'image/jpeg' });
       const downloadUrl = await getDownloadURL(fileRef);
       setPhotoURL(downloadUrl);
     } catch (error) {
-      Alert.alert('Upload failed', error.message);
+      Alert.alert('Upload failed', getUploadErrorMessage(error));
     } finally {
       setBusy(false);
     }
@@ -128,10 +143,10 @@ export default function EditProfileScreen({ user, onDone }) {
 
   return (
     <ScreenScaffold pageContent scroll>
-      <AppHeader centered showLogo title="Edit Profile" subtitle="Photo, identity, and bio." />
+      <AppHeader centered showLogo title="Edit Profile" subtitle="Photo, identity, and bio." onBack={onBack} />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <GlassCard style={styles.profileCard}>
-          <Pressable onPress={pickPhoto} style={styles.avatarButton} accessibilityRole="button" accessibilityLabel="Change profile photo">
+          <Pressable disabled={busy} onPress={pickPhoto} style={styles.avatarButton} accessibilityRole="button" accessibilityLabel="Change profile photo">
             {photoURL ? (
               <Image source={{ uri: photoURL }} style={styles.avatarImage} />
             ) : (

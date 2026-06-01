@@ -9,13 +9,14 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { Eye, EyeOff, Lock, Mail, MapPin, User } from 'lucide-react-native';
+import { Check, Eye, EyeOff, Lock, Mail, MapPin, User } from 'lucide-react-native';
 import { alpha, colors, fonts, sharedStyles, spacing } from '../theme';
 import { PRIVACY_URL, TERMS_URL } from '../legal';
 import {
   ageBandFromAge,
   calculateAge,
   parseDateOfBirth,
+  isValidEmail,
 } from '../age';
 import ScreenScaffold from '../components/ScreenScaffold';
 import AppHeader from '../components/AppHeader';
@@ -56,6 +57,10 @@ export default function AuthScreen({ mode: initialMode, onSignIn, onRegister, on
   };
 
   const submit = async () => {
+    if (!isValidEmail(email)) {
+      Alert.alert('Valid email required', 'Enter a valid email address.');
+      return;
+    }
     if (mode === 'register' && password.length < 12) {
       Alert.alert('Password too short', 'Use at least 12 characters.');
       return;
@@ -161,8 +166,15 @@ export default function AuthScreen({ mode: initialMode, onSignIn, onRegister, on
           )}
           {isRegister && (
             <>
-              <Pressable onPress={() => setIsSeventhDayAdventist((checked) => !checked)} style={styles.checkRow}>
-                <View style={[styles.checkbox, isSeventhDayAdventist && styles.checkboxChecked]} />
+              <Pressable
+                onPress={() => setIsSeventhDayAdventist((checked) => !checked)}
+                style={styles.checkRow}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: isSeventhDayAdventist }}
+              >
+                <View style={[styles.checkbox, isSeventhDayAdventist && styles.checkboxChecked]}>
+                  {isSeventhDayAdventist ? <Check size={14} color={colors.ink} strokeWidth={3} /> : null}
+                </View>
                 <BodyText variant="small" style={styles.checkText}>
                   Are you a Seventh-day Adventist?
                 </BodyText>
@@ -198,8 +210,15 @@ export default function AuthScreen({ mode: initialMode, onSignIn, onRegister, on
             </View>
           )}
           {isRegister && (
-            <Pressable onPress={() => setAgreed(!agreed)} style={styles.checkRow}>
-              <View style={[styles.checkbox, agreed && styles.checkboxChecked]} />
+            <Pressable
+              onPress={() => setAgreed((checked) => !checked)}
+              style={styles.checkRow}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: agreed }}
+            >
+              <View style={[styles.checkbox, agreed && styles.checkboxChecked]}>
+                {agreed ? <Check size={14} color={colors.ink} strokeWidth={3} /> : null}
+              </View>
               <BodyText variant="small" style={styles.checkText}>
                 I agree to the{' '}
                 <Pressable onPress={() => openLegalUrl(TERMS_URL)}>

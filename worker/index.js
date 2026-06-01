@@ -699,7 +699,13 @@ async function deleteTestimony(env, user, testimonyId) {
 }
 
 async function listBlocks(env, user) {
-  const docs = await listDocuments(env, docName(env, 'blocks'));
+  const docs = await runCollectionGroupQuery(env, 'blocks', [{
+    fieldFilter: {
+      field: { fieldPath: 'blockerUid' },
+      op: 'EQUAL',
+      value: { stringValue: user.uid },
+    },
+  }], [], [], false);
   const blockedUids = docs
     .map((document) => fromFirestoreFields(document.fields))
     .filter((item) => item.blockerUid === user.uid)
@@ -931,7 +937,7 @@ async function adminDeleteContent(env, user, body) {
     return json({ error: 'targetType must be prayer or testimony' }, 400);
   }
   const collectionMap = { prayer: 'prayers', testimony: 'testimonies' };
-  const collection = collectionMap[body.targetType] || body.targetType + 's';
+  const collection = collectionMap[body.targetType];
   const targetDoc = await getDocument(env, docName(env, collection, body.targetId));
   if (!targetDoc.exists) return json({ error: 'Content not found' }, 404);
 
@@ -956,6 +962,7 @@ async function adminSuspendUser(env, user, body) {
       update: {
         name: targetUser.name,
         fields: toFirestoreFields({
+          ...targetData,
           suspended: true,
           suspendedReason: reason,
           suspendedAt: new Date().toISOString(),
@@ -1313,6 +1320,7 @@ function notificationWrite(env, recipientUid, notification) {
         createdAt: new Date().toISOString(),
       }),
     },
+    currentDocument: { exists: false },
   };
 }
 
@@ -1493,10 +1501,10 @@ async function getNotificationSettings(env, uid) {
   return settings.exists ? fromFirestoreFields(settings.fields) : {};
 }
 
-async function runCollectionGroupQuery(env, collectionId, filters = [], orderByFields = [], selectFields = []) {
+async function runCollectionGroupQuery(env, collectionId, filters = [], orderByFields = [], selectFields = [], allDescendants = true) {
   const accessToken = await getGoogleAccessToken(env);
   const structuredQuery = {
-    from: [{ collectionId, allDescendants: true }],
+    from: [{ collectionId, allDescendants }],
   };
 
   if (selectFields.length > 0) {
@@ -1610,7 +1618,11 @@ async function enforceCooldown(env, uid, action, seconds) {
       name,
       fields: toFirestoreFields({ uid, action, updatedAt: now.toISOString() }),
     },
-  }], { precondition });
+  }], { precondition }).then((result) => {
+    if (result.preconditionFailed) {
+      throw Object.assign(new Error('Please wait a moment before trying again.'), { status: 429 });
+    }
+  });
 }
 
 async function enforceGlobalRateLimit(env, request, requestId) {
@@ -1646,7 +1658,10 @@ async function enforceGlobalRateLimit(env, request, requestId) {
   }], { precondition });
   if (result.preconditionFailed) {
     log(env, 'warn', { requestId, clientIp }, 'rate-limit-precondition-failed');
-    return;
+    throw Object.assign(new Error('Too many concurrent requests. Please retry shortly.'), {
+      status: 429,
+      publicMessage: 'Rate limit exceeded',
+    });
   }
 }
 
@@ -1698,16 +1713,20 @@ function docName(env, ...parts) {
 }
 
 function toFirestoreFields(value) {
-  return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, toFirestoreValue(item)]));
+  return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, toFirestoreValue(item, key)]));
 }
 
-function toFirestoreValue(value) {
+function toFirestoreValue(value, fieldPath = '') {
   if (value === null || value === undefined) return { nullValue: null };
   if (typeof value === 'boolean') return { booleanValue: value };
   if (typeof value === 'number') return Number.isInteger(value) ? { integerValue: String(value) } : { doubleValue: value };
-  if (Array.isArray(value)) return { arrayValue: { values: value.map(toFirestoreValue) } };
+  if (Array.isArray(value)) return { arrayValue: { values: value.map((item) => toFirestoreValue(item)) } };
   if (typeof value === 'object') return { mapValue: { fields: toFirestoreFields(value) } };
-  if (String(value).match(/^\d{4}-\d{2}-\d{2}T/)) return { timestampValue: value };
+  if (fieldPath.endsWith('At')
+    && typeof value === 'string'
+    && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/.test(value)) {
+    return { timestampValue: value };
+  }
   return { stringValue: String(value) };
 }
 

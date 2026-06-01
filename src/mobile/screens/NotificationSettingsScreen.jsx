@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { ChevronRight, Moon } from 'lucide-react-native';
 import { alpha, colors, spacing } from '../theme';
 import { useNotificationSettings, updateNotificationSettings } from '../useNotificationSettings';
@@ -10,9 +10,10 @@ import GlassCard from '../components/GlassCard';
 import ToggleRow from '../components/ToggleRow';
 import Heading from '../components/Heading';
 import BodyText from '../components/BodyText';
+import AsyncState from '../components/AsyncState';
 
 export default function NotificationSettingsScreen({ user, onBack }) {
-  const { settings, loading } = useNotificationSettings(user?.uid, true);
+  const { settings, loading, error, retry } = useNotificationSettings(user?.uid, true);
   const [prayerActivity, setPrayerActivity] = useState(true);
   const [testimonyReactions, setTestimonyReactions] = useState(true);
   const [announcements, setAnnouncements] = useState(true);
@@ -34,13 +35,14 @@ export default function NotificationSettingsScreen({ user, onBack }) {
         registerForPushNotifications().catch(() => {});
       }
     } catch (error) {
-      // revert on error handled by snapshot listener
+      Alert.alert('Could not save preference', error.message);
     }
   };
 
   return (
     <ScreenScaffold pageContent>
       <AppHeader title="Notifications" subtitle="Choose what you want to hear about." onBack={onBack} />
+      <AsyncState loading={loading} error={error} onRetry={retry}>
       <Heading level="eyebrow" style={styles.sectionLabel}>Activity</Heading>
       <GlassCard style={styles.card}>
         <ToggleRow
@@ -84,7 +86,7 @@ export default function NotificationSettingsScreen({ user, onBack }) {
           <ChevronRight size={18} color={alpha.ivory55} />
         </Pressable>
       </GlassCard>
-      {loading ? <BodyText variant="caption" style={styles.loadingNote}>Loading preferences…</BodyText> : null}
+      </AsyncState>
     </ScreenScaffold>
   );
 }
@@ -110,5 +112,4 @@ const styles = StyleSheet.create({
     backgroundColor: alpha.gold18,
   },
   quietText: { flex: 1 },
-  loadingNote: { textAlign: 'center', marginTop: spacing.md },
 });

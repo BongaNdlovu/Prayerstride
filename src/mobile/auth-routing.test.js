@@ -22,6 +22,25 @@ function getRouteForSuspendedUser(currentScreen) {
 }
 
 describe('auth routing', () => {
+  it('uses AsyncStorage persistence so signed-in users survive app restarts', async () => {
+    const source = await import('./firebase.js?raw');
+    expect(source.default).toMatch(/getReactNativePersistence\(AsyncStorage\)/);
+    expect(source.default).not.toMatch(/inMemoryPersistence/);
+  });
+
+  it('onboarding continues to account creation while welcome sign-in stays explicit', async () => {
+    const source = await import('../../app/index.jsx?raw');
+    expect(source.default).toMatch(/StayConnectedScreen onContinue=\{\(\) => goFn\('createAccount'\)\}/);
+    expect(source.default).toMatch(/WelcomeScreen onContinue=\{\(\) => goFn\('reminderSetup'\)\} onSignIn=\{\(\) => goFn\('signIn'\)\}/);
+  });
+
+  it('registration requires an explicit accessible terms checkbox', async () => {
+    const source = await import('./screens/AuthScreen.jsx?raw');
+    expect(source.default).toMatch(/accessibilityRole="checkbox"/);
+    expect(source.default).toMatch(/accessibilityState=\{\{ checked: agreed \}\}/);
+    expect(source.default).toMatch(/Terms required/);
+  });
+
   it('signed-out user on authenticated route goes to splash', () => {
     expect(getRouteForSignedOutUser('home')).toBe('splash');
     expect(getRouteForSignedOutUser('profile')).toBe('splash');

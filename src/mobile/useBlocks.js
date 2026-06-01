@@ -4,19 +4,23 @@ import { blockUser, listBlocks, unblockUser } from './api';
 export function useBlocks(enabled = true) {
   const [blockedUids, setBlockedUids] = useState([]);
   const [loading, setLoading] = useState(Boolean(enabled));
+  const [error, setError] = useState(null);
 
   const refresh = useCallback(async () => {
     if (!enabled) {
       setBlockedUids([]);
       setLoading(false);
+      setError(null);
       return;
     }
     setLoading(true);
+    setError(null);
     try {
       const result = await listBlocks();
       setBlockedUids(result.blockedUids || []);
-    } catch {
+    } catch (err) {
       setBlockedUids([]);
+      setError(err);
     } finally {
       setLoading(false);
     }
@@ -29,6 +33,7 @@ export function useBlocks(enabled = true) {
   return {
     blockedUids,
     loading,
+    error,
     refresh,
     isBlocked: (uid) => blockedUids.includes(uid),
     blockUser: async (uid) => {

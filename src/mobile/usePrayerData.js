@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   collection,
   onSnapshot,
@@ -26,6 +26,7 @@ function mapPrayer(docSnap) {
     prayedCount: data.prayedCount || 0,
     status: data.status || 'active',
     privacy: data.privacy || 'community',
+    category: data.category || '',
     prayerLimit: data.prayerLimit || 'daily',
     urgent: Boolean(data.urgent),
     allowShare: data.allowShare !== false,
@@ -50,13 +51,19 @@ function mapTestimony(docSnap) {
 export function usePrayers(enabled, options = {}) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(Boolean(enabled));
+  const [error, setError] = useState(null);
+  const [retryVersion, setRetryVersion] = useState(0);
+  const retry = useCallback(() => setRetryVersion((version) => version + 1), []);
 
   useEffect(() => {
     if (!enabled) {
       setItems([]);
       setLoading(false);
+      setError(null);
       return undefined;
     }
+    setLoading(true);
+    setError(null);
 
     const currentUid = options.userId || auth.currentUser?.uid;
     const includeAll = Boolean(options.includeAll);
@@ -79,6 +86,7 @@ export function usePrayers(enabled, options = {}) {
         const bTime = b.createdAt?.toMillis?.() ?? b.createdAt?.seconds ?? 0;
         return bTime - aTime;
       }));
+      setError(null);
       setLoading(false);
     };
 
@@ -94,37 +102,50 @@ export function usePrayers(enabled, options = {}) {
         });
         publish();
       },
-      () => setLoading(false),
+      (err) => {
+        setError(err);
+        setLoading(false);
+      },
     ));
 
     return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
-  }, [enabled, options.includeAll, options.userId]);
+  }, [enabled, options.includeAll, options.userId, retryVersion]);
 
-  return { prayers: items, loading };
+  return { prayers: items, loading, error, retry };
 }
 
 export function useTestimonies(enabled) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(Boolean(enabled));
+  const [error, setError] = useState(null);
+  const [retryVersion, setRetryVersion] = useState(0);
+  const retry = useCallback(() => setRetryVersion((version) => version + 1), []);
 
   useEffect(() => {
     if (!enabled) {
       setItems([]);
       setLoading(false);
+      setError(null);
       return undefined;
     }
+    setLoading(true);
+    setError(null);
 
     return onSnapshot(
       query(collection(db, 'testimonies'), orderBy('createdAt', 'desc')),
       (snapshot) => {
         setItems(snapshot.docs.map(mapTestimony));
+        setError(null);
         setLoading(false);
       },
-      () => setLoading(false),
+      (err) => {
+        setError(err);
+        setLoading(false);
+      },
     );
-  }, [enabled]);
+  }, [enabled, retryVersion]);
 
-  return { testimonies: items, loading };
+  return { testimonies: items, loading, error, retry };
 }
 
 export async function addPrayer(data, user) {

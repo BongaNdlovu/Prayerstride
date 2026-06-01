@@ -22,8 +22,8 @@ const ANNOUNCEMENT_CATEGORIES = ['events', 'prayer', 'updates'];
 
 export default function AdminDashboardScreen({ user, go, onBack }) {
   const { isAdmin } = useIsAdmin(user);
-  const { reports } = useReports(true);
-  const { users } = useUsers(true);
+  const { reports } = useReports(user, true);
+  const { users } = useUsers(user, true);
   const { prayers } = usePrayers(isAdmin, { includeAll: isAdmin });
   const { testimonies } = useTestimonies(isAdmin);
   const { announcements } = useAnnouncements(isAdmin, { includeArchived: true });

@@ -42,6 +42,12 @@ describe('admin flow', () => {
     expect(source.default).toMatch(/denied/);
   });
 
+  it('Admin dashboard passes the signed-in user to admin data hooks', async () => {
+    const source = await import('./screens/AdminDashboardScreen.jsx?raw');
+    expect(source.default).toMatch(/useReports\(user,\s*true\)/);
+    expect(source.default).toMatch(/useUsers\(user,\s*true\)/);
+  });
+
   it('Analytics panel guards stale requests and limits chart labels', async () => {
     const source = await import('./screens/AdminDashboardScreen.jsx?raw');
     expect(source.default).toMatch(/requestIdRef/);

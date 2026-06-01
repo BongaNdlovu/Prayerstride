@@ -3,6 +3,7 @@ import {
   ageBandFromAge,
   calculateAge,
   communityAccessForAgeBand,
+  isValidEmail,
   parseDateOfBirth,
 } from '../../mobile/age.js';
 
@@ -27,5 +28,10 @@ describe('age registration helpers', () => {
     const today = new Date('2026-05-31T12:00:00Z');
     expect(calculateAge('2010-05-31', today)).toBe(16);
     expect(calculateAge('2010-06-01', today)).toBe(15);
+  });
+
+  it('performs basic email shape validation before Firebase validation', () => {
+    expect(isValidEmail('person@example.com')).toBe(true);
+    expect(isValidEmail('not-an-email')).toBe(false);
   });
 });

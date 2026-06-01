@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { collection, doc, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { db } from './firebase';
 import { useIsAdmin } from './useIsAdmin';
 
-export function useUsers(enabled = true) {
-  const { isAdmin } = useIsAdmin();
+export function useUsers(user, enabled = true) {
+  const { isAdmin } = useIsAdmin(user);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(isAdmin && enabled);
   const [error, setError] = useState(null);
@@ -38,22 +38,30 @@ export function useUsers(enabled = true) {
 export function useUserProfile(uid, enabled = true) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(Boolean(uid && enabled));
+  const [error, setError] = useState(null);
+  const [retryVersion, setRetryVersion] = useState(0);
+  const retry = useCallback(() => setRetryVersion((version) => version + 1), []);
 
   useEffect(() => {
     if (!uid || !enabled) {
       setProfile(null);
       setLoading(false);
+      setError(null);
       return undefined;
     }
 
     return onSnapshot(doc(db, 'users', uid),
       (snapshot) => {
         setProfile(snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null);
+        setError(null);
         setLoading(false);
       },
-      () => setLoading(false),
+      (err) => {
+        setError(err);
+        setLoading(false);
+      },
     );
-  }, [uid, enabled]);
+  }, [uid, enabled, retryVersion]);
 
-  return { profile, loading };
+  return { profile, loading, error, retry };
 }

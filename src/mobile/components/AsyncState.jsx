@@ -2,8 +2,9 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { colors, spacing } from '../theme';
 import BodyText from './BodyText';
 import EmptyState from './EmptyState';
+import PrimaryButton from './PrimaryButton';
 
-export default function AsyncState({ loading, error, empty, emptyLabel, children }) {
+export default function AsyncState({ loading, error, empty, emptyLabel, onRetry, children }) {
   if (loading) {
     return (
       <View style={styles.center}>
@@ -17,6 +18,7 @@ export default function AsyncState({ loading, error, empty, emptyLabel, children
     return (
       <View style={styles.center}>
         <BodyText variant="body" style={styles.error}>{error.message || String(error)}</BodyText>
+        {onRetry ? <PrimaryButton label="Try again" variant="secondary" onPress={onRetry} /> : null}
       </View>
     );
   }

@@ -18,6 +18,8 @@ describe('profile settings', () => {
     expect(source.default).toMatch(/changePassword/);
     expect(source.default).toMatch(/resetPassword/);
     expect(source.default).toMatch(/handle/);
+    expect(source.default).toMatch(/storage\/quota-exceeded/);
+    expect(source.default).toMatch(/onBack=\{onBack\}/);
   });
 
   it('SettingsScreen links to about and copyright routes', async () => {

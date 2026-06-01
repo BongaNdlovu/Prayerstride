@@ -92,7 +92,7 @@ export default function MobileApp() {
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
       if (loading || nav.screen === 'splash') return false;
-      setNav((prev) => back(prev, user ? 'home' : 'signIn'));
+      setNav((prev) => back(prev, user ? 'home' : 'welcome'));
       return true;
     });
 
@@ -106,6 +106,7 @@ export default function MobileApp() {
   const isMainTab = MAIN_TAB_ROUTES.includes(screen);
 
   const handleGo = (s, p) => setNav((prev) => go(prev, s, p));
+  const handleTabChange = (s, p) => setNav(reset(s, p));
   const handleBack = (fallback) => setNav((prev) => back(prev, fallback || 'home'));
 
   const content = renderScreen(screen, params, user, suspended, suspendedReason, signIn, register, signOut, resetPassword, deleteAccount, handleGo, handleBack);
@@ -113,7 +114,7 @@ export default function MobileApp() {
   return (
     <SafeAreaView style={styles.shell}>
       <View style={styles.appBody}>{content}</View>
-      {isMainTab && <BottomTabs active={screen} onChange={handleGo} />}
+      {isMainTab && <BottomTabs active={screen} onChange={handleTabChange} />}
     </SafeAreaView>
   );
 }
@@ -124,13 +125,13 @@ function renderScreen(screen, params, user, suspended, suspendedReason, signIn, 
       return <SplashScreen onReady={() => goFn('welcome')} />;
     }
     if (screen === 'welcome') {
-      return <WelcomeScreen onContinue={() => goFn('reminderSetup')} onCreateAccount={() => goFn('signIn')} />;
+      return <WelcomeScreen onContinue={() => goFn('reminderSetup')} onSignIn={() => goFn('signIn')} />;
     }
     if (screen === 'reminderSetup') {
       return <ReminderSetupScreen onContinue={() => goFn('stayConnected')} onSkip={() => goFn('stayConnected')} />;
     }
     if (screen === 'stayConnected') {
-      return <StayConnectedScreen onContinue={() => goFn('signIn')} />;
+      return <StayConnectedScreen onContinue={() => goFn('createAccount')} />;
     }
     if (screen === 'resetPassword') {
       return <ResetPasswordScreen onResetPassword={resetPassword} onBack={() => backFn('signIn')} />;
@@ -163,7 +164,7 @@ function renderScreen(screen, params, user, suspended, suspendedReason, signIn, 
     case 'prayerStopwatch': return <PrayerStopwatchScreen prayerId={params.prayerId} title={params.title} user={user} onBack={() => backFn('myStats')} onDone={() => backFn('myStats')} />;
     case 'answeredPrayers': return <AnsweredPrayersScreen user={user} onOpenPrayer={(p) => goFn('detail', { prayer: p })} onBack={() => backFn('profile')} />;
     case 'settings': return <SettingsScreen go={goFn} deleteAccount={deleteAccount} onBack={() => backFn('profile')} />;
-    case 'editProfile': return <EditProfileScreen user={user} onDone={() => backFn('profile')} />;
+    case 'editProfile': return <EditProfileScreen user={user} onBack={() => backFn('profile')} onDone={() => backFn('profile')} />;
     case 'notifications': return <NotificationsScreen user={user} onBack={() => backFn('profile')} />;
     case 'notificationSettings': return <NotificationSettingsScreen user={user} onBack={() => backFn('settings')} />;
     case 'privacyPolicy': return <PrivacyPolicyScreen onBack={() => backFn('settings')} />;

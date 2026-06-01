@@ -1,6 +1,7 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
   createUserWithEmailAndPassword,
+  deleteUser,
   EmailAuthProvider,
   onAuthStateChanged,
   reauthenticateWithCredential,
@@ -22,12 +23,15 @@ const MIN_PASSWORD_LENGTH = 12;
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const bootstrappedUidRef = useRef('');
 
   useEffect(() => onAuthStateChanged(auth,
     (nextUser) => {
       setUser(nextUser);
       setLoading(false);
-      if (nextUser) {
+      if (!nextUser) bootstrappedUidRef.current = '';
+      if (nextUser && bootstrappedUidRef.current !== nextUser.uid) {
+        bootstrappedUidRef.current = nextUser.uid;
         bootstrapOwner().catch(() => {});
       }
     },
@@ -48,29 +52,38 @@ export function AuthProvider({ children }) {
         throw new Error(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
       }
       const credential = await createUserWithEmailAndPassword(auth, email, password);
-      const displayName = name;
-      await updateProfile(credential.user, { displayName });
-      await setDoc(doc(db, 'users', credential.user.uid), {
-        uid: credential.user.uid,
-        displayName,
-        email,
-        createdAt: serverTimestamp(),
-        role: 'user',
-        owner: false,
-        photoURL: null,
-        registrationState: 'pending_completion',
-      });
-      const registration = await completeRegistration({
-        dateOfBirth: profile.dateOfBirth,
-        guardianEmail: profile.guardianEmail,
-        isSeventhDayAdventist: profile.isSeventhDayAdventist === true,
-        churchName: profile.churchName,
-        termsAccepted: profile.termsAccepted === true,
-        termsVersion: TERMS_VERSION,
-        privacyVersion: PRIVACY_VERSION,
-      });
-      await sendEmailVerification(credential.user);
-      return { credential, registration };
+      try {
+        const displayName = name;
+        await updateProfile(credential.user, { displayName });
+        await setDoc(doc(db, 'users', credential.user.uid), {
+          uid: credential.user.uid,
+          displayName,
+          email,
+          createdAt: serverTimestamp(),
+          role: 'user',
+          owner: false,
+          photoURL: null,
+          registrationState: 'pending_completion',
+        });
+        const registration = await completeRegistration({
+          dateOfBirth: profile.dateOfBirth,
+          guardianEmail: profile.guardianEmail,
+          isSeventhDayAdventist: profile.isSeventhDayAdventist === true,
+          churchName: profile.churchName,
+          termsAccepted: profile.termsAccepted === true,
+          termsVersion: TERMS_VERSION,
+          privacyVersion: PRIVACY_VERSION,
+        });
+        await sendEmailVerification(credential.user);
+        return { credential, registration };
+      } catch (error) {
+        try {
+          await deleteOwnAccount();
+        } catch {
+          await deleteUser(credential.user).catch(() => {});
+        }
+        throw error;
+      }
     },
     async signOut() {
       return firebaseSignOut(auth);

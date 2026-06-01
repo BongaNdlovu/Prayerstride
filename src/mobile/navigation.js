@@ -1,4 +1,5 @@
 export const initialRoute = 'splash';
+const MAX_HISTORY_LENGTH = 40;
 
 export function createNavState() {
   return { screen: initialRoute, params: {}, history: [] };
@@ -12,7 +13,7 @@ export function go(state, screen, params = {}) {
   return {
     screen,
     params,
-    history: [...state.history, { screen: state.screen, params: state.params }],
+    history: [...(state.history || []), { screen: state.screen, params: state.params }].slice(-MAX_HISTORY_LENGTH),
   };
 }
 
@@ -21,7 +22,8 @@ export function reset(screen = initialRoute, params = {}) {
 }
 
 export function back(state, fallback = 'home') {
-  const previous = state.history.length > 0 ? state.history[state.history.length - 1] : null;
+  const history = state.history || [];
+  const previous = history.length > 0 ? history[history.length - 1] : null;
   if (!previous) {
     if (state.screen === fallback) return state;
     return {
@@ -34,6 +36,6 @@ export function back(state, fallback = 'home') {
   return {
     screen: previous.screen,
     params: previous.params || {},
-    history: state.history.slice(0, -1),
+    history: history.slice(0, -1),
   };
 }

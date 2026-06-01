@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   addDoc,
   collection,
@@ -14,11 +14,14 @@ export function usePrayerSessions(userId, enabled = true) {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(Boolean(userId && enabled));
   const [error, setError] = useState(null);
+  const [retryVersion, setRetryVersion] = useState(0);
+  const retry = useCallback(() => setRetryVersion((version) => version + 1), []);
 
   useEffect(() => {
     if (!userId || !enabled) {
       setSessions([]);
       setLoading(false);
+      setError(null);
       return undefined;
     }
 
@@ -33,6 +36,7 @@ export function usePrayerSessions(userId, enabled = true) {
       ),
       (snapshot) => {
         setSessions(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })));
+        setError(null);
         setLoading(false);
       },
       (err) => {
@@ -40,14 +44,14 @@ export function usePrayerSessions(userId, enabled = true) {
         setLoading(false);
       },
     );
-  }, [userId, enabled]);
+  }, [userId, enabled, retryVersion]);
 
   const totalSeconds = useMemo(
     () => sessions.reduce((sum, session) => sum + Number(session.seconds || 0), 0),
     [sessions],
   );
 
-  return { sessions, totalSeconds, loading, error };
+  return { sessions, totalSeconds, loading, error, retry };
 }
 
 export async function addPrayerSession({ prayerId, title, seconds }, user) {

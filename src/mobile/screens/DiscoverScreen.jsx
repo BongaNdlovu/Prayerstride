@@ -24,14 +24,19 @@ const CATEGORY_KEYWORDS = {
 function matchesCategory(prayer, category) {
   if (category === 'All') return true;
   const stored = prayer.category?.toLowerCase();
-  if (stored && stored.includes(category.toLowerCase().slice(0, 4))) return true;
+  if (stored === category.toLowerCase()) return true;
   const text = `${prayer.title} ${prayer.body}`.toLowerCase();
   return (CATEGORY_KEYWORDS[category] || []).some((keyword) => text.includes(keyword));
 }
 
 export default function DiscoverScreen({ onOpenPrayer }) {
-  const { prayers, loading } = usePrayers(true);
-  const { blockedUids } = useBlocks(true);
+  const { prayers, loading, error, retry } = usePrayers(true);
+  const { blockedUids, error: blocksError, refresh: retryBlocks } = useBlocks(true);
+  const listError = error || blocksError;
+  const retryAll = () => {
+    retry();
+    retryBlocks();
+  };
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('All');
   const [showFilters, setShowFilters] = useState(false);
@@ -97,7 +102,9 @@ export default function DiscoverScreen({ onOpenPrayer }) {
         ListEmptyComponent={(
           <AsyncState
             loading={loading}
-            empty={!loading}
+            error={listError}
+            onRetry={retryAll}
+            empty={!loading && !listError}
             emptyLabel="No matching prayers."
           />
         )}

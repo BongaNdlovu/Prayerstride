@@ -11,7 +11,7 @@ import AsyncState from '../components/AsyncState';
 const TABS = ['All', 'Active', 'Answered'];
 
 export default function MyPrayersScreen({ user, onOpenPrayer, onBack }) {
-  const { prayers, loading } = usePrayers(true, { userId: user?.uid });
+  const { prayers, loading, error, retry } = usePrayers(true, { userId: user?.uid });
   const [tab, setTab] = useState('All');
 
   const mine = useMemo(
@@ -42,7 +42,9 @@ export default function MyPrayersScreen({ user, onOpenPrayer, onBack }) {
         ListEmptyComponent={(
           <AsyncState
             loading={loading}
-            empty={!loading}
+            error={error}
+            onRetry={retry}
+            empty={!loading && !error}
             emptyLabel={tab === 'Answered' ? 'No answered prayers yet.' : tab === 'Active' ? 'No active prayers.' : 'No prayers yet.'}
           />
         )}

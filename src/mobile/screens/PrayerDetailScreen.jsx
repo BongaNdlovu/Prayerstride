@@ -12,6 +12,7 @@ import { prayForRequest } from '../api';
 import { markAnswered } from '../usePrayerData';
 import { prayedButtonLabel, prayedStorageKey } from '../prayerLimit';
 import { submitReport } from '../useReports';
+import { formatFirestoreDate } from '../sessionStats';
 import ScreenScaffold from '../components/ScreenScaffold';
 import AppHeader from '../components/AppHeader';
 import GlassCard from '../components/GlassCard';
@@ -194,7 +195,7 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
             </View>
             {prayer.createdAt ? (
               <BodyText variant="caption">
-                Posted {new Date(prayer.createdAt.seconds * 1000).toLocaleDateString()}
+                Posted {formatFirestoreDate(prayer.createdAt, 'date unavailable')}
               </BodyText>
             ) : null}
           </View>

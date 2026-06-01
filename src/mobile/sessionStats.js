@@ -10,6 +10,11 @@ export function firestoreDate(value) {
   return null;
 }
 
+export function formatFirestoreDate(value, fallback = '') {
+  const date = firestoreDate(value);
+  return date ? date.toLocaleDateString() : fallback;
+}
+
 export function dateKey(date) {
   return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
 }

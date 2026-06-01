@@ -100,6 +100,15 @@ describe('data contracts', () => {
     expect(source.default).toMatch(/termsAccepted/);
     expect(source.default).toMatch(/termsVersion/);
     expect(source.default).toMatch(/privacyVersion/);
+    expect(source.default).toMatch(/deleteOwnAccount/);
+    expect(source.default).toMatch(/deleteUser/);
+  });
+
+  it('notification helpers batch mark-all updates instead of returning a stub', async () => {
+    const source = await import('./useNotifications.js?raw');
+    expect(source.default).toMatch(/writeBatch/);
+    expect(source.default).toMatch(/where\('read', '==', false\)/);
+    expect(source.default).not.toMatch(/markAllNotificationsRead[\s\S]*return true/);
   });
 
   it('useIsAdmin has separate admin and suspended hooks', async () => {

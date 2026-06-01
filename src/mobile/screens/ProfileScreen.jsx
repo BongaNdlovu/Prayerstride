@@ -32,6 +32,7 @@ import Heading from '../components/Heading';
 import BodyText from '../components/BodyText';
 import StatCard from '../components/StatCard';
 import MotionPressable from '../components/MotionPressable';
+import AsyncState from '../components/AsyncState';
 
 const PROFILE_ROUTES = {
   myStats: 'myStats',
@@ -60,8 +61,8 @@ const MORE_LINKS = [
 ];
 
 export default function ProfileScreen({ user, signOut, go }) {
-  const { profile } = useUserProfile(user?.uid, Boolean(user?.uid));
-  const { sessions } = usePrayerSessions(user?.uid, Boolean(user?.uid));
+  const { profile, loading: profileLoading, error: profileError, retry: retryProfile } = useUserProfile(user?.uid, Boolean(user?.uid));
+  const { sessions, loading: sessionsLoading, error: sessionsError, retry: retrySessions } = usePrayerSessions(user?.uid, Boolean(user?.uid));
   const { isAdmin } = useIsAdmin(user);
 
   const displayName = profile?.displayName || user.displayName || 'PrayerStride User';
@@ -72,6 +73,10 @@ export default function ProfileScreen({ user, signOut, go }) {
   const streak = useMemo(() => calculateStreak(sessions), [sessions]);
   const todayTime = useMemo(() => formatPrayerTime(todaySeconds(sessions)), [sessions]);
   const sessionCount = sessions.length;
+  const retry = () => {
+    retryProfile();
+    retrySessions();
+  };
 
   return (
     <ScreenScaffold pageContent>
@@ -84,6 +89,7 @@ export default function ProfileScreen({ user, signOut, go }) {
         )}
       />
 
+      <AsyncState loading={profileLoading || sessionsLoading} error={profileError || sessionsError} onRetry={retry}>
       <GlassCard style={styles.profileCard}>
         <View style={styles.avatarWrap}>
           {photoURL ? (
@@ -165,6 +171,7 @@ export default function ProfileScreen({ user, signOut, go }) {
       <MotionPressable onPress={signOut} style={styles.signOutButton}>
         <BodyText variant="label">Sign Out</BodyText>
       </MotionPressable>
+      </AsyncState>
     </ScreenScaffold>
   );
 }

@@ -17,6 +17,21 @@ describe('navigation', () => {
     expect(next.history).toEqual([{ screen: 'splash', params: {} }]);
   });
 
+  it('go updates params without duplicating the current screen', () => {
+    const state = { screen: 'home', params: {}, history: [] };
+    const next = go(state, 'home', { refreshed: true });
+    expect(next).toEqual({ screen: 'home', params: { refreshed: true }, history: [] });
+  });
+
+  it('go bounds navigation history', () => {
+    let state = createNavState();
+    for (let index = 0; index < 50; index += 1) {
+      state = go(state, `screen-${index}`);
+    }
+    expect(state.history).toHaveLength(40);
+    expect(state.history[0].screen).toBe('screen-9');
+  });
+
   it('back returns to the previous screen', () => {
     const state = { screen: 'home', params: {}, history: [{ screen: 'splash', params: {} }] };
     const prev = back(state, 'welcome');

@@ -52,8 +52,10 @@ export default function ScreenScaffold({
   return (
     <LinearGradient colors={['#0A1628', '#040810']} style={containerStyle}>
       <ScrollView
+        style={styles.scroll}
         contentContainerStyle={scrollContentStyle}
         showsVerticalScrollIndicator={false}
+        horizontal={false}
         keyboardShouldPersistTaps="handled"
       >
         {inner}
@@ -64,8 +66,9 @@ export default function ScreenScaffold({
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.screen },
-  content: { paddingBottom: spacing.xxl },
-  pageContent: { paddingBottom: spacing.tabBar, paddingHorizontal: spacing.lg },
+  scroll: { flex: 1, width: '100%' },
+  content: { flexGrow: 1, width: '100%', paddingBottom: spacing.xxl },
+  pageContent: { flexGrow: 1, width: '100%', paddingBottom: spacing.tabBar, paddingHorizontal: spacing.lg },
   header: {
     flexDirection: 'row',
     alignItems: 'flex-start',

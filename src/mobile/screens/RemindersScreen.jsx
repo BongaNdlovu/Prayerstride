@@ -26,16 +26,20 @@ const RECURRING_SCHEDULE = [
 ];
 
 export default function RemindersScreen({ user, onBack }) {
-  const { settings, loading } = useNotificationSettings(user?.uid, true);
+  const { settings, loading, error, retry } = useNotificationSettings(user?.uid, true);
 
   const toggle = async (id, value) => {
     if (!user?.uid) return;
-    await updateNotificationSettings(user.uid, {
-      prayerActivity: settings.prayerActivity === true,
-      testimonyReactions: settings.testimonyReactions === true,
-      pushEnabled: settings.pushEnabled === true,
-      [id]: value,
-    });
+    try {
+      await updateNotificationSettings(user.uid, {
+        prayerActivity: settings.prayerActivity === true,
+        testimonyReactions: settings.testimonyReactions === true,
+        pushEnabled: settings.pushEnabled === true,
+        [id]: value,
+      });
+    } catch (err) {
+      Alert.alert('Could not save reminder', err.message);
+    }
   };
 
   const addReminder = () => {
@@ -45,7 +49,7 @@ export default function RemindersScreen({ user, onBack }) {
   return (
     <ScreenScaffold scroll={false} pageContent style={styles.screen}>
       <AppHeader title="Reminders" subtitle="Stay consistent with prayer reminders." onBack={onBack} centered showLogo />
-      <AsyncState loading={loading}>
+      <AsyncState loading={loading} error={error} onRetry={retry}>
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           <Heading level="eyebrow" style={styles.sectionLabel}>Daily Rhythm</Heading>
           {DAILY_REMINDERS.map((item) => {

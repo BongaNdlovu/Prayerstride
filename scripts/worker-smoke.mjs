@@ -47,6 +47,12 @@ assert(worker.includes("increment: { integerValue: '1' }"), 'Worker should incre
 assert(worker.includes("currentDocument: { exists: false }"), 'Worker should create deterministic per-user action docs for idempotency.');
 assert(worker.includes("allowAlreadyExists: true"), 'Worker should treat duplicate pray/reaction actions as idempotent success.');
 assert(worker.includes('getNotificationSettings'), 'Worker should read notification preferences before notifications/push.');
+assert(worker.includes('...targetData') && worker.includes('suspended: true'), 'Suspending a user should preserve existing profile fields.');
+assert(worker.includes("currentDocument: { exists: false }"), 'Worker should create notifications and action docs without overwriting existing documents.');
+assert(worker.includes("publicMessage: 'Rate limit exceeded'"), 'Rate-limit write collisions should fail closed.');
+assert(worker.includes("op: 'EQUAL'") && worker.includes("fieldPath: 'blockerUid'"), 'Block listing should query only the current user blocks.');
+assert(worker.includes("(?:\\.\\d+)?Z$"), 'Worker timestamp detection should require a complete timestamp string.');
+assert(worker.includes("fieldPath.endsWith('At')"), 'Worker timestamp detection should only apply to timestamp fields.');
 assert(worker.includes('response.ok') && worker.includes('invalidToken'), 'Worker should check FCM responses and clean up invalid tokens.');
 assert(!worker.includes("Access-Control-Allow-Origin', env.CORS_ORIGIN || '*'"), 'Worker should not fall back to wildcard CORS.');
 assert(!worker.includes('runFirestoreQuery'), 'Unused runFirestoreQuery helper should be removed.');
@@ -67,7 +73,7 @@ assert(worker.includes("return json({ error:"), 'Worker should return JSON error
 assert(worker.includes('spiritual-engagement'), 'Worker should implement spiritual-engagement endpoint.');
 assert(worker.includes('spiritualEngagementMetrics'), 'Worker should implement spiritualEngagementMetrics function.');
 assert(worker.includes('runCollectionGroupQuery'), 'Worker should have collection-group query helper.');
-assert(worker.includes('allDescendants: true'), 'Collection-group query should use allDescendants.');
+assert(worker.includes('allDescendants = true'), 'Collection-group query should default to allDescendants.');
 assert(workerSource.includes('responseRate'), 'Engagement metrics should include responseRate.');
 assert(workerSource.includes('activePrayingUsers7d'), 'Engagement metrics should include activePrayingUsers7d.');
 assert(workerSource.includes('requestOnly'), 'Engagement metrics should include reciprocity requestOnly.');

@@ -19,13 +19,21 @@ import StatCard from '../components/StatCard';
 import ProgressRing from '../components/ProgressRing';
 import WeeklyBarChart from '../components/WeeklyBarChart';
 import SectionDivider from '../components/SectionDivider';
+import AsyncState from '../components/AsyncState';
 
 const WEEKLY_STREAK_GOAL = 7;
 
 export default function MyStatsScreen({ user, onBack, go }) {
-  const { prayers } = usePrayers(true, { userId: user?.uid });
-  const { sessions, totalSeconds } = usePrayerSessions(user?.uid, true);
-  const { testimonies } = useTestimonies(true);
+  const { prayers, loading: prayersLoading, error: prayersError, retry: retryPrayers } = usePrayers(true, { userId: user?.uid });
+  const { sessions, totalSeconds, loading: sessionsLoading, error: sessionsError, retry: retrySessions } = usePrayerSessions(user?.uid, true);
+  const { testimonies, loading: testimoniesLoading, error: testimoniesError, retry: retryTestimonies } = useTestimonies(true);
+  const loading = prayersLoading || sessionsLoading || testimoniesLoading;
+  const error = prayersError || sessionsError || testimoniesError;
+  const retry = () => {
+    retryPrayers();
+    retrySessions();
+    retryTestimonies();
+  };
   const myPrayers = prayers.filter((p) => p.authorUid === user?.uid);
   const answered = myPrayers.filter((p) => p.status === 'answered');
   const weeklyPrayerData = useMemo(() => buildWeeklyStats(sessions), [sessions]);
@@ -37,6 +45,7 @@ export default function MyStatsScreen({ user, onBack, go }) {
   return (
     <ScreenScaffold pageContent>
       <AppHeader title="Your prayer walk" subtitle="Consistency, care, and people carried in prayer." onBack={onBack} centered showLogo />
+      <AsyncState loading={loading} error={error} onRetry={retry}>
       <GlassCard style={styles.streakCard}>
         <View style={styles.streakRow}>
           <View style={styles.streakInfo}>
@@ -108,6 +117,7 @@ export default function MyStatsScreen({ user, onBack, go }) {
       </Pressable>
 
       <SectionDivider style={styles.footerDivider} />
+      </AsyncState>
     </ScreenScaffold>
   );
 }

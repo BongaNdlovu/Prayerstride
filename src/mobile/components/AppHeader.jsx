@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, View } from 'react-native';
-import { ChevronLeft, MoreHorizontal } from 'lucide-react-native';
+import { ChevronLeft } from 'lucide-react-native';
 import { alpha, colors, spacing } from '../theme';
 import LogoMark from './LogoMark';
 import Heading from './Heading';
@@ -29,9 +29,7 @@ export default function AppHeader({
           {rightAction ? (
             <View style={styles.rightAction}>{rightAction}</View>
           ) : (
-            <Pressable style={styles.backButton} accessibilityRole="button">
-              <MoreHorizontal size={20} color={colors.gold} />
-            </Pressable>
+            <View style={styles.sideSpacer} />
           )}
         </View>
         {title ? <Heading level="h2" style={styles.centeredTitle}>{title}</Heading> : null}

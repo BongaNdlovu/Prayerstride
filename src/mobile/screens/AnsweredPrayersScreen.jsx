@@ -7,7 +7,7 @@ import PrayerCard from '../components/PrayerCard';
 import AsyncState from '../components/AsyncState';
 
 export default function AnsweredPrayersScreen({ user, onOpenPrayer, onBack }) {
-  const { prayers, loading } = usePrayers(true, { userId: user?.uid });
+  const { prayers, loading, error, retry } = usePrayers(true, { userId: user?.uid });
   const mine = prayers.filter((p) => p.authorUid === user.uid && p.status === 'answered');
 
   const header = (
@@ -26,7 +26,7 @@ export default function AnsweredPrayersScreen({ user, onOpenPrayer, onBack }) {
         contentContainerStyle={styles.list}
         ListHeaderComponent={header}
         ListEmptyComponent={(
-          <AsyncState loading={loading} empty={!loading} emptyLabel="No answered prayers yet." />
+          <AsyncState loading={loading} error={error} onRetry={retry} empty={!loading && !error} emptyLabel="No answered prayers yet." />
         )}
         renderItem={({ item }) => (
           <PrayerCard prayer={item} onPress={() => onOpenPrayer(item)} variant="glass" />

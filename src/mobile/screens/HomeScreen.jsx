@@ -1,6 +1,13 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { Bell, ChevronRight, Clock, Users } from 'lucide-react-native';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
+import { Bell, ChevronRight, Clock, Timer, Users } from 'lucide-react-native';
 import { alpha, colors, fonts, spacing } from '../theme';
 import { auth } from '../firebase';
 import { usePrayers } from '../usePrayerData';
@@ -27,13 +34,38 @@ function greeting() {
   return 'Good evening';
 }
 
+function PrayerSessionButton({ onPress }) {
+  const scale = useSharedValue(1);
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  useEffect(() => {
+    scale.value = withRepeat(
+      withTiming(1.025, { duration: 2400, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true,
+    );
+  }, [scale]);
+
+  return (
+    <Animated.View style={[styles.sessionPulse, animatedStyle]}>
+      <PrimaryButton label="Have a Prayer Session" icon={Timer} onPress={onPress} />
+    </Animated.View>
+  );
+}
+
 export default function HomeScreen({ onOpenPrayer, go }) {
   const uid = auth.currentUser?.uid;
-  const { prayers, loading, error } = usePrayers(true);
-  const { sessions, loading: sessionsLoading, error: sessionsError } = usePrayerSessions(uid, Boolean(uid));
+  const { prayers, loading, error, retry: retryPrayers } = usePrayers(true);
+  const { sessions, loading: sessionsLoading, error: sessionsError, retry: retrySessions } = usePrayerSessions(uid, Boolean(uid));
   const featured = prayers[0];
   const listError = error || sessionsError;
   const listLoading = loading || sessionsLoading;
+  const retry = () => {
+    retryPrayers();
+    retrySessions();
+  };
   const recentPrayers = prayers.slice(0, 3);
   const todayTime = useMemo(() => formatPrayerTime(todaySeconds(sessions)), [sessions]);
   const peopleHelpedThisMonth = useMemo(
@@ -82,6 +114,8 @@ export default function HomeScreen({ onOpenPrayer, go }) {
         <StatCard icon={Users} value={String(peopleHelpedThisMonth)} label="People Helped" sublabel="This Month" />
       </View>
 
+      <PrayerSessionButton onPress={() => go('prayerStopwatch')} />
+
       <View style={styles.sectionRow}>
         <Heading level="h4">Prayer Requests</Heading>
         <Pressable onPress={() => go('myPrayers')}>
@@ -89,7 +123,7 @@ export default function HomeScreen({ onOpenPrayer, go }) {
         </Pressable>
       </View>
 
-      <AsyncState loading={listLoading} error={listError} empty={!listLoading && !listError && prayers.length === 0} emptyLabel="No community prayers yet. Be the first to share.">
+      <AsyncState loading={listLoading} error={listError} onRetry={retry} empty={!listLoading && !listError && prayers.length === 0} emptyLabel="No community prayers yet. Be the first to share.">
         <View style={styles.list}>
           {recentPrayers.map((prayer) => (
             <PrayerCard key={prayer.id} prayer={prayer} onPress={() => onOpenPrayer(prayer)} variant="list" />
@@ -114,6 +148,7 @@ const styles = StyleSheet.create({
   missionCta: { marginTop: spacing.sm },
   missionTitle: { marginTop: spacing.md, marginBottom: spacing.sm },
   statsGrid: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.lg },
+  sessionPulse: { marginBottom: spacing.lg },
   sectionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm },
   viewAll: { color: colors.gold, fontFamily: fonts.sansSemiBold },
   list: { marginTop: spacing.xs },

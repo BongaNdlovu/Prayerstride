@@ -28,13 +28,18 @@ function formatProgress(item) {
 }
 
 export default function AchievementsScreen({ user, onBack }) {
-  const { prayers, loading: prayersLoading } = usePrayers(Boolean(user?.uid), { userId: user?.uid });
-  const { sessions, totalSeconds, loading: sessionsLoading, error: sessionsError } = usePrayerSessions(user?.uid, true);
-  const { testimonies, loading: testimoniesLoading } = useTestimonies(Boolean(user?.uid));
+  const { prayers, loading: prayersLoading, error: prayersError, retry: retryPrayers } = usePrayers(Boolean(user?.uid), { userId: user?.uid });
+  const { sessions, totalSeconds, loading: sessionsLoading, error: sessionsError, retry: retrySessions } = usePrayerSessions(user?.uid, true);
+  const { testimonies, loading: testimoniesLoading, error: testimoniesError, retry: retryTestimonies } = useTestimonies(Boolean(user?.uid));
   const myPrayers = prayers.filter((item) => item.authorUid === user?.uid);
   const myTestimonies = testimonies.filter((item) => item.authorUid === user?.uid);
   const loading = prayersLoading || sessionsLoading || testimoniesLoading;
-  const error = sessionsError;
+  const error = prayersError || sessionsError || testimoniesError;
+  const retry = () => {
+    retryPrayers();
+    retrySessions();
+    retryTestimonies();
+  };
 
   const achievements = useMemo(() => ACHIEVEMENT_DEFS.map((item) => {
     const currentByMetric = {
@@ -57,7 +62,7 @@ export default function AchievementsScreen({ user, onBack }) {
   return (
     <ScreenScaffold scroll={false} pageContent style={styles.screen}>
       <AppHeader title="Achievements" subtitle="Your growth and consistency tracked." onBack={onBack} centered showLogo />
-      <AsyncState loading={loading} error={error} empty={!loading && !error && achievements.length === 0} emptyLabel="No achievements yet.">
+      <AsyncState loading={loading} error={error} onRetry={retry} empty={!loading && !error && achievements.length === 0} emptyLabel="No achievements yet.">
         <GlassCard style={styles.summaryCard}>
           <View style={styles.summaryRow}>
             <View style={styles.summaryInfo}>

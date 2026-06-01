@@ -4,6 +4,7 @@ import {
   calculateStreak,
   countUniqueAuthorsThisMonth,
   formatPrayerTime,
+  formatFirestoreDate,
   todaySeconds,
 } from './sessionStats';
 
@@ -14,6 +15,12 @@ describe('sessionStats', () => {
     expect(formatPrayerTime(0)).toBe('0m');
     expect(formatPrayerTime(60)).toBe('1m');
     expect(formatPrayerTime(3661)).toBe('1h 1m');
+  });
+
+  it('formatFirestoreDate accepts Firestore timestamps and ISO strings', () => {
+    expect(formatFirestoreDate({ toDate: () => new Date('2026-05-31T00:00:00.000Z') })).not.toBe('');
+    expect(formatFirestoreDate('2026-05-31T00:00:00.000Z')).not.toBe('');
+    expect(formatFirestoreDate('invalid', 'date unavailable')).toBe('date unavailable');
   });
 
   it('todaySeconds only counts sessions from today', () => {

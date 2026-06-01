@@ -70,6 +70,7 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, us
           title: privateTitle.trim(),
           body: 'Private prayer session created from the stopwatch.',
           privacy: 'private',
+          allowShare: false,
         }, user);
         sessionPrayerId = prayerRef.id;
       }
@@ -91,7 +92,7 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, us
   };
 
   return (
-    <ScreenScaffold scroll={false} pageContent style={styles.screen}>
+    <ScreenScaffold pageContent style={styles.screen} contentStyle={styles.content}>
       <AppHeader centered showLogo title="Prayer Timer" subtitle={isDirectPrivateSession ? 'Private session' : sessionTitle} onBack={onBack} />
 
       <GlassCard style={styles.timerCard}>
@@ -141,6 +142,7 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, us
 
 const styles = StyleSheet.create({
   screen: { flex: 1, justifyContent: 'center' },
+  content: { justifyContent: 'center' },
   timerCard: { alignItems: 'center', marginTop: spacing.lg },
   iconRing: {
     width: 64,

@@ -25,8 +25,8 @@ export async function submitReport(targetId, targetType, reason, user) {
   });
 }
 
-export function useReports(enabled = true) {
-  const { isAdmin } = useIsAdmin();
+export function useReports(user, enabled = true) {
+  const { isAdmin } = useIsAdmin(user);
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(isAdmin && enabled);
   const [error, setError] = useState(null);

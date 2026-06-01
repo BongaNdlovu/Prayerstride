@@ -9,7 +9,7 @@ import PrimaryButton from '../components/PrimaryButton';
 
 export default function StayConnectedScreen({ onContinue }) {
   return (
-    <ScreenScaffold scroll={false} style={styles.centered}>
+    <ScreenScaffold contentStyle={styles.centered}>
       <View style={styles.iconWrap}>
         <Users color={colors.gold} size={32} />
       </View>
@@ -24,7 +24,7 @@ export default function StayConnectedScreen({ onContinue }) {
 }
 
 const styles = StyleSheet.create({
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xxl },
+  centered: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xxl },
   iconWrap: { width: 70, height: 70, borderRadius: 35, alignItems: 'center', justifyContent: 'center', backgroundColor: alpha.gold18, marginBottom: spacing.xxl },
   title: { marginTop: spacing.lg, textAlign: 'center' },
   subtitle: { marginTop: spacing.md, textAlign: 'center', maxWidth: 280 },

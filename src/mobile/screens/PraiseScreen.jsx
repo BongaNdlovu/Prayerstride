@@ -15,12 +15,17 @@ import AsyncState from '../components/AsyncState';
 const TABS = ['All', 'Following', 'Recent'];
 
 export default function PraiseScreen({ onOpenTestimony }) {
-  const { testimonies, loading } = useTestimonies(true);
-  const { blockedUids } = useBlocks(true);
+  const { testimonies, loading, error, retry } = useTestimonies(true);
+  const { blockedUids, error: blocksError, refresh: retryBlocks } = useBlocks(true);
   const uid = auth.currentUser?.uid;
   const { following } = useFollowing(uid, Boolean(uid));
   const [tab, setTab] = useState('All');
   const [reacted, setReacted] = useState({});
+  const listError = error || blocksError;
+  const retryAll = () => {
+    retry();
+    retryBlocks();
+  };
 
   const followingIds = useMemo(
     () => new Set(following.map((item) => item.followedUid || item.uid || item.targetUid || item.id)),
@@ -60,7 +65,9 @@ export default function PraiseScreen({ onOpenTestimony }) {
 
       <AsyncState
         loading={loading}
-        empty={!loading && visible.length === 0}
+        error={listError}
+        onRetry={retryAll}
+        empty={!loading && !listError && visible.length === 0}
         emptyLabel={tab === 'Following' ? 'No testimonies from people you follow yet.' : 'No testimonies yet.'}
       >
         <View style={styles.list}>
