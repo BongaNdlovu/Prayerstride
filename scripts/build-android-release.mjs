@@ -48,23 +48,30 @@ if (!javaHome) {
   process.exit(1);
 }
 
-function getDefaultAndroidHome() {
+function getDefaultAndroidHomeCandidates() {
   const home = process.env.HOME || process.env.USERPROFILE || '';
   if (process.platform === 'win32') {
-    return join(process.env.LOCALAPPDATA || '', 'Android', 'Sdk');
+    return [join(process.env.LOCALAPPDATA || '', 'Android', 'Sdk')];
   }
   if (process.platform === 'darwin') {
-    return join(home, 'Library', 'Android', 'sdk');
+    return [join(home, 'Library', 'Android', 'sdk')];
   }
-  return join(home, 'Android', 'Sdk');
+  return [
+    join(home, 'Android', 'sdk'),
+    join(home, 'Android', 'Sdk'),
+  ];
 }
 
-const androidHome = process.env.ANDROID_HOME
-  || process.env.ANDROID_SDK_ROOT
-  || getDefaultAndroidHome();
+const androidHomeCandidates = [
+  process.env.ANDROID_HOME,
+  process.env.ANDROID_SDK_ROOT,
+  ...getDefaultAndroidHomeCandidates(),
+].filter(Boolean);
 
-if (!existsSync(androidHome)) {
-  console.error(`Android SDK not found. Set ANDROID_HOME (checked ${androidHome}).`);
+const androidHome = androidHomeCandidates.find((candidate) => existsSync(candidate));
+
+if (!androidHome) {
+  console.error(`Android SDK not found. Set ANDROID_HOME or ANDROID_SDK_ROOT. Checked: ${androidHomeCandidates.join(', ')}`);
   process.exit(1);
 }
 
