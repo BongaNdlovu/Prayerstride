@@ -31,12 +31,7 @@ export default function RemindersScreen({ user, onBack }) {
   const toggle = async (id, value) => {
     if (!user?.uid) return;
     try {
-      await updateNotificationSettings(user.uid, {
-        prayerActivity: settings.prayerActivity === true,
-        testimonyReactions: settings.testimonyReactions === true,
-        pushEnabled: settings.pushEnabled === true,
-        [id]: value,
-      });
+      await updateNotificationSettings(user.uid, { [id]: value });
     } catch (err) {
       Alert.alert('Could not save reminder', err.message);
     }

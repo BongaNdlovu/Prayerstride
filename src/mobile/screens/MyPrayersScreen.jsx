@@ -11,12 +11,13 @@ import AsyncState from '../components/AsyncState';
 const TABS = ['All', 'Active', 'Answered'];
 
 export default function MyPrayersScreen({ user, onOpenPrayer, onBack }) {
-  const { prayers, loading, error, retry } = usePrayers(true, { userId: user?.uid });
+  const uid = user?.uid;
+  const { prayers, loading, error, retry } = usePrayers(true, { userId: uid });
   const [tab, setTab] = useState('All');
 
   const mine = useMemo(
-    () => prayers.filter((prayer) => prayer.authorUid === user.uid),
-    [prayers, user.uid],
+    () => (uid ? prayers.filter((prayer) => prayer.authorUid === uid) : []),
+    [prayers, uid],
   );
 
   const data = useMemo(() => {

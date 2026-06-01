@@ -41,6 +41,18 @@ assert(worker.includes('deleteFirebaseAuthUser'), 'Worker should delete Firebase
 assert(worker.includes('purgeExpiredDeletionTombstones'), 'Worker should purge expired deletion tombstones.');
 assert(worker.includes('deleteStoragePrefix'), 'Worker should delete Storage objects during account deletion.');
 assert(worker.includes('deleteContentAndActions'), 'Worker should cascade content deletion to nested pray and reaction records.');
+assert(
+  /async function deleteContentAndActions[\s\S]*runCollectionGroupQuery\(env, 'notifications'/.test(worker),
+  'deleteContentAndActions should query notifications by relatedId.',
+);
+assert(
+  !/async function deleteContentAndActions[\s\S]*listDocuments\(env, docName\(env, 'notifications'\)\)/.test(worker),
+  'deleteContentAndActions should not list the entire notifications collection.',
+);
+assert(
+  /async function deleteContentAndActions[\s\S]*fieldPath: 'relatedId'/.test(worker),
+  'deleteContentAndActions should filter notifications on relatedId.',
+);
 assert(worker.includes("processOwnedActionCollection('prays')") && worker.includes("processOwnedActionCollection('reactions')"), 'Account deletion should remove actions made on other users content.');
 assert(worker.includes('if (userDoc.exists) addDelete(userDoc.name)'), 'Account deletion retries should tolerate an already-removed profile.');
 assert(worker.includes("String(message).includes('USER_NOT_FOUND')"), 'Account deletion retries should tolerate an already-removed Firebase Auth user.');

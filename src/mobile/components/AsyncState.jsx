@@ -8,7 +8,7 @@ export default function AsyncState({ loading, error, empty, emptyLabel, onRetry,
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color={colors.gold} />
+        <ActivityIndicator color={colors.navy} />
         <BodyText variant="small" style={styles.hint}>Loading...</BodyText>
       </View>
     );

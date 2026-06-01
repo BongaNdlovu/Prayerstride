@@ -35,17 +35,17 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
     borderRadius: radii.lg,
     borderWidth: 1,
-    borderColor: alpha.ivory16,
-    backgroundColor: 'transparent',
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
   pillActive: {
-    backgroundColor: alpha.gold22,
-    borderColor: colors.gold,
+    backgroundColor: alpha.navy08,
+    borderColor: colors.navy,
   },
   text: {
     fontFamily: fonts.sansSemiBold,
     fontSize: 12,
-    color: alpha.ivory62,
+    color: colors.textMuted,
   },
-  textActive: { color: colors.gold },
+  textActive: { color: colors.navy },
 });

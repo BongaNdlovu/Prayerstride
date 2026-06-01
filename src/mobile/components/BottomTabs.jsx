@@ -14,9 +14,10 @@ const styles = StyleSheet.create({
   shell: {
     position: 'relative',
     borderTopWidth: 1,
-    borderTopColor: alpha.ivory12,
-    backgroundColor: colors.screen,
+    borderTopColor: colors.border,
+    backgroundColor: colors.white,
     paddingBottom: spacing.lg,
+    ...shadow.subtle,
   },
   tabs: {
     flexDirection: 'row',
@@ -28,8 +29,8 @@ const styles = StyleSheet.create({
   tabItem: { flex: 1, alignItems: 'center', gap: 4, paddingBottom: spacing.xs },
   tabIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   tabIconActive: { backgroundColor: alpha.gold18 },
-  tabLabel: { fontFamily: fonts.sansSemiBold, fontSize: 10, color: alpha.ivory55 },
-  tabLabelActive: { color: colors.gold },
+  tabLabel: { fontFamily: fonts.sansSemiBold, fontSize: 10, color: colors.textMuted },
+  tabLabelActive: { color: colors.navy },
   fabWrap: { flex: 1, alignItems: 'center', marginTop: -28 },
   fab: {
     width: 56,
@@ -52,7 +53,7 @@ export default function BottomTabs({ active, onChange }) {
             return (
               <Pressable key={key} onPress={() => onChange(key, {})} style={styles.fabWrap} accessibilityRole="button" accessibilityLabel="Create">
                 <View style={styles.fab}>
-                  <Icon size={26} color={colors.ink} strokeWidth={2.5} />
+                  <Icon size={26} color={colors.navy} strokeWidth={2.5} />
                 </View>
               </Pressable>
             );
@@ -60,7 +61,7 @@ export default function BottomTabs({ active, onChange }) {
           return (
             <Pressable key={key} onPress={() => onChange(key, {})} style={styles.tabItem} accessibilityRole="button" accessibilityLabel={label}>
               <View style={[styles.tabIcon, selected && styles.tabIconActive]}>
-                <Icon size={20} color={selected ? colors.gold : alpha.ivory55} />
+                <Icon size={20} color={selected ? colors.navy : colors.textMuted} />
               </View>
               <Text style={[styles.tabLabel, selected && styles.tabLabelActive]}>{label}</Text>
             </Pressable>

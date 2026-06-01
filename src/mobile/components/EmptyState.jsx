@@ -1,5 +1,5 @@
 import { StyleSheet, View } from 'react-native';
-import { alpha, colors, fonts, radii, spacing } from '../theme';
+import { colors, fonts, radii, spacing } from '../theme';
 import Heading from './Heading';
 import BodyText from './BodyText';
 
@@ -18,9 +18,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: alpha.ivory16,
+    borderColor: colors.border,
     borderRadius: radii.xxl,
-    backgroundColor: alpha.ivory10,
+    backgroundColor: colors.surfaceMuted,
   },
   title: { textAlign: 'center', marginBottom: spacing.sm },
   label: { textAlign: 'center', fontFamily: fonts.sans },

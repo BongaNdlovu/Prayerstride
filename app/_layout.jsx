@@ -19,7 +19,7 @@ function FontGate({ children }) {
   if (!loaded) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator color={colors.gold} size="large" />
+        <ActivityIndicator color={colors.navy} size="large" />
       </View>
     );
   }
@@ -32,7 +32,7 @@ export default function RootLayout() {
     <ErrorBoundary>
       <AuthProvider>
         <FontGate>
-          <StatusBar style="light" />
+          <StatusBar style="dark" />
           <Stack screenOptions={{ headerShown: false }} />
         </FontGate>
       </AuthProvider>

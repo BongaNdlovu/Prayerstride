@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { spacing } from '../theme';
 import { usePrayers } from '../usePrayerData';
@@ -7,8 +8,12 @@ import PrayerCard from '../components/PrayerCard';
 import AsyncState from '../components/AsyncState';
 
 export default function AnsweredPrayersScreen({ user, onOpenPrayer, onBack }) {
-  const { prayers, loading, error, retry } = usePrayers(true, { userId: user?.uid });
-  const mine = prayers.filter((p) => p.authorUid === user.uid && p.status === 'answered');
+  const uid = user?.uid;
+  const { prayers, loading, error, retry } = usePrayers(true, { userId: uid });
+  const mine = useMemo(
+    () => (uid ? prayers.filter((p) => p.authorUid === uid && p.status === 'answered') : []),
+    [prayers, uid],
+  );
 
   const header = (
     <AppHeader

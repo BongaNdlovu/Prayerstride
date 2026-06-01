@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 import { Heart, Star } from 'lucide-react-native';
 import { alpha, colors, fonts, radii, spacing } from '../theme';
@@ -22,6 +22,7 @@ function ReactionButton({ label, count, onPress }) {
 export default function PraiseDetailScreen({ testimony, onBack }) {
   const [praiseGod, setPraiseGod] = useState(testimony.praiseGod || 0);
   const [amen, setAmen] = useState(testimony.amen || 0);
+  const reactingRef = useRef(new Set());
 
   useEffect(() => {
     setPraiseGod(testimony.praiseGod || 0);
@@ -29,12 +30,16 @@ export default function PraiseDetailScreen({ testimony, onBack }) {
   }, [testimony.id, testimony.praiseGod, testimony.amen]);
 
   const react = async (key) => {
+    if (reactingRef.current.has(key)) return;
+    reactingRef.current.add(key);
     try {
       await reactToTestimony(testimony.id, key);
       if (key === 'praiseGod') setPraiseGod((value) => value + 1);
       if (key === 'amen') setAmen((value) => value + 1);
     } catch (error) {
       Alert.alert('Reaction not saved', error.message);
+    } finally {
+      reactingRef.current.delete(key);
     }
   };
 

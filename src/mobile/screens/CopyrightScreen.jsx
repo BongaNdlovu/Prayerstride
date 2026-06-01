@@ -24,7 +24,7 @@ export default function CopyrightScreen({ onBack }) {
       <GlassCard style={{ marginTop: 16 }}>
         <Heading level="h4">Third-party components</Heading>
         <BodyText variant="body" style={{ marginTop: 8 }}>
-          PrayerStride includes third-party fonts, icons, and platform services used under their respective licenses (for example, Inter and Playfair Display fonts, Lucide icons, Firebase, Expo, and Cloudflare). Those components remain subject to their own terms; they do not make PrayerStride open source.
+          PrayerStride includes third-party fonts, icons, and platform services used under their respective licenses (for example, Sora and Inter fonts, Lucide icons, Firebase, Expo, and Cloudflare). Those components remain subject to their own terms; they do not make PrayerStride open source.
         </BodyText>
       </GlassCard>
     </ScreenScaffold>

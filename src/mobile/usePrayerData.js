@@ -41,10 +41,12 @@ function mapTestimony(docSnap) {
     title: data.title,
     body: data.body,
     authorUid: data.authorUid,
-    authorName: data.authorName,
+    authorName: data.isAnonymous ? 'Anonymous' : data.authorName,
+    isAnonymous: Boolean(data.isAnonymous),
     amen: data.amen || 0,
     praiseGod: data.praiseGod || 0,
     prayerId: data.prayerId ?? null,
+    createdAt: data.createdAt,
   };
 }
 

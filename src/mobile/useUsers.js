@@ -4,15 +4,28 @@ import { db } from './firebase';
 import { useIsAdmin } from './useIsAdmin';
 
 export function useUsers(user, enabled = true) {
-  const { isAdmin } = useIsAdmin(user);
+  const { isAdmin, loading: adminLoading } = useIsAdmin(user);
   const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(isAdmin && enabled);
+  const [loading, setLoading] = useState(Boolean(user && enabled));
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!isAdmin || !enabled) {
+    if (!enabled || !user) {
       setUsers([]);
       setLoading(false);
+      setError(null);
+      return undefined;
+    }
+
+    if (adminLoading) {
+      setLoading(true);
+      return undefined;
+    }
+
+    if (!isAdmin) {
+      setUsers([]);
+      setLoading(false);
+      setError(null);
       return undefined;
     }
 
@@ -23,6 +36,7 @@ export function useUsers(user, enabled = true) {
       query(collection(db, 'users'), orderBy('createdAt', 'desc')),
       (snapshot) => {
         setUsers(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })));
+        setError(null);
         setLoading(false);
       },
       (err) => {
@@ -30,7 +44,7 @@ export function useUsers(user, enabled = true) {
         setLoading(false);
       },
     );
-  }, [isAdmin, enabled]);
+  }, [user, isAdmin, adminLoading, enabled]);
 
   return { users, loading, error };
 }

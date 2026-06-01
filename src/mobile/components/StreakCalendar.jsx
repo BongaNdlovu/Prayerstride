@@ -19,7 +19,7 @@ export default function StreakCalendar({ streak = 0, currentDayIndex = 0, active
         })}
       </View>
       <View style={styles.count}>
-        <Flame size={16} color={colors.gold} />
+        <Flame size={16} color={colors.coral} />
         <Text style={styles.countText}>{streak} day streak</Text>
       </View>
     </View>
@@ -33,9 +33,9 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     minHeight: 48,
     borderRadius: radii.lg,
-    backgroundColor: alpha.ivory10,
+    backgroundColor: colors.surfaceMuted,
     borderWidth: 1,
-    borderColor: alpha.ivory12,
+    borderColor: colors.border,
     paddingHorizontal: 6,
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -46,23 +46,23 @@ const styles = StyleSheet.create({
     borderRadius: 17,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: alpha.ivory10,
+    backgroundColor: colors.surface,
   },
   dayActive: { backgroundColor: alpha.gold22 },
-  dayCurrent: { borderWidth: 1, borderColor: colors.gold },
-  dayText: { fontFamily: fonts.sansExtraBold, fontSize: 11, color: alpha.ivory55 },
-  dayTextActive: { color: colors.gold },
+  dayCurrent: { borderWidth: 1, borderColor: colors.coral },
+  dayText: { fontFamily: fonts.sansExtraBold, fontSize: 11, color: colors.textMuted },
+  dayTextActive: { color: colors.navy },
   count: {
     alignSelf: 'flex-start',
     minHeight: 48,
     borderRadius: radii.pill,
-    backgroundColor: alpha.ivory10,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: alpha.ivory12,
+    borderColor: colors.border,
     paddingHorizontal: 13,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
-  countText: { fontFamily: fonts.sansSemiBold, fontSize: 13, color: colors.ivory },
+  countText: { fontFamily: fonts.sansSemiBold, fontSize: 13, color: colors.navy },
 });

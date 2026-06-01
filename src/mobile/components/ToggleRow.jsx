@@ -12,8 +12,8 @@ export default function ToggleRow({ label, subtext, value, onToggle, style }) {
       <Switch
         value={value}
         onValueChange={onToggle}
-        trackColor={{ false: alpha.ivory20, true: colors.gold }}
-        thumbColor={value ? colors.ink : colors.ivory}
+        trackColor={{ false: alpha.navy16, true: colors.gold }}
+        thumbColor={colors.white}
       />
     </Pressable>
   );
@@ -26,7 +26,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: spacing.md + 2,
     borderBottomWidth: 1,
-    borderBottomColor: alpha.ivory10,
+    borderBottomColor: colors.border,
   },
   textGroup: { flex: 1, paddingRight: spacing.md },
   subtext: { marginTop: 2 },

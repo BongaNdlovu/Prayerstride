@@ -69,6 +69,24 @@ describe('sessionStats', () => {
     ]);
   });
 
+  it('buildWeeklyStats counts sessions by local calendar day across DST transitions', () => {
+    const weekAnchor = new Date(2026, 2, 11, 12, 0, 0);
+    const sessions = [
+      { createdAt: new Date(2026, 2, 8, 10, 0, 0) },
+      { createdAt: new Date(2026, 2, 9, 10, 0, 0) },
+      { createdAt: new Date(2026, 2, 11, 10, 0, 0) },
+    ];
+    expect(buildWeeklyStats(sessions, weekAnchor)).toEqual([
+      { day: 'S', prayers: 1 },
+      { day: 'M', prayers: 1 },
+      { day: 'T', prayers: 0 },
+      { day: 'W', prayers: 1 },
+      { day: 'T', prayers: 0 },
+      { day: 'F', prayers: 0 },
+      { day: 'S', prayers: 0 },
+    ]);
+  });
+
   it('HomeScreen uses sessionStats for today prayer time and monthly authors', async () => {
     const source = await import('./screens/HomeScreen.jsx?raw');
     expect(source.default).toMatch(/todaySeconds/);

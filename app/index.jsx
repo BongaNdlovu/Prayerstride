@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import { useAuth } from '../src/mobile/AuthProvider';
-import { colors, alpha, radii, spacing } from '../src/mobile/theme';
+import { colors, radii, spacing } from '../src/mobile/theme';
 import { registerForPushNotifications } from '../src/mobile/notifications';
 import { back, createNavState, go, reset } from '../src/mobile/navigation';
 import { useSuspendedStatus } from '../src/mobile/useIsAdmin';
@@ -211,7 +211,7 @@ function PlaceholderScreen({ screen, onBack }) {
 function Centered({ label }) {
   return (
     <SafeAreaView style={styles.centered}>
-      <ActivityIndicator color={colors.gold} />
+      <ActivityIndicator color={colors.navy} />
       <Text style={styles.centeredText}>{label}</Text>
     </SafeAreaView>
   );
@@ -221,10 +221,10 @@ const styles = StyleSheet.create({
   shell: { flex: 1, backgroundColor: colors.screen },
   appBody: { flex: 1, backgroundColor: colors.screen },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.screen },
-  centeredText: { marginTop: spacing.md, color: colors.ivory, fontWeight: '700' },
+  centeredText: { marginTop: spacing.md, color: colors.textPrimary, fontWeight: '700' },
   glassBackButton: { alignSelf: 'flex-start', marginTop: spacing.lg, marginBottom: spacing.xs, paddingVertical: spacing.sm, paddingRight: spacing.lg },
-  glassLinkText: { color: colors.gold, fontWeight: '800' },
-  glassCard: { borderWidth: 1, borderColor: alpha.ivory16, backgroundColor: alpha.ivory11, borderRadius: radii.xxl, padding: spacing.xl - 2 },
-  placeholderTitle: { marginTop: spacing.sm + 2, color: colors.ivory, fontSize: 21, lineHeight: 26, fontWeight: '800' },
-  glassBody: { marginTop: spacing.md, color: alpha.ivory72, fontSize: 14, lineHeight: 23 },
+  glassLinkText: { color: colors.navy, fontWeight: '800' },
+  glassCard: { borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, borderRadius: radii.xxl, padding: spacing.xl - 2 },
+  placeholderTitle: { marginTop: spacing.sm + 2, color: colors.textPrimary, fontSize: 21, lineHeight: 26, fontWeight: '800' },
+  glassBody: { marginTop: spacing.md, color: colors.textSecondary, fontSize: 14, lineHeight: 23 },
 });

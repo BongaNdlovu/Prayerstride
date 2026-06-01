@@ -59,17 +59,17 @@ export default function DiscoverScreen({ onOpenPrayer }) {
       </BodyText>
 
       <View style={styles.searchRow}>
-        <Search size={18} color={colors.gold} />
+        <Search size={18} color={colors.navy} />
         <TextInput
           value={query}
           onChangeText={setQuery}
           placeholder="Search prayers..."
-          placeholderTextColor={alpha.ivory55}
+          placeholderTextColor={colors.textMuted}
           style={styles.searchInput}
         />
         {query ? (
           <Pressable onPress={() => setQuery('')} accessibilityLabel="Clear search">
-            <X size={18} color={alpha.ivory55} />
+            <X size={18} color={colors.textMuted} />
           </Pressable>
         ) : null}
         <Pressable
@@ -77,7 +77,7 @@ export default function DiscoverScreen({ onOpenPrayer }) {
           style={[styles.filterBtn, showFilters && styles.filterBtnActive]}
           accessibilityLabel="Toggle filters"
         >
-          <Filter size={16} color={showFilters ? colors.ink : colors.gold} />
+          <Filter size={16} color={showFilters ? colors.white : colors.navy} />
         </Pressable>
       </View>
 
@@ -127,23 +127,23 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     minHeight: 52,
     borderWidth: 1,
-    borderColor: alpha.ivory16,
-    backgroundColor: alpha.ivory11,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
     borderRadius: radii.lg,
     paddingHorizontal: spacing.md,
   },
-  searchInput: { flex: 1, color: colors.ivory, fontSize: 15 },
+  searchInput: { flex: 1, color: colors.textPrimary, fontSize: 15 },
   filterBtn: {
     width: 32,
     height: 32,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: alpha.ivory12,
+    backgroundColor: alpha.navy08,
   },
-  filterBtnActive: { backgroundColor: colors.gold },
+  filterBtnActive: { backgroundColor: colors.navy },
   filterPanel: { marginTop: spacing.sm, marginBottom: spacing.xs },
-  filterLabel: { marginBottom: spacing.xs, color: colors.gold, letterSpacing: 1.2, textTransform: 'uppercase' },
+  filterLabel: { marginBottom: spacing.xs, color: colors.navy, letterSpacing: 1.2, textTransform: 'uppercase' },
   pills: { marginTop: spacing.sm },
   listContent: { paddingBottom: spacing.tabBar, gap: spacing.md },
 });

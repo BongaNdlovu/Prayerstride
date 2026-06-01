@@ -20,7 +20,7 @@ export default function AppHeader({
         <View style={styles.topRow}>
           {onBack ? (
             <Pressable onPress={onBack} style={styles.backButton} accessibilityRole="button" accessibilityLabel="Go back">
-              <ChevronLeft size={22} color={colors.gold} />
+              <ChevronLeft size={22} color={colors.navy} />
             </Pressable>
           ) : (
             <View style={styles.sideSpacer} />
@@ -43,7 +43,7 @@ export default function AppHeader({
     <View style={styles.header}>
       {onBack ? (
         <Pressable onPress={onBack} style={styles.backButton} accessibilityRole="button" accessibilityLabel="Go back">
-          <ChevronLeft size={20} color={colors.ivory} />
+          <ChevronLeft size={20} color={colors.navy} />
         </Pressable>
       ) : null}
       <View style={styles.titleGroup}>
@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: alpha.ivory12,
+    backgroundColor: alpha.navy08,
   },
   sideSpacer: { width: 40 },
   titleGroup: { flex: 1 },

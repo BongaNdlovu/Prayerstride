@@ -14,7 +14,7 @@ export default function SegmentedControl({ options, value, onChange, style }) {
             onPress={() => onChange(option.value)}
             style={[styles.segment, selected && styles.segmentActive]}
           >
-            {Icon ? <Icon size={16} color={selected ? colors.gold : alpha.ivory55} /> : null}
+            {Icon ? <Icon size={16} color={selected ? colors.navy : colors.textMuted} /> : null}
             <Text style={[styles.label, selected && styles.labelActive]}>{option.label}</Text>
             {option.subtext ? (
               <BodyText variant="caption" style={[styles.subtext, selected && styles.subtextActive]}>
@@ -42,21 +42,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xs,
     borderRadius: radii.md,
     borderWidth: 1,
-    borderColor: alpha.ivory16,
-    backgroundColor: alpha.ivory10,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
     gap: 4,
   },
   segmentActive: {
-    borderColor: colors.gold,
-    backgroundColor: alpha.gold18,
+    borderColor: colors.navy,
+    backgroundColor: alpha.navy08,
   },
   label: {
     fontFamily: fonts.sansSemiBold,
     fontSize: 12,
-    color: alpha.ivory62,
+    color: colors.textMuted,
     textAlign: 'center',
   },
-  labelActive: { color: colors.gold },
+  labelActive: { color: colors.navy },
   subtext: { fontSize: 10, textAlign: 'center' },
-  subtextActive: { color: alpha.ivory72 },
+  subtextActive: { color: colors.textSecondary },
 });

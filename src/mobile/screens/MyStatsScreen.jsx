@@ -55,9 +55,9 @@ export default function MyStatsScreen({ user, onBack, go }) {
             </Heading>
             <BodyText variant="small">Walking with God, one day at a time.</BodyText>
           </View>
-          <ProgressRing progress={streakProgress} size={96} strokeWidth={7}>
+          <ProgressRing progress={streakProgress} size={96} strokeWidth={7} accent={colors.coral}>
             <View style={styles.ringCenter}>
-              <Flame size={22} color={colors.gold} />
+              <Flame size={22} color={colors.coral} />
               <Heading level="h4" style={styles.ringValue}>{streak}</Heading>
             </View>
           </ProgressRing>
@@ -92,7 +92,7 @@ export default function MyStatsScreen({ user, onBack, go }) {
             <BodyText variant="small">Time spent in prayer.</BodyText>
           </View>
           <View style={styles.timeIcon}>
-            <Clock size={24} color={colors.ink} />
+            <Clock size={24} color={colors.white} />
           </View>
         </View>
       </GlassCard>
@@ -105,13 +105,13 @@ export default function MyStatsScreen({ user, onBack, go }) {
         <GlassCard style={styles.testimonyCard}>
           <View style={styles.testimonyRow}>
             <View style={styles.testimonyIcon}>
-              <Send size={20} color={colors.ink} />
+              <Send size={20} color={colors.white} />
             </View>
             <View style={styles.testimonyText}>
               <Heading level="h4">Share a testimony</Heading>
               <BodyText variant="small">Tell others how God has answered your prayers.</BodyText>
             </View>
-            <ChevronRight size={20} color={colors.gold} />
+            <ChevronRight size={20} color={colors.navy} />
           </View>
         </GlassCard>
       </Pressable>
@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
   chartCard: { marginBottom: spacing.md },
   chartHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md },
   chartTitle: { marginTop: spacing.xs },
-  weekTotal: { color: colors.gold, fontWeight: '700' },
+  weekTotal: { color: colors.navy, fontWeight: '700' },
   statsGrid: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.md },
   timeCard: { marginBottom: spacing.md },
   timeValue: { marginTop: spacing.sm, marginBottom: spacing.xs },
@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
     borderRadius: 26,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.gold,
+    backgroundColor: colors.navy,
   },
   testimonyLink: { marginBottom: spacing.md },
   testimonyCard: { marginBottom: 0 },
@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.gold,
+    backgroundColor: colors.navy,
   },
   testimonyText: { flex: 1 },
   pressed: { opacity: 0.92 },

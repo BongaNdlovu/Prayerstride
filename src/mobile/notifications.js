@@ -36,6 +36,9 @@ export async function registerForPushNotifications() {
   }
 
   const projectId = Constants.expoConfig?.extra?.eas?.projectId || Constants.easConfig?.projectId;
+  if (!projectId) {
+    throw new Error('Push notifications are not configured. Missing Expo projectId.');
+  }
   const token = await Notifications.getDevicePushTokenAsync({ projectId });
   await registerDevice({ token: token.data, platform: Platform.OS });
 }

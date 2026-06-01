@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -39,6 +39,10 @@ export default function AuthScreen({ mode: initialMode, onSignIn, onRegister, on
   const [showPassword, setShowPassword] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (initialMode) setMode(initialMode);
+  }, [initialMode]);
 
   const requiresGuardian = useMemo(() => {
     const parsed = parseDateOfBirth(dateOfBirth);
@@ -230,7 +234,7 @@ export default function AuthScreen({ mode: initialMode, onSignIn, onRegister, on
               accessibilityState={{ checked: agreed }}
             >
               <View style={[styles.checkbox, agreed && styles.checkboxChecked]}>
-                {agreed ? <Check size={14} color={colors.ink} strokeWidth={3} /> : null}
+                {agreed ? <Check size={14} color={colors.white} strokeWidth={3} /> : null}
               </View>
               <BodyText variant="small" style={styles.checkText}>
                 I agree to the{' '}
@@ -274,7 +278,7 @@ const styles = StyleSheet.create({
   subtitle: { textAlign: 'center', marginBottom: spacing.lg },
   card: { marginTop: spacing.md },
   fieldWrap: { marginTop: spacing.md },
-  fieldLabel: { color: colors.gold, marginBottom: spacing.xs },
+  fieldLabel: { color: colors.navy, marginBottom: spacing.xs },
   helper: { marginTop: spacing.xs },
   inputRow: {
     flexDirection: 'row',
@@ -285,12 +289,12 @@ const styles = StyleSheet.create({
   },
   input: { flex: 1, color: colors.ivory, fontFamily: fonts.sans, fontSize: 15 },
   checkRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm + 2, marginTop: spacing.lg },
-  checkbox: { width: 20, height: 20, borderRadius: 4, borderWidth: 1, borderColor: colors.gold, marginTop: 2 },
-  checkboxChecked: { backgroundColor: colors.gold },
+  checkbox: { width: 20, height: 20, borderRadius: 4, borderWidth: 1, borderColor: colors.navy, marginTop: 2 },
+  checkboxChecked: { backgroundColor: colors.navy },
   checkText: { flex: 1 },
-  linkInline: { color: colors.gold, fontFamily: fonts.sansSemiBold },
+  linkInline: { color: colors.navy, fontFamily: fonts.sansSemiBold },
   submit: { marginTop: spacing.xl },
   linkWrap: { alignItems: 'center', marginTop: spacing.md },
-  link: { color: colors.gold, fontFamily: fonts.sansSemiBold },
+  link: { color: colors.navy, fontFamily: fonts.sansSemiBold },
   footerLink: { alignItems: 'center', gap: spacing.xs, marginTop: spacing.xl, paddingVertical: spacing.md },
 });

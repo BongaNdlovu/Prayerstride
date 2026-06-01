@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ChevronRight } from 'lucide-react-native';
 import { alpha, colors, fonts, radii, spacing } from '../theme';
+import { formatRelativeFirestoreDate } from '../sessionStats';
 import Heading from './Heading';
 import BodyText from './BodyText';
 import GlassCard from './GlassCard';
@@ -30,7 +31,7 @@ export default function PrayerCard({ prayer, onPress, variant = 'glass' }) {
           <Text style={styles.listName}>{prayer.authorName || prayer.name || 'Anonymous'}</Text>
           <BodyText variant="small" numberOfLines={1}>{prayer.title}</BodyText>
         </View>
-        <ChevronRight size={18} color={alpha.ivory55} />
+        <ChevronRight size={18} color={colors.textMuted} />
       </Pressable>
     );
   }
@@ -44,13 +45,13 @@ export default function PrayerCard({ prayer, onPress, variant = 'glass' }) {
           </View>
           <View style={styles.content}>
             <Heading level="h4" style={styles.title}>{prayer.title}</Heading>
-            <BodyText variant="small" numberOfLines={2}>{prayer.body || prayer.text}</BodyText>
+            <BodyText variant="small" numberOfLines={2}>{prayer.body || prayer.text || 'No details provided.'}</BodyText>
             <Text style={styles.praying}>{prayedCount} praying</Text>
           </View>
           <View style={styles.rightCol}>
             {isActive ? <View style={styles.activeBadge}><Text style={styles.activeText}>Active</Text></View> : null}
-            <BodyText variant="caption">2h ago</BodyText>
-            <ChevronRight size={16} color={alpha.ivory55} style={styles.chevron} />
+            <BodyText variant="caption">{formatRelativeFirestoreDate(prayer.createdAt, '—')}</BodyText>
+            <ChevronRight size={16} color={colors.textMuted} style={styles.chevron} />
           </View>
         </View>
       </GlassCard>
@@ -59,7 +60,7 @@ export default function PrayerCard({ prayer, onPress, variant = 'glass' }) {
 }
 
 const styles = StyleSheet.create({
-  card: { marginBottom: 0 },
+  card: { marginBottom: spacing.md },
   metaRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
   iconWrap: {
     width: 40,
@@ -72,15 +73,15 @@ const styles = StyleSheet.create({
   categoryIcon: { fontSize: 18 },
   content: { flex: 1 },
   title: { fontSize: 17, marginBottom: 4 },
-  praying: { marginTop: 6, fontFamily: fonts.sansMedium, fontSize: 12, color: alpha.ivory55 },
+  praying: { marginTop: 6, fontFamily: fonts.sansMedium, fontSize: 12, color: colors.textMuted },
   rightCol: { alignItems: 'flex-end', gap: 4 },
   activeBadge: {
-    backgroundColor: 'rgba(74,222,128,0.15)',
+    backgroundColor: 'rgba(16,185,129,0.12)',
     borderRadius: radii.pill,
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
-  activeText: { fontFamily: fonts.sansSemiBold, fontSize: 10, color: colors.success },
+  activeText: { fontFamily: fonts.sansSemiBold, fontSize: 10, color: colors.emerald },
   chevron: { marginTop: 4 },
   listRow: {
     flexDirection: 'row',
@@ -88,7 +89,7 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: alpha.ivory10,
+    borderBottomColor: colors.border,
   },
   avatar: {
     width: 40,
@@ -96,9 +97,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: alpha.gold22,
+    backgroundColor: alpha.navy08,
   },
-  avatarText: { fontFamily: fonts.sansBold, fontSize: 16, color: colors.gold },
+  avatarText: { fontFamily: fonts.sansBold, fontSize: 16, color: colors.navy },
   listContent: { flex: 1 },
-  listName: { fontFamily: fonts.sansSemiBold, fontSize: 14, color: colors.ivory },
+  listName: { fontFamily: fonts.sansSemiBold, fontSize: 14, color: colors.textPrimary },
 });

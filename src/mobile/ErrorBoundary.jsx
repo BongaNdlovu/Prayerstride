@@ -1,6 +1,6 @@
 import { Component } from 'react';
 import { Pressable, SafeAreaView, Text, View } from 'react-native';
-import { alpha, colors, radii, spacing } from './theme';
+import { colors, radii, spacing } from './theme';
 import { error as logError } from './logger';
 
 export class ErrorBoundary extends Component {
@@ -24,15 +24,15 @@ export class ErrorBoundary extends Component {
   render() {
     if (this.state.hasError) {
       return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: colors.screen }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xxl }}>
-            <Text style={{ color: colors.gold, fontSize: 32, fontWeight: '800', marginBottom: spacing.md }}>
+            <Text style={{ color: colors.navy, fontSize: 32, fontWeight: '800', marginBottom: spacing.md }}>
               Something went wrong
             </Text>
-            <Text style={{ color: alpha.ivory72, fontSize: 15, textAlign: 'center', lineHeight: 22, marginBottom: spacing.sm }}>
+            <Text style={{ color: colors.textSecondary, fontSize: 15, textAlign: 'center', lineHeight: 22, marginBottom: spacing.sm }}>
               The app encountered an unexpected error.
             </Text>
-            <Text style={{ color: alpha.ivory55, fontSize: 12, textAlign: 'center', marginBottom: spacing.xxl }}>
+            <Text style={{ color: colors.textMuted, fontSize: 12, textAlign: 'center', marginBottom: spacing.xxl }}>
               {this.state.error?.message || 'Unknown error'}
             </Text>
             <Pressable
@@ -43,10 +43,10 @@ export class ErrorBoundary extends Component {
                 alignItems: 'center',
                 justifyContent: 'center',
                 borderRadius: radii.md,
-                backgroundColor: colors.gold,
+                backgroundColor: colors.navy,
               }}
             >
-              <Text style={{ color: colors.ink, fontSize: 15, fontWeight: '800' }}>Try Again</Text>
+              <Text style={{ color: colors.white, fontSize: 15, fontWeight: '800' }}>Try Again</Text>
             </Pressable>
           </View>
         </SafeAreaView>

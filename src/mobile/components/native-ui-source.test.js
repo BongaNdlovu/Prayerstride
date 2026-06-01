@@ -4,9 +4,8 @@ describe('native UI kit', () => {
   it('theme exports expected keys', async () => {
     const source = await import('../theme.js?raw');
     expect(source.default).toMatch(/export const colors/);
-    expect(source.default).toMatch(/#D7A552/);
-    expect(source.default).toMatch(/#F7F0E4/);
-    expect(source.default).toMatch(/#101014/);
+    expect(source.default).toMatch(/#E0A106/);
+    expect(source.default).toMatch(/#0B2A4A/);
     expect(source.default).toMatch(/export const shadow/);
     expect(source.default).toMatch(/export const glass/);
     expect(source.default).toMatch(/export const cinematicScreen/);

@@ -767,14 +767,18 @@ async function deleteTestimony(env, user, testimonyId) {
 
 async function deleteContentAndActions(env, collectionName, contentDoc) {
   const subcollectionName = collectionName === 'prayers' ? 'prays' : 'reactions';
-  const actionDocs = await listDocuments(env, docName(env, collectionName, dataId(contentDoc), subcollectionName));
-  const notificationDocs = await listDocuments(env, docName(env, 'notifications'));
   const relatedId = dataId(contentDoc);
+  const actionDocs = await listDocuments(env, docName(env, collectionName, relatedId, subcollectionName));
+  const notificationDocs = await runCollectionGroupQuery(env, 'notifications', [{
+    fieldFilter: {
+      field: { fieldPath: 'relatedId' },
+      op: 'EQUAL',
+      value: { stringValue: relatedId },
+    },
+  }], [], [], false);
   await commitInChunks(env, [
     ...actionDocs.map((document) => ({ delete: document.name })),
-    ...notificationDocs
-      .filter((document) => fromFirestoreFields(document.fields || {}).relatedId === relatedId)
-      .map((document) => ({ delete: document.name })),
+    ...notificationDocs.map((document) => ({ delete: document.name })),
     { delete: contentDoc.name },
   ]);
 }

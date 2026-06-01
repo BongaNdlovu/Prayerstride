@@ -1,9 +1,9 @@
 import Svg, { Circle } from 'react-native-svg';
 import { StyleSheet, View } from 'react-native';
-import { colors } from '../theme';
+import { alpha, colors } from '../theme';
 import LogoMark from './LogoMark';
 
-export default function ProgressRing({ progress = 0, size = 100, strokeWidth = 6, children }) {
+export default function ProgressRing({ progress = 0, size = 100, strokeWidth = 6, children, accent = colors.gold }) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const clamped = Math.min(Math.max(progress, 0), 1);
@@ -17,7 +17,7 @@ export default function ProgressRing({ progress = 0, size = 100, strokeWidth = 6
           cx={center}
           cy={center}
           r={radius}
-          stroke="rgba(247,240,228,0.12)"
+          stroke={alpha.navy12}
           strokeWidth={strokeWidth}
           fill="none"
         />
@@ -25,7 +25,7 @@ export default function ProgressRing({ progress = 0, size = 100, strokeWidth = 6
           cx={center}
           cy={center}
           r={radius}
-          stroke={colors.gold}
+          stroke={accent}
           strokeWidth={strokeWidth}
           fill="none"
           strokeDasharray={circumference}

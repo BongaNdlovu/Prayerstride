@@ -1,11 +1,9 @@
 import { StyleSheet, View } from 'react-native';
-import { alpha, radii, shadow, spacing } from '../theme';
+import { colors, glass, radii, shadow, spacing } from '../theme';
 
 const styles = StyleSheet.create({
   card: {
-    borderWidth: 1,
-    borderColor: alpha.ivory16,
-    backgroundColor: alpha.ivory11,
+    ...glass,
     borderRadius: radii.xxl,
     padding: spacing.xl - 2,
     ...shadow.card,

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 import { alpha, spacing } from '../theme';
 import { useTestimonies } from '../usePrayerData';
@@ -20,7 +20,8 @@ export default function PraiseScreen({ onOpenTestimony }) {
   const uid = auth.currentUser?.uid;
   const { following } = useFollowing(uid, Boolean(uid));
   const [tab, setTab] = useState('All');
-  const [reacted, setReacted] = useState({});
+  const [pendingReactions, setPendingReactions] = useState({});
+  const reactingRef = useRef(new Set());
   const listError = error || blocksError;
   const retryAll = () => {
     retry();
@@ -47,14 +48,47 @@ export default function PraiseScreen({ onOpenTestimony }) {
     return unblocked;
   }, [testimonies, blockedUids, tab, followingIds]);
 
+  useEffect(() => {
+    setPendingReactions((current) => {
+      let changed = false;
+      const next = { ...current };
+
+      Object.entries(current).forEach(([reactionKey, baseline]) => {
+        const [id, key] = reactionKey.split(':');
+        const testimony = testimonies.find((item) => item.id === id);
+        if (!testimony) return;
+
+        const serverCount = Number(testimony[key] || 0);
+        if (serverCount >= baseline + 1) {
+          delete next[reactionKey];
+          changed = true;
+        }
+      });
+
+      return changed ? next : current;
+    });
+  }, [testimonies]);
+
   const react = async (id, key) => {
-    if (reacted[`${id}:${key}`]) return;
-    setReacted((current) => ({ ...current, [`${id}:${key}`]: true }));
+    const reactionKey = `${id}:${key}`;
+    if (reactingRef.current.has(reactionKey) || pendingReactions[reactionKey] !== undefined) return;
+
+    const testimony = testimonies.find((item) => item.id === id);
+    const baseline = Number(testimony?.[key] || 0);
+
+    reactingRef.current.add(reactionKey);
+    setPendingReactions((current) => ({ ...current, [reactionKey]: baseline }));
     try {
       await reactToTestimony(id, key);
     } catch (error) {
-      setReacted((current) => ({ ...current, [`${id}:${key}`]: false }));
+      setPendingReactions((current) => {
+        const next = { ...current };
+        delete next[reactionKey];
+        return next;
+      });
       Alert.alert('Reaction not saved', error.message);
+    } finally {
+      reactingRef.current.delete(reactionKey);
     }
   };
 
@@ -76,8 +110,8 @@ export default function PraiseScreen({ onOpenTestimony }) {
               key={testimony.id}
               testimony={{
                 ...testimony,
-                praiseGod: Number(testimony.praiseGod || 0) + (reacted[`${testimony.id}:praiseGod`] ? 1 : 0),
-                amen: Number(testimony.amen || 0) + (reacted[`${testimony.id}:amen`] ? 1 : 0),
+                praiseGod: Number(testimony.praiseGod || 0) + (pendingReactions[`${testimony.id}:praiseGod`] !== undefined ? 1 : 0),
+                amen: Number(testimony.amen || 0) + (pendingReactions[`${testimony.id}:amen`] !== undefined ? 1 : 0),
               }}
               onPress={() => onOpenTestimony?.(testimony)}
               onReact={react}

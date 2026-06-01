@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
@@ -49,40 +49,49 @@ function AvatarStack({ count, authorName }) {
 }
 
 export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh }) {
-  if (!prayer) return null;
   const [prayed, setPrayed] = useState(false);
   const [prayerCountDelta, setPrayerCountDelta] = useState(0);
   const [bookmarked, setBookmarked] = useState(false);
   const [showActions, setShowActions] = useState(false);
-  const isOwner = user && prayer.authorUid === user.uid;
-  const prayedCount = Number(prayer.prayedCount || 0) + prayerCountDelta;
+  const prayingRef = useRef(false);
 
   useEffect(() => {
+    if (!prayer?.id) return;
+
+    setPrayed(false);
+    setPrayerCountDelta(0);
+    setBookmarked(false);
+    setShowActions(false);
+
+    const loadPrayedToday = async () => {
+      try {
+        const limit = prayer.prayerLimit || 'daily';
+        const saved = await AsyncStorage.getItem(prayedStorageKey(prayer.id, limit));
+        setPrayed(saved === 'true');
+        setPrayerCountDelta(0);
+      } catch (error) {
+        warn('Failed to load prayer status', error);
+      }
+    };
+
+    const loadBookmark = async () => {
+      try {
+        const key = `bookmark:prayer:${prayer.id}`;
+        const saved = await AsyncStorage.getItem(key);
+        setBookmarked(saved === 'true');
+      } catch (error) {
+        warn('Failed to load bookmark', error);
+      }
+    };
+
     loadBookmark();
     loadPrayedToday();
-  }, [prayer.id]);
+  }, [prayer?.id, prayer?.prayerLimit]);
 
-  const storageKeyForPrayer = (limit = prayer.prayerLimit || 'daily') => prayedStorageKey(prayer.id, limit);
+  if (!prayer) return null;
 
-  const loadPrayedToday = async () => {
-    try {
-      const saved = await AsyncStorage.getItem(storageKeyForPrayer());
-      setPrayed(saved === 'true');
-      setPrayerCountDelta(0);
-    } catch (error) {
-      warn('Failed to load prayer status', error);
-    }
-  };
-
-  const loadBookmark = async () => {
-    try {
-      const key = `bookmark:prayer:${prayer.id}`;
-      const saved = await AsyncStorage.getItem(key);
-      setBookmarked(saved === 'true');
-    } catch (error) {
-      warn('Failed to load bookmark', error);
-    }
-  };
+  const isOwner = user && prayer.authorUid === user.uid;
+  const prayedCount = Number(prayer.prayedCount || 0) + prayerCountDelta;
 
   const toggleBookmark = async () => {
     try {
@@ -100,7 +109,8 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
       Alert.alert('Your request', 'You cannot pray for your own prayer request.');
       return;
     }
-    if (prayed) return;
+    if (prayed || prayingRef.current) return;
+    prayingRef.current = true;
     setPrayed(true);
     try {
       const result = await prayForRequest(prayer.id);
@@ -112,6 +122,8 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
       setPrayed(false);
       setPrayerCountDelta(0);
       Alert.alert('Prayer not saved', error.message);
+    } finally {
+      prayingRef.current = false;
     }
   };
 

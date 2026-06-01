@@ -1,5 +1,5 @@
 import { StyleSheet, View } from 'react-native';
-import { colors } from '../theme';
+import { alpha, colors } from '../theme';
 
 export default function SectionDivider({ style }) {
   return (
@@ -13,7 +13,7 @@ export default function SectionDivider({ style }) {
 
 const styles = StyleSheet.create({
   wrap: { flexDirection: 'row', alignItems: 'center', gap: 8, width: '80%', alignSelf: 'center' },
-  line: { flex: 1, height: 1, backgroundColor: 'rgba(215,165,82,0.35)' },
+  line: { flex: 1, height: 1, backgroundColor: alpha.gold30 },
   diamond: {
     width: 6,
     height: 6,

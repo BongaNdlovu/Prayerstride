@@ -95,7 +95,7 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, us
 
       <GlassCard style={styles.timerCard}>
         <View style={styles.iconRing}>
-          <Timer size={28} color={colors.gold} />
+          <Timer size={28} color={colors.navy} />
         </View>
 
         {isDirectPrivateSession ? (
@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
     fontSize: 56,
     lineHeight: 64,
     fontVariant: ['tabular-nums'],
-    color: colors.gold,
+    color: colors.navy,
     marginTop: spacing.md,
   },
   timerLabel: { marginTop: spacing.sm, marginBottom: spacing.xl },

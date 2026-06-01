@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Heart, Star } from 'lucide-react-native';
-import { alpha, colors, fonts, radii, spacing } from '../theme';
+import { alpha, colors, fonts, spacing } from '../theme';
+import { formatRelativeFirestoreDate } from '../sessionStats';
 import Heading from './Heading';
 import BodyText from './BodyText';
 import GlassCard from './GlassCard';
@@ -14,7 +15,7 @@ export default function TestimonyCard({ testimony, onPress, onReact }) {
             <Star size={12} color={colors.gold} fill={colors.gold} />
             <Text style={styles.eyebrow}>Answered Prayer</Text>
           </View>
-          <BodyText variant="caption">2h ago</BodyText>
+          <BodyText variant="caption">{formatRelativeFirestoreDate(testimony.createdAt, '—')}</BodyText>
         </View>
         <Heading level="h4" style={styles.title}>{testimony.title}</Heading>
         <BodyText variant="body" numberOfLines={4}>{testimony.body}</BodyText>
@@ -33,12 +34,12 @@ export default function TestimonyCard({ testimony, onPress, onReact }) {
               }}
               style={styles.likeBtn}
             >
-              <Heart size={16} color={colors.gold} />
+              <Heart size={16} color={colors.coral} />
               <Text style={styles.likeCount}>{testimony.praiseGod || testimony.likes || 0}</Text>
             </Pressable>
           ) : (
             <View style={styles.likeBtn}>
-              <Heart size={16} color={colors.gold} />
+              <Heart size={16} color={colors.coral} />
               <Text style={styles.likeCount}>{testimony.praiseGod || testimony.likes || 0}</Text>
             </View>
           )}
@@ -62,10 +63,10 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: alpha.gold22,
+    backgroundColor: alpha.navy08,
   },
-  avatarText: { fontFamily: fonts.sansBold, fontSize: 12, color: colors.gold },
-  authorName: { fontFamily: fonts.sansMedium, fontSize: 13, color: colors.ivory },
+  avatarText: { fontFamily: fonts.sansBold, fontSize: 12, color: colors.navy },
+  authorName: { fontFamily: fonts.sansMedium, fontSize: 13, color: colors.textPrimary },
   likeBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  likeCount: { fontFamily: fonts.sansSemiBold, fontSize: 13, color: colors.gold },
+  likeCount: { fontFamily: fonts.sansSemiBold, fontSize: 13, color: colors.coral },
 });

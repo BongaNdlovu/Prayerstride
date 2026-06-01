@@ -21,6 +21,28 @@ export function toDateKey(date = new Date()) {
   return `${year}-${month}-${day}`;
 }
 
+export function isValidCalendarDateKey(value) {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
+
+  const [year, month, day] = value.split('-').map(Number);
+  if (month < 1 || month > 12 || day < 1 || day > 31) {
+    return false;
+  }
+
+  const date = new Date(year, month - 1, day);
+  return date.getFullYear() === year
+    && date.getMonth() === month - 1
+    && date.getDate() === day;
+}
+
+function assertValidCalendarDateKey(dateKey) {
+  if (!isValidCalendarDateKey(dateKey)) {
+    throw new Error('Enter a valid date as YYYY-MM-DD.');
+  }
+}
+
 export function mapCalendarEvent(docSnap) {
   const data = docSnap.data();
   return {
@@ -77,6 +99,15 @@ export function useCalendarEvents(userId, enabled = true) {
     setLoading(true);
     setError(null);
 
+    let eventsResolved = false;
+    let bookmarksResolved = false;
+
+    const resolveLoading = () => {
+      if (eventsResolved && bookmarksResolved) {
+        setLoading(false);
+      }
+    };
+
     const unsubEvents = onSnapshot(
       query(
         collection(db, 'calendarEvents'),
@@ -85,11 +116,13 @@ export function useCalendarEvents(userId, enabled = true) {
       ),
       (snapshot) => {
         setEvents(snapshot.docs.map(mapCalendarEvent));
-        setLoading(false);
+        eventsResolved = true;
+        resolveLoading();
       },
       (err) => {
         setError(err);
-        setLoading(false);
+        eventsResolved = true;
+        resolveLoading();
       },
     );
 
@@ -100,8 +133,14 @@ export function useCalendarEvents(userId, enabled = true) {
       ),
       (snapshot) => {
         setBookmarks(snapshot.docs.map(mapCalendarBookmark));
+        bookmarksResolved = true;
+        resolveLoading();
       },
-      (err) => setError(err),
+      (err) => {
+        setError(err);
+        bookmarksResolved = true;
+        resolveLoading();
+      },
     );
 
     return () => {
@@ -121,7 +160,7 @@ export function useCalendarEvents(userId, enabled = true) {
 export async function createCalendarEvent({ title, notes, dateKey, startsAt, endsAt }, user) {
   if (!user?.uid) throw new Error('Please sign in to add calendar events.');
   if (!title?.trim()) throw new Error('Enter an event title.');
-  if (!dateKey) throw new Error('Choose a date for this event.');
+  assertValidCalendarDateKey(dateKey);
 
   return addDoc(collection(db, 'calendarEvents'), {
     ownerUid: user.uid,
@@ -137,6 +176,8 @@ export async function createCalendarEvent({ title, notes, dateKey, startsAt, end
 
 export async function updateCalendarEvent(eventId, { title, notes, dateKey, startsAt, endsAt }) {
   if (!eventId) throw new Error('Missing event id.');
+  if (!title?.trim()) throw new Error('Enter an event title.');
+  assertValidCalendarDateKey(dateKey);
   return updateDoc(doc(db, 'calendarEvents', eventId), {
     title: title.trim(),
     notes: notes?.trim() || null,
@@ -154,7 +195,7 @@ export async function deleteCalendarEvent(eventId) {
 
 export async function bookmarkDate(dateKey, user) {
   if (!user?.uid) throw new Error('Please sign in to bookmark dates.');
-  if (!dateKey) throw new Error('Missing date key.');
+  assertValidCalendarDateKey(dateKey);
   const bookmarkId = `${user.uid}_${dateKey}`;
   return setDoc(doc(db, 'calendarBookmarks', bookmarkId), {
     ownerUid: user.uid,
@@ -165,6 +206,7 @@ export async function bookmarkDate(dateKey, user) {
 
 export async function unbookmarkDate(dateKey, user) {
   if (!user?.uid) throw new Error('Please sign in to remove bookmarks.');
+  assertValidCalendarDateKey(dateKey);
   const bookmarkId = `${user.uid}_${dateKey}`;
   return deleteDoc(doc(db, 'calendarBookmarks', bookmarkId));
 }

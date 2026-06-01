@@ -1,7 +1,7 @@
 import { useFonts } from 'expo-font';
-import { PlayfairDisplay_400Regular } from '@expo-google-fonts/playfair-display/400Regular';
-import { PlayfairDisplay_600SemiBold } from '@expo-google-fonts/playfair-display/600SemiBold';
-import { PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display/700Bold';
+import { Sora_400Regular } from '@expo-google-fonts/sora/400Regular';
+import { Sora_600SemiBold } from '@expo-google-fonts/sora/600SemiBold';
+import { Sora_700Bold } from '@expo-google-fonts/sora/700Bold';
 import { Inter_400Regular } from '@expo-google-fonts/inter/400Regular';
 import { Inter_500Medium } from '@expo-google-fonts/inter/500Medium';
 import { Inter_600SemiBold } from '@expo-google-fonts/inter/600SemiBold';
@@ -10,9 +10,9 @@ import { Inter_800ExtraBold } from '@expo-google-fonts/inter/800ExtraBold';
 
 export function useAppFonts() {
   const [loaded, error] = useFonts({
-    PlayfairDisplay_400Regular,
-    PlayfairDisplay_600SemiBold,
-    PlayfairDisplay_700Bold,
+    Sora_400Regular,
+    Sora_600SemiBold,
+    Sora_700Bold,
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,

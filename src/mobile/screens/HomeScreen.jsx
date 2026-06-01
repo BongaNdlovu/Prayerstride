@@ -88,7 +88,7 @@ export default function HomeScreen({ onOpenPrayer, go }) {
           <Heading level="h2" style={styles.headline}>Who can you carry in prayer today?</Heading>
         </View>
         <Pressable onPress={() => go('notifications')} style={styles.bellBtn}>
-          <Bell size={20} color={colors.gold} />
+          <Bell size={20} color={colors.navy} />
         </Pressable>
       </View>
 
@@ -117,12 +117,12 @@ export default function HomeScreen({ onOpenPrayer, go }) {
       )}
 
       <View style={styles.statsGrid}>
-        <StatCard icon={Clock} value={todayTime} label="Prayer Time" sublabel="Today" />
-        <StatCard icon={Users} value={String(peopleHelpedThisMonth)} label="People Helped" sublabel="This Month" />
+        <StatCard icon={Clock} value={todayTime} label="Prayer Time" sublabel="Today" accent={colors.community} />
+        <StatCard icon={Users} value={String(peopleHelpedThisMonth)} label="People Helped" sublabel="This Month" accent={colors.emerald} />
       </View>
       <View style={styles.statsGrid}>
-        <StatCard icon={Flame} value={String(streak)} label="Day Streak" sublabel="Keep going" />
-        <StatCard icon={Timer} value={String(weeklySessions)} label="Prayer Sessions" sublabel="This Week" />
+        <StatCard icon={Flame} value={String(streak)} label="Day Streak" sublabel="Keep going" accent={colors.coral} />
+        <StatCard icon={Timer} value={String(weeklySessions)} label="Prayer Sessions" sublabel="This Week" accent={colors.gold} />
       </View>
 
       <PrayerSessionButton onPress={() => go('prayerStopwatch')} />
@@ -147,11 +147,11 @@ export default function HomeScreen({ onOpenPrayer, go }) {
 
 const styles = StyleSheet.create({
   topBar: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: spacing.lg, paddingTop: spacing.sm },
-  greeting: { color: colors.gold, marginBottom: spacing.xs },
+  greeting: { color: colors.gold, marginBottom: spacing.xs, fontFamily: fonts.sansSemiBold, letterSpacing: 1 },
   headline: { fontSize: 26, lineHeight: 32, maxWidth: 280 },
-  bellBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: alpha.ivory12 },
+  bellBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: alpha.navy08 },
   missionCard: { marginBottom: spacing.lg },
-  missionEyebrow: { letterSpacing: 2, color: colors.gold, marginBottom: spacing.md },
+  missionEyebrow: { letterSpacing: 2, color: colors.gold, marginBottom: spacing.md, fontFamily: fonts.sansSemiBold },
   missionRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.md },
   missionAvatar: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: alpha.gold22 },
   missionInfo: { flex: 1 },
@@ -161,6 +161,6 @@ const styles = StyleSheet.create({
   statsGrid: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.lg },
   sessionPulse: { marginBottom: spacing.lg },
   sectionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm },
-  viewAll: { color: colors.gold, fontFamily: fonts.sansSemiBold },
+  viewAll: { color: colors.navy, fontFamily: fonts.sansSemiBold },
   list: { marginTop: spacing.xs },
 });

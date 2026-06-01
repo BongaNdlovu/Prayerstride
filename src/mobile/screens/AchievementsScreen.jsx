@@ -70,8 +70,8 @@ export default function AchievementsScreen({ user, onBack }) {
               <Heading level="stat" style={styles.summaryPercent}>{Math.round(overallProgress * 100)}%</Heading>
               <BodyText variant="caption">{completedCount} of {achievements.length} completed</BodyText>
             </View>
-            <ProgressRing progress={overallProgress} size={72} strokeWidth={6}>
-              <Award size={22} color={colors.gold} />
+            <ProgressRing progress={overallProgress} size={72} strokeWidth={6} accent={colors.violet}>
+              <Award size={22} color={colors.violet} />
             </ProgressRing>
           </View>
         </GlassCard>
@@ -151,8 +151,8 @@ const styles = StyleSheet.create({
     backgroundColor: alpha.ivory12,
     overflow: 'hidden',
   },
-  progressFill: { height: 6, borderRadius: 3, backgroundColor: colors.gold },
-  progressFillCompleted: { backgroundColor: colors.goldLight },
+  progressFill: { height: 6, borderRadius: 3, backgroundColor: colors.violet },
+  progressFillCompleted: { backgroundColor: colors.violet },
   description: { marginTop: spacing.xs },
   laurelRow: {
     flexDirection: 'row',

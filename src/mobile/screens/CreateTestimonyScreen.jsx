@@ -32,8 +32,9 @@ export default function CreateTestimonyScreen({ user, linkedPrayerId, onDone }) 
       setTitle('');
       setBody('');
       setPrayerId(null);
-      if (onDone) onDone();
-      Alert.alert('Testimony shared', 'Your praise report is now in the community feed.');
+      Alert.alert('Testimony shared', 'Your praise report is now in the community feed.', [
+        { text: 'OK', onPress: () => { if (onDone) onDone(); } },
+      ]);
     } catch (error) {
       Alert.alert('Could not share testimony', error.message);
     } finally {
