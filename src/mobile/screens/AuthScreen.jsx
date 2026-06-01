@@ -24,6 +24,7 @@ import Heading from '../components/Heading';
 import BodyText from '../components/BodyText';
 import PrimaryButton from '../components/PrimaryButton';
 import GlassCard from '../components/GlassCard';
+import { resendGuardianApproval } from '../api';
 
 export default function AuthScreen({ mode: initialMode, onSignIn, onRegister, onResetPassword, onSwitchMode }) {
   const [mode, setMode] = useState(initialMode || 'signIn');
@@ -106,7 +107,21 @@ export default function AuthScreen({ mode: initialMode, onSignIn, onRegister, on
           && result.registration.guardianEmailSent !== true) {
           Alert.alert(
             'Guardian email delayed',
-            'Your account was created, but we could not send the guardian approval email. Please contact support@prayerstride.app.',
+            'Your account was created, but we could not send the guardian approval email.',
+            [
+              { text: 'Contact support', style: 'cancel' },
+              {
+                text: 'Retry email',
+                onPress: () => resendGuardianApproval()
+                  .then(({ guardianEmailSent }) => Alert.alert(
+                    guardianEmailSent ? 'Email sent' : 'Email still delayed',
+                    guardianEmailSent
+                      ? 'The guardian approval email has been sent.'
+                      : 'Please contact support@prayerstride.app.',
+                  ))
+                  .catch((error) => Alert.alert('Could not resend email', error.message)),
+              },
+            ],
           );
         }
       } else {
@@ -179,15 +194,13 @@ export default function AuthScreen({ mode: initialMode, onSignIn, onRegister, on
                   Are you a Seventh-day Adventist?
                 </BodyText>
               </Pressable>
-              {isSeventhDayAdventist && (
-                <View style={styles.fieldWrap}>
-                  <BodyText variant="label" style={styles.fieldLabel}>Church</BodyText>
-                  <View style={styles.inputRow}>
-                    <MapPin size={18} color={colors.gold} />
-                    <TextInput value={churchName} onChangeText={setChurchName} placeholder="Which church do you attend?" style={styles.input} placeholderTextColor={alpha.ivory55} />
-                  </View>
+              <View style={styles.fieldWrap}>
+                <BodyText variant="label" style={styles.fieldLabel}>Name of your church {isSeventhDayAdventist ? '' : '(optional)'}</BodyText>
+                <View style={styles.inputRow}>
+                  <MapPin size={18} color={colors.gold} />
+                  <TextInput value={churchName} onChangeText={setChurchName} placeholder="Write out the name of your church" style={styles.input} placeholderTextColor={alpha.ivory55} />
                 </View>
-              )}
+              </View>
             </>
           )}
           <View style={styles.fieldWrap}>
@@ -243,11 +256,14 @@ export default function AuthScreen({ mode: initialMode, onSignIn, onRegister, on
             </Pressable>
           ) : null}
         </GlassCard>
-        <Pressable onPress={toggleMode} style={styles.footerLink}>
-          <BodyText variant="small">
-            {isRegister ? 'Already have an account? ' : "Don't have an account? "}
-            <BodyText variant="small" style={styles.link}>{isRegister ? 'Sign In' : 'Create Account'}</BodyText>
-          </BodyText>
+        <Pressable
+          onPress={toggleMode}
+          style={styles.footerLink}
+          accessibilityRole="button"
+          accessibilityLabel={isRegister ? 'Sign in' : 'Create account'}
+        >
+          <BodyText variant="small">{isRegister ? 'Already have an account?' : "Don't have an account?"}</BodyText>
+          <BodyText variant="small" style={styles.link}>{isRegister ? 'Sign In' : 'Create Account'}</BodyText>
         </Pressable>
       </KeyboardAvoidingView>
     </ScreenScaffold>
@@ -276,5 +292,5 @@ const styles = StyleSheet.create({
   submit: { marginTop: spacing.xl },
   linkWrap: { alignItems: 'center', marginTop: spacing.md },
   link: { color: colors.gold, fontFamily: fonts.sansSemiBold },
-  footerLink: { alignItems: 'center', marginTop: spacing.xl, paddingVertical: spacing.md },
+  footerLink: { alignItems: 'center', gap: spacing.xs, marginTop: spacing.xl, paddingVertical: spacing.md },
 });

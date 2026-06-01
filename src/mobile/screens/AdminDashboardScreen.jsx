@@ -141,6 +141,7 @@ function AnalyticsPanel({ user }) {
 
   const m = metrics.metrics;
   const chartActivity = m.activityByDay?.slice(-14) || [];
+  const maxActivityCount = Math.max(...chartActivity.map((entry) => entry.count), 1);
   const retentionValue = metrics.windowTooShortForRetention ? '-' : `${m.retentionRate}%`;
 
   return (
@@ -174,8 +175,7 @@ function AnalyticsPanel({ user }) {
           <BodyText variant="caption" style={styles.chartTitle}>Request Activity (latest 14 active days)</BodyText>
           <View style={styles.chartBars}>
             {chartActivity.map((entry) => {
-              const maxCount = Math.max(...chartActivity.map((e) => e.count), 1);
-              const height = Math.max(4, (entry.count / maxCount) * 80);
+              const height = Math.max(4, (entry.count / maxActivityCount) * 80);
               return (
                 <View key={entry.day} style={styles.barWrap}>
                   <BodyText variant="caption" style={styles.barValue}>{entry.count}</BodyText>

@@ -40,8 +40,6 @@ export default {
     }
 
     try {
-      await enforceGlobalRateLimit(env, request, requestId);
-
       if (url.pathname === '/privacy') {
         return withCors(htmlResponse(privacyPageHtml()), env, request);
       }
@@ -55,18 +53,22 @@ export default {
         const response = await handleGuardianApprove(env, url);
         return withCors(response, env, request);
       }
+      if (url.pathname === '/' && request.method === 'GET') {
+        return withCors(json({ ok: true, service: 'prayerstride-api' }), env, request);
+      }
 
       if (url.pathname.startsWith('/api/')) {
+        await enforceGlobalRateLimit(env, request, requestId);
         const response = await handleApi(request, env, url, requestId);
         log(env, 'info', { requestId, status: response.status, durationMs: Date.now() - startTime }, 'response');
         return withCors(response, env, request);
       }
 
-      return withCors(json({ ok: true, service: 'prayerstride-api' }), env, request);
+      return withCors(json({ error: 'Not found' }, 404), env, request);
     } catch (error) {
       const status = Number(error.status || 500);
       const message = status >= 500 ? 'Unexpected server error' : (error.publicMessage || error.message || 'Request failed');
-      log(env, status >= 500 ? 'error' : 'warn', { requestId, status, message: error.message, stack: error.stack }, 'error');
+      log(env, status >= 500 ? 'error' : 'warn', { requestId, status, message: error.message }, 'error');
       return withCors(json({ error: message }, status), env, request);
     }
   },
@@ -75,15 +77,17 @@ export default {
     try {
       const purged = await purgeExpiredDeletionTombstones(env);
       log(env, 'info', { purged }, 'scheduled-tombstone-purge');
+      const purgedRateLimits = await purgeExpiredRateLimits(env);
+      log(env, 'info', { purged: purgedRateLimits }, 'scheduled-rate-limit-purge');
     } catch (error) {
-      log(env, 'error', { message: error.message, stack: error.stack }, 'scheduled-error');
+      log(env, 'error', { message: error.message }, 'scheduled-error');
     }
   },
 };
 
 async function handleApi(request, env, url, requestId) {
   const user = await verifyFirebaseUser(request, env);
-  const body = request.method === 'GET' ? {} : await request.json().catch(() => ({}));
+  const body = await parseJsonBody(request);
 
   let match = url.pathname.match(/^\/api\/account\/bootstrap-owner$/);
   if (match && request.method === 'POST') {
@@ -93,6 +97,11 @@ async function handleApi(request, env, url, requestId) {
   match = url.pathname.match(/^\/api\/account\/complete-registration$/);
   if (match && request.method === 'POST') {
     return completeRegistration(env, user, body);
+  }
+
+  match = url.pathname.match(/^\/api\/account\/resend-guardian-approval$/);
+  if (match && request.method === 'POST') {
+    return resendGuardianApproval(env, user);
   }
 
   match = url.pathname.match(/^\/api\/devices\/register$/);
@@ -172,43 +181,36 @@ async function handleApi(request, env, url, requestId) {
 
   match = url.pathname.match(/^\/api\/admin\/delete-content$/);
   if (match && request.method === 'POST') {
-    await requireAdmin(env, user);
     return adminDeleteContent(env, user, body);
   }
 
   match = url.pathname.match(/^\/api\/admin\/suspend-user$/);
   if (match && request.method === 'POST') {
-    await requireAdmin(env, user);
     return adminSuspendUser(env, user, body);
   }
 
   match = url.pathname.match(/^\/api\/admin\/delete-account$/);
   if (match && request.method === 'POST') {
-    await requireAdmin(env, user);
     return adminDeleteAccount(env, user, body);
   }
 
   match = url.pathname.match(/^\/api\/admin\/announcements\/create$/);
   if (match && request.method === 'POST') {
-    await requireAdmin(env, user);
     return adminCreateAnnouncement(env, user, body);
   }
 
   match = url.pathname.match(/^\/api\/admin\/announcements\/update$/);
   if (match && request.method === 'POST') {
-    await requireAdmin(env, user);
     return adminUpdateAnnouncement(env, user, body);
   }
 
   match = url.pathname.match(/^\/api\/admin\/announcements\/archive$/);
   if (match && request.method === 'POST') {
-    await requireAdmin(env, user);
     return adminArchiveAnnouncement(env, user, body);
   }
 
   match = url.pathname.match(/^\/api\/admin\/spiritual-engagement$/);
   if (match && request.method === 'GET') {
-    await requireAdmin(env, user);
     const days = normalizeEngagementDays(url.searchParams.get('days'));
     return spiritualEngagementMetrics(env, user, days);
   }
@@ -220,7 +222,29 @@ async function handleApi(request, env, url, requestId) {
     return deleteOwnAccount(env, user, idToken);
   }
 
-  return json({ error: 'Not found' }, 404);
+  return knownApiPath(url.pathname)
+    ? json({ error: 'Method not allowed' }, 405)
+    : json({ error: 'Not found' }, 404);
+}
+
+function knownApiPath(pathname) {
+  return [
+    /^\/api\/account(?:\/bootstrap-owner|\/complete-registration|\/resend-guardian-approval)?$/,
+    /^\/api\/devices\/register$/,
+    /^\/api\/prayers(?:\/[^/]+(?:\/update|\/mark-answered|\/pray)?)?$/,
+    /^\/api\/testimonies(?:\/[^/]+(?:\/update|\/react)?)?$/,
+    /^\/api\/blocks(?:\/[^/]+)?$/,
+    /^\/api\/admin\/(?:delete-content|suspend-user|delete-account|spiritual-engagement|announcements\/(?:create|update|archive))$/,
+  ].some((pattern) => pattern.test(pathname));
+}
+
+async function parseJsonBody(request) {
+  if (request.method === 'GET' || request.method === 'HEAD' || request.method === 'DELETE') return {};
+  try {
+    return await request.json();
+  } catch {
+    throw Object.assign(new Error('Malformed JSON body'), { status: 400, publicMessage: 'Malformed JSON body' });
+  }
 }
 
 async function completeRegistration(env, user, body) {
@@ -373,6 +397,34 @@ async function sendGuardianApprovalEmail(env, { guardianEmail, token, displayNam
   });
 }
 
+async function resendGuardianApproval(env, user) {
+  const profile = await getUserProfile(env, user.uid);
+  if (!profile) return json({ error: 'User profile not found.' }, 404);
+  if (profile.communityAccess !== 'pending_guardian' || !isValidEmail(profile.guardianEmail)) {
+    return json({ error: 'Guardian approval is not pending for this account.' }, 400);
+  }
+  const token = crypto.randomUUID();
+  const tokenId = await hashToken(token);
+  const now = new Date().toISOString();
+  await firestoreCommit(env, [{
+    update: {
+      name: docName(env, 'guardianApprovals', tokenId),
+      fields: toFirestoreFields({
+        uid: user.uid,
+        guardianEmail: profile.guardianEmail,
+        expiresAt: new Date(Date.now() + 2 * 86400000).toISOString(),
+        createdAt: now,
+      }),
+    },
+  }]);
+  const guardianEmailSent = await sendGuardianApprovalEmail(env, {
+    guardianEmail: profile.guardianEmail,
+    token,
+    displayName: profile.displayName || user.email,
+  });
+  return json({ ok: true, guardianEmailSent });
+}
+
 function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, (character) => ({
     '&': '&amp;',
@@ -407,13 +459,21 @@ async function sendResendEmail(env, { to, subject, html }) {
 
 async function checkCommunityAccess(env, uid) {
   const profile = await getUserProfile(env, uid);
+  if (!profile) {
+    throw Object.assign(new Error('User profile not found'), { status: 403, publicMessage: 'Complete registration required' });
+  }
   if (profile.registrationState === 'pending_completion') {
     throw Object.assign(
       new Error('Complete registration before using community features.'),
       { status: 403, publicMessage: 'Complete registration required' },
     );
   }
-  const access = profile.communityAccess ?? 'active';
+  const access = profile.communityAccess;
+  if (access !== 'active') {
+    if (!access) {
+      throw Object.assign(new Error('Complete registration before using community features.'), { status: 403, publicMessage: 'Complete registration required' });
+    }
+  }
   if (access === 'pending_guardian') {
     throw Object.assign(
       new Error('Guardian approval is required before you can use community features.'),
@@ -421,6 +481,12 @@ async function checkCommunityAccess(env, uid) {
     );
   }
   if (access === 'blocked') {
+    throw Object.assign(
+      new Error('Community features are not available for this account.'),
+      { status: 403, publicMessage: 'Community access unavailable' },
+    );
+  }
+  if (access !== 'active') {
     throw Object.assign(
       new Error('Community features are not available for this account.'),
       { status: 403, publicMessage: 'Community access unavailable' },
@@ -471,12 +537,12 @@ async function bootstrapOwner(env, user) {
 
 async function getUserProfile(env, uid) {
   const userDoc = await getDocument(env, docName(env, 'users', uid));
-  return userDoc.exists ? fromFirestoreFields(userDoc.fields) : {};
+  return userDoc.exists ? fromFirestoreFields(userDoc.fields) : null;
 }
 
 function resolveAuthorName(profile, user, isAnonymous) {
   if (isAnonymous) return 'Anonymous';
-  return profile.displayName || user.email || 'PrayerStride member';
+  return profile?.displayName || user.email || 'PrayerStride member';
 }
 
 function moderationBlocklist(env) {
@@ -702,8 +768,13 @@ async function deleteTestimony(env, user, testimonyId) {
 async function deleteContentAndActions(env, collectionName, contentDoc) {
   const subcollectionName = collectionName === 'prayers' ? 'prays' : 'reactions';
   const actionDocs = await listDocuments(env, docName(env, collectionName, dataId(contentDoc), subcollectionName));
+  const notificationDocs = await listDocuments(env, docName(env, 'notifications'));
+  const relatedId = dataId(contentDoc);
   await commitInChunks(env, [
     ...actionDocs.map((document) => ({ delete: document.name })),
+    ...notificationDocs
+      .filter((document) => fromFirestoreFields(document.fields || {}).relatedId === relatedId)
+      .map((document) => ({ delete: document.name })),
     { delete: contentDoc.name },
   ]);
 }
@@ -761,6 +832,7 @@ async function unblockUser(env, user, blockedUid) {
 
 function isoWeekKey(isoDate) {
   const date = new Date(isoDate);
+  if (Number.isNaN(date.getTime())) throw Object.assign(new Error('Invalid date'), { status: 400 });
   const utc = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
   const day = utc.getUTCDay() || 7;
   utc.setUTCDate(utc.getUTCDate() + 4 - day);
@@ -1004,7 +1076,14 @@ function validateAnnouncementFields(body, requireId = false) {
   if (!ANNOUNCEMENT_CATEGORIES.includes(body.category)) {
     return { error: 'category must be events, prayer, or updates' };
   }
+  if (!isIsoDate(body.startsAt) || (body.endsAt && !isIsoDate(body.endsAt))) {
+    return { error: 'startsAt and endsAt must be valid ISO timestamps' };
+  }
   return null;
+}
+
+function isIsoDate(value) {
+  return typeof value === 'string' && !Number.isNaN(new Date(value).getTime());
 }
 
 async function adminCreateAnnouncement(env, user, body) {
@@ -1219,6 +1298,11 @@ async function collectUserDeletionWrites(env, uid) {
   await processCollection('testimonies', (d) => d.authorUid === uid);
   await processOwnedActionCollection('prays');
   await processOwnedActionCollection('reactions');
+  const followingReferences = await runCollectionGroupQuery(env, 'following');
+  for (const d of followingReferences) {
+    const data = fromFirestoreFields(d.fields || {});
+    if ([data.followedUid, data.uid, data.targetUid].includes(uid)) addDelete(d.name);
+  }
   await processCollection('encouragements', (d) => d.authorUid === uid);
   await processCollection('prayerSessions', (d) => d.authorUid === uid);
   await processCollection('calendarEvents', (d) => d.ownerUid === uid);
@@ -1330,6 +1414,19 @@ async function purgeExpiredDeletionTombstones(env) {
   return writes.length;
 }
 
+async function purgeExpiredRateLimits(env) {
+  const docs = await listDocuments(env, docName(env, 'apiRateLimits'));
+  const cutoff = Date.now() - 86400000;
+  const writes = docs
+    .filter((document) => {
+      const updatedAt = fromFirestoreFields(document.fields || {}).updatedAt;
+      return updatedAt && new Date(updatedAt).getTime() < cutoff;
+    })
+    .map((document) => ({ delete: document.name }));
+  if (writes.length) await commitInChunks(env, writes);
+  return writes.length;
+}
+
 function decodeJwtPayload(token) {
   try {
     const part = String(token || '').split('.')[1];
@@ -1362,10 +1459,17 @@ function notificationWrite(env, recipientUid, notification) {
 
 async function sendPushToUser(env, uid, payload) {
   const devices = await listDocuments(env, docName(env, 'users', uid, 'devices'));
-  const tokens = devices
-    .map((document) => ({ token: fromFirestoreFields(document.fields).token, name: document.name }))
-    .filter((device) => device.token)
-    .filter(Boolean);
+  const staleCutoff = Date.now() - 90 * 86400000;
+  const mappedDevices = devices
+    .map((document) => ({ ...fromFirestoreFields(document.fields), name: document.name }))
+    .filter((device) => device.token);
+  const staleDevices = mappedDevices
+    .filter((device) => device.updatedAt && new Date(device.updatedAt).getTime() < staleCutoff);
+  if (staleDevices.length) {
+    await commitInChunks(env, staleDevices.map((device) => ({ delete: device.name })));
+  }
+  const tokens = mappedDevices
+    .filter((device) => !device.updatedAt || new Date(device.updatedAt).getTime() >= staleCutoff);
 
   await Promise.all(tokens.map(async (device) => {
     let lastError = null;
@@ -1410,7 +1514,7 @@ async function sendFcm(env, token, payload) {
   if (!response.ok) {
     const result = await response.json().catch(() => ({}));
     const status = result.error?.status || '';
-    if (['NOT_FOUND', 'INVALID_ARGUMENT', 'UNREGISTERED'].includes(status)) {
+    if (['NOT_FOUND', 'INVALID_ARGUMENT', 'UNREGISTERED', 'SENDER_ID_MISMATCH', 'THIRD_PARTY_AUTH_ERROR'].includes(status)) {
       throw Object.assign(new Error('Invalid FCM token'), { invalidToken: true });
     }
     throw new Error(result.error?.message || 'FCM send failed');
@@ -1595,7 +1699,10 @@ async function spiritualEngagementMetrics(env, user, days) {
   const cutoffISO = new Date(now.getTime() - days * 86400000).toISOString();
 
   // 1. Query all prayers created in the window (collection-group on prayers)
-  const prayerDocs = await runCollectionGroupQuery(env, 'prayers', [
+  let prayerDocs;
+  let prayDocs;
+  try {
+    prayerDocs = await runCollectionGroupQuery(env, 'prayers', [
     {
       fieldFilter: {
         field: { fieldPath: 'createdAt' },
@@ -1605,29 +1712,40 @@ async function spiritualEngagementMetrics(env, user, days) {
     },
   ], [
     { field: { fieldPath: 'createdAt' }, direction: 'DESCENDING' },
-  ], ['authorUid', 'createdAt']);
+    ], ['authorUid', 'createdAt']);
+
+    prayDocs = await runCollectionGroupQuery(env, 'prays', [
+      {
+        fieldFilter: {
+          field: { fieldPath: 'createdAt' },
+          op: 'GREATER_THAN_OR_EQUAL',
+          value: { timestampValue: cutoffISO },
+        },
+      },
+    ], [
+      { field: { fieldPath: 'createdAt' }, direction: 'DESCENDING' },
+    ], ['uid', 'prayerId', 'createdAt']);
+  } catch (error) {
+    log(env, 'warn', { message: error.message }, 'analytics-query-fallback');
+    prayerDocs = (await listDocuments(env, docName(env, 'prayers')))
+      .filter((d) => fromFirestoreFields(d.fields || {}).createdAt >= cutoffISO);
+    const nestedPrays = await Promise.all(prayerDocs.map(async (d) => {
+      const prayerId = dataId(d);
+      const docs = await listDocuments(env, docName(env, 'prayers', prayerId, 'prays'));
+      return docs.map((pray) => ({ ...pray, prayerId }));
+    }));
+    prayDocs = nestedPrays.flat()
+      .filter((d) => fromFirestoreFields(d.fields || {}).createdAt >= cutoffISO);
+  }
 
   const prayers = prayerDocs.map((d) => ({
     id: d.name.split('/').pop(),
     ...fromFirestoreFields(d.fields),
   }));
 
-  // 2. Query all pray actions in the window (collection-group on prays)
-  const prayDocs = await runCollectionGroupQuery(env, 'prays', [
-    {
-      fieldFilter: {
-        field: { fieldPath: 'createdAt' },
-        op: 'GREATER_THAN_OR_EQUAL',
-        value: { timestampValue: cutoffISO },
-      },
-    },
-  ], [
-    { field: { fieldPath: 'createdAt' }, direction: 'DESCENDING' },
-  ], ['uid', 'prayerId', 'createdAt']);
-
   const prays = prayDocs.map((d) => ({
     id: d.name.split('/').pop(),
-    prayerId: d.name.split('/documents/')[1]?.split('/prays/')[0]?.split('/').pop() || '',
+    prayerId: d.prayerId || (d.name.split('/documents/')[1]?.split('/prays/')[0]?.split('/').pop() || ''),
     ...fromFirestoreFields(d.fields),
   }));
 
@@ -1663,7 +1781,8 @@ async function enforceCooldown(env, uid, action, seconds) {
 }
 
 async function enforceGlobalRateLimit(env, request, requestId) {
-  const maxPerMinute = Number(env.RATE_LIMIT_PER_MINUTE || 120);
+  const configuredLimit = Number(env.RATE_LIMIT_PER_MINUTE);
+  const maxPerMinute = Number.isFinite(configuredLimit) && configuredLimit > 0 ? configuredLimit : 120;
   const clientIp = request.headers.get('CF-Connecting-IP') || 'unknown';
   const ipKey = await hashToken(`rate:ip:${clientIp}`);
   const rateDoc = docName(env, 'apiRateLimits', ipKey);

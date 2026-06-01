@@ -1,6 +1,7 @@
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
+import { warn } from './logger';
 import { Platform } from 'react-native';
 import { registerDevice } from './api';
 
@@ -13,7 +14,7 @@ try {
     }),
   });
 } catch (e) {
-  console.warn('Failed to set notification handler', e);
+  warn('Failed to set notification handler', e);
 }
 
 export async function registerForPushNotifications() {

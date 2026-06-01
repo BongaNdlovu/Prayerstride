@@ -82,6 +82,11 @@ describe('native UI kit', () => {
     expect(source.default).not.toMatch(/react-native-svg/);
   });
 
+  it('testimony reaction taps do not bubble into the card navigation action', async () => {
+    const source = await import('../components/TestimonyCard.jsx?raw');
+    expect(source.default).toMatch(/event\.stopPropagation\(\)/);
+  });
+
   it('configures bundled and web logo assets without duplicating native Android config', async () => {
     const source = await import('../../../app.json?raw');
     expect(source.default).toMatch(/"assets\/icon\.png"/);

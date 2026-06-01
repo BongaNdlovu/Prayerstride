@@ -20,6 +20,7 @@ import Heading from '../components/Heading';
 import BodyText from '../components/BodyText';
 import PrimaryButton from '../components/PrimaryButton';
 import MotionPressable from '../components/MotionPressable';
+import { warn } from '../logger';
 
 function Tag({ label, tone = 'default' }) {
   return (
@@ -48,12 +49,13 @@ function AvatarStack({ count, authorName }) {
 }
 
 export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh }) {
+  if (!prayer) return null;
   const [prayed, setPrayed] = useState(false);
   const [prayerCountDelta, setPrayerCountDelta] = useState(0);
   const [bookmarked, setBookmarked] = useState(false);
   const [showActions, setShowActions] = useState(false);
   const isOwner = user && prayer.authorUid === user.uid;
-  const prayedCount = prayer.prayedCount + prayerCountDelta;
+  const prayedCount = Number(prayer.prayedCount || 0) + prayerCountDelta;
 
   useEffect(() => {
     loadBookmark();
@@ -68,7 +70,7 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
       setPrayed(saved === 'true');
       setPrayerCountDelta(0);
     } catch (error) {
-      console.warn('Failed to load prayer status', error);
+      warn('Failed to load prayer status', error);
     }
   };
 
@@ -78,7 +80,7 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
       const saved = await AsyncStorage.getItem(key);
       setBookmarked(saved === 'true');
     } catch (error) {
-      console.warn('Failed to load bookmark', error);
+      warn('Failed to load bookmark', error);
     }
   };
 

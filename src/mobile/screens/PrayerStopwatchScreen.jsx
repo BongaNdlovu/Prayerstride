@@ -39,11 +39,9 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, us
   }, [running]);
 
   const startPause = () => {
-    setRunning((wasRunning) => {
-      const next = !wasRunning;
-      if (!next && seconds > 0) setReadyToLog(true);
-      return next;
-    });
+    const next = !running;
+    setRunning(next);
+    if (!next && seconds > 0) setReadyToLog(true);
   };
 
   const resetTimer = () => {

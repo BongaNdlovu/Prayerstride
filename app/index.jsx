@@ -13,6 +13,7 @@ import { colors, alpha, radii, spacing } from '../src/mobile/theme';
 import { registerForPushNotifications } from '../src/mobile/notifications';
 import { back, createNavState, go, reset } from '../src/mobile/navigation';
 import { useSuspendedStatus } from '../src/mobile/useIsAdmin';
+import { warn } from '../src/mobile/logger';
 import BottomTabs from '../src/mobile/components/BottomTabs';
 import ScreenScaffold from '../src/mobile/components/ScreenScaffold';
 import AccountSuspendedScreen from '../src/mobile/screens/AccountSuspendedScreen';
@@ -68,7 +69,7 @@ export default function MobileApp() {
   useEffect(() => {
     if (!user) return;
     registerForPushNotifications().catch((error) => {
-      console.warn('Push registration failed', error);
+      warn('Push registration failed', error);
     });
   }, [user]);
 
@@ -87,7 +88,7 @@ export default function MobileApp() {
     }
 
     if (AUTH_ROUTES.includes(screen) || screen === 'splash') setNav(reset('home'));
-  }, [user, loading, suspended]);
+  }, [user, loading, suspended, nav.screen]);
 
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -157,8 +158,12 @@ function renderScreen(screen, params, user, suspended, suspendedReason, signIn, 
     case 'praise': return <PraiseScreen onOpenTestimony={(t) => goFn('praiseDetail', { testimony: t })} />;
     case 'myStats': return <MyStatsScreen user={user} go={goFn} onBack={() => backFn('profile')} />;
     case 'profile': return <ProfileScreen user={user} signOut={signOut} go={goFn} />;
-    case 'detail': return <PrayerDetailScreen prayer={params.prayer} user={user} onBack={() => backFn('discover')} go={goFn} />;
-    case 'praiseDetail': return <PraiseDetailScreen testimony={params.testimony} onBack={() => backFn('praise')} />;
+    case 'detail': return params.prayer
+      ? <PrayerDetailScreen prayer={params.prayer} user={user} onBack={() => backFn('discover')} go={goFn} />
+      : <PlaceholderScreen screen="Prayer unavailable" onBack={() => backFn('discover')} />;
+    case 'praiseDetail': return params.testimony
+      ? <PraiseDetailScreen testimony={params.testimony} onBack={() => backFn('praise')} />
+      : <PlaceholderScreen screen="Praise report unavailable" onBack={() => backFn('praise')} />;
     case 'createTestimony': return <CreateTestimonyScreen user={user} linkedPrayerId={params.prayerId} onDone={() => backFn('praise')} />;
     case 'editRequest': return <EditRequestScreen prayer={params.prayer} user={user} onDone={() => backFn('myPrayers')} />;
     case 'prayerStopwatch': return <PrayerStopwatchScreen prayerId={params.prayerId} title={params.title} user={user} onBack={() => backFn('myStats')} onDone={() => backFn('myStats')} />;

@@ -7,13 +7,15 @@ import Animated, {
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
-import { Bell, ChevronRight, Clock, Timer, Users } from 'lucide-react-native';
+import { Bell, ChevronRight, Clock, Flame, Timer, Users } from 'lucide-react-native';
 import { alpha, colors, fonts, spacing } from '../theme';
 import { auth } from '../firebase';
 import { usePrayers } from '../usePrayerData';
 import { usePrayerSessions } from '../usePrayerSessions';
 import {
   countUniqueAuthorsThisMonth,
+  buildWeeklyStats,
+  calculateStreak,
   formatPrayerTime,
   todaySeconds,
 } from '../sessionStats';
@@ -68,6 +70,11 @@ export default function HomeScreen({ onOpenPrayer, go }) {
   };
   const recentPrayers = prayers.slice(0, 3);
   const todayTime = useMemo(() => formatPrayerTime(todaySeconds(sessions)), [sessions]);
+  const streak = useMemo(() => calculateStreak(sessions), [sessions]);
+  const weeklySessions = useMemo(
+    () => buildWeeklyStats(sessions).reduce((sum, day) => sum + day.prayers, 0),
+    [sessions],
+  );
   const peopleHelpedThisMonth = useMemo(
     () => countUniqueAuthorsThisMonth(prayers),
     [prayers],
@@ -112,6 +119,10 @@ export default function HomeScreen({ onOpenPrayer, go }) {
       <View style={styles.statsGrid}>
         <StatCard icon={Clock} value={todayTime} label="Prayer Time" sublabel="Today" />
         <StatCard icon={Users} value={String(peopleHelpedThisMonth)} label="People Helped" sublabel="This Month" />
+      </View>
+      <View style={styles.statsGrid}>
+        <StatCard icon={Flame} value={String(streak)} label="Day Streak" sublabel="Keep going" />
+        <StatCard icon={Timer} value={String(weeklySessions)} label="Prayer Sessions" sublabel="This Week" />
       </View>
 
       <PrayerSessionButton onPress={() => go('prayerStopwatch')} />

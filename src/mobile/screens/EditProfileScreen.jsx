@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, Image, KeyboardAvoidingView, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { Camera } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
@@ -27,7 +27,7 @@ function normalizeHandle(value) {
 }
 
 function getUploadErrorMessage(error) {
-  if (error?.code === 'storage/quota-exceeded') {
+  if (error?.code === 'storage/quota-exceeded' || /quota.*exceeded/i.test(error?.message || '')) {
     return 'Profile photo uploads are temporarily unavailable because storage capacity has been reached. You can still save your profile details and try the photo again later.';
   }
   if (error?.code === 'storage/unauthorized') {
@@ -46,6 +46,13 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [busy, setBusy] = useState(false);
+  const uploadControllerRef = useRef(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => () => {
+    mountedRef.current = false;
+    uploadControllerRef.current?.abort();
+  }, []);
 
   useEffect(() => {
     if (!profile) return;
@@ -71,7 +78,10 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
     setBusy(true);
     try {
       const asset = result.assets[0];
-      const response = await fetch(asset.uri);
+      uploadControllerRef.current?.abort();
+      const controller = new AbortController();
+      uploadControllerRef.current = controller;
+      const response = await fetch(asset.uri, { signal: controller.signal });
       const blob = await response.blob();
       if (blob.size >= MAX_AVATAR_BYTES) {
         Alert.alert('Photo too large', 'Choose an image smaller than 2 MB and try again.');
@@ -80,11 +90,13 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
       const fileRef = ref(storage, `avatars/${user.uid}/profile.jpg`);
       await uploadBytes(fileRef, blob, { contentType: blob.type || 'image/jpeg' });
       const downloadUrl = await getDownloadURL(fileRef);
-      setPhotoURL(downloadUrl);
+      if (mountedRef.current) setPhotoURL(downloadUrl);
     } catch (error) {
+      if (error?.name === 'AbortError') return;
       Alert.alert('Upload failed', getUploadErrorMessage(error));
     } finally {
-      setBusy(false);
+      uploadControllerRef.current = null;
+      if (mountedRef.current) setBusy(false);
     }
   };
 
@@ -94,11 +106,13 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
       return;
     }
     setBusy(true);
+    const previousProfile = {
+      displayName: profile?.displayName || user?.displayName || '',
+      handle: profile?.handle || null,
+      bio: profile?.bio || null,
+      photoURL: profile?.photoURL || user?.photoURL || null,
+    };
     try {
-      await updateProfile(auth.currentUser, {
-        displayName: name.trim(),
-        photoURL: photoURL || null,
-      });
       await updateDoc(doc(db, 'users', user.uid), {
         displayName: name.trim(),
         handle: normalizeHandle(handle),
@@ -106,6 +120,18 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
         photoURL: photoURL || null,
         updatedAt: serverTimestamp(),
       });
+      try {
+        await updateProfile(auth.currentUser, {
+          displayName: name.trim(),
+          photoURL: photoURL || null,
+        });
+      } catch (error) {
+        await updateDoc(doc(db, 'users', user.uid), {
+          ...previousProfile,
+          updatedAt: serverTimestamp(),
+        }).catch(() => {});
+        throw error;
+      }
       if (onDone) onDone();
       Alert.alert('Profile updated', 'Your profile has been saved.');
     } catch (error) {

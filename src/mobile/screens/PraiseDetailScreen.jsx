@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 import { Heart, Star } from 'lucide-react-native';
 import { alpha, colors, fonts, radii, spacing } from '../theme';
@@ -22,6 +22,11 @@ function ReactionButton({ label, count, onPress }) {
 export default function PraiseDetailScreen({ testimony, onBack }) {
   const [praiseGod, setPraiseGod] = useState(testimony.praiseGod || 0);
   const [amen, setAmen] = useState(testimony.amen || 0);
+
+  useEffect(() => {
+    setPraiseGod(testimony.praiseGod || 0);
+    setAmen(testimony.amen || 0);
+  }, [testimony.id, testimony.praiseGod, testimony.amen]);
 
   const react = async (key) => {
     try {

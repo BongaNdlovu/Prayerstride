@@ -34,6 +34,13 @@ export function completeRegistration(payload) {
   });
 }
 
+export function resendGuardianApproval() {
+  return apiFetch('/api/account/resend-guardian-approval', {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
+
 export function registerDevice(payload) {
   return apiFetch('/api/devices/register', {
     method: 'POST',

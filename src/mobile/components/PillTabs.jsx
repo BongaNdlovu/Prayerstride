@@ -6,6 +6,7 @@ export default function PillTabs({ tabs, active, onChange, style }) {
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
+      style={styles.scroll}
       contentContainerStyle={[styles.row, style]}
     >
       {tabs.map((tab) => {
@@ -25,23 +26,26 @@ export default function PillTabs({ tabs, active, onChange, style }) {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', gap: spacing.sm, paddingVertical: spacing.sm },
+  scroll: { flexGrow: 0, flexShrink: 0 },
+  row: { flexDirection: 'row', gap: spacing.xs, paddingVertical: spacing.xs },
   pill: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: radii.pill,
+    minHeight: 34,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.lg,
     borderWidth: 1,
     borderColor: alpha.ivory16,
-    backgroundColor: alpha.ivory10,
+    backgroundColor: 'transparent',
   },
   pillActive: {
-    backgroundColor: colors.gold,
+    backgroundColor: alpha.gold22,
     borderColor: colors.gold,
   },
   text: {
     fontFamily: fonts.sansSemiBold,
-    fontSize: 13,
+    fontSize: 12,
     color: alpha.ivory62,
   },
-  textActive: { color: colors.ink },
+  textActive: { color: colors.gold },
 });

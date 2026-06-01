@@ -6,12 +6,13 @@ import { AuthProvider } from '../src/mobile/AuthProvider';
 import { ErrorBoundary } from '../src/mobile/ErrorBoundary';
 import { useAppFonts } from '../src/mobile/useAppFonts';
 import { colors } from '../src/mobile/theme';
+import { warn } from '../src/mobile/logger';
 
 function FontGate({ children }) {
   const { loaded, error } = useAppFonts();
 
   if (error) {
-    console.warn('Font loading failed, using system fonts', error);
+    warn('Font loading failed, using system fonts', error);
     return children;
   }
 

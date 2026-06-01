@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
-import { ChevronRight, Moon } from 'lucide-react-native';
+import { Alert, StyleSheet, View } from 'react-native';
+import { Moon } from 'lucide-react-native';
 import { alpha, colors, spacing } from '../theme';
 import { useNotificationSettings, updateNotificationSettings } from '../useNotificationSettings';
 import { registerForPushNotifications } from '../notifications';
@@ -75,7 +75,7 @@ export default function NotificationSettingsScreen({ user, onBack }) {
           onToggle={(v) => { setPushEnabled(v); save('pushEnabled', v); }}
           style={styles.toggleBorderless}
         />
-        <Pressable style={styles.quietRow}>
+        <View style={styles.quietRow}>
           <View style={styles.quietIcon}>
             <Moon size={18} color={colors.gold} />
           </View>
@@ -83,8 +83,7 @@ export default function NotificationSettingsScreen({ user, onBack }) {
             <BodyText variant="label">Quiet Hours</BodyText>
             <BodyText variant="caption">10 PM – 7 AM · Notifications paused</BodyText>
           </View>
-          <ChevronRight size={18} color={alpha.ivory55} />
-        </Pressable>
+        </View>
       </GlassCard>
       </AsyncState>
     </ScreenScaffold>

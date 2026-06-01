@@ -2,6 +2,16 @@ const LEGAL_OPERATOR_NAME = 'PrayerStride';
 const SERVICE_ADDRESS = 'Service address available upon lawful request';
 const SUPPORT_EMAIL = 'support@prayerstride.app';
 
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  })[character]);
+}
+
 function pageShell(title, bodyHtml) {
   return `<!DOCTYPE html>
 <html lang="en">
@@ -110,7 +120,7 @@ export function guardianApprovedPageHtml() {
 export function guardianInvalidPageHtml(message) {
   return pageShell('Guardian Approval', `
     <h1>Unable to approve</h1>
-    <p>${message}</p>
+    <p>${escapeHtml(message)}</p>
     <p>Contact <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a> if you need help.</p>
   `);
 }

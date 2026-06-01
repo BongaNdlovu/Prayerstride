@@ -1,6 +1,7 @@
 import { Component } from 'react';
 import { Pressable, SafeAreaView, Text, View } from 'react-native';
 import { alpha, colors, radii, spacing } from './theme';
+import { error as logError } from './logger';
 
 export class ErrorBoundary extends Component {
   constructor(props) {
@@ -13,7 +14,7 @@ export class ErrorBoundary extends Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error('ErrorBoundary caught', error, errorInfo);
+    logError('ErrorBoundary caught', error, errorInfo);
   }
 
   handleRetry = () => {

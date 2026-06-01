@@ -4,6 +4,7 @@ import { getAuth, getReactNativePersistence, initializeAuth } from '@firebase/au
 
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
+import { warn } from './logger';
 
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
@@ -23,7 +24,7 @@ try {
   authInstance = initializeAuth(app, { persistence: authPersistence });
 } catch (e) {
   if (e?.code !== 'auth/already-initialized') throw e;
-  console.warn('Auth already initialized, reusing existing instance');
+  warn('Auth already initialized, reusing existing instance');
   authInstance = getAuth(app);
 }
 export const auth = authInstance;

@@ -30,20 +30,24 @@ export function useBlocks(enabled = true) {
     refresh();
   }, [refresh]);
 
+  const isBlocked = useCallback((uid) => blockedUids.includes(uid), [blockedUids]);
+  const block = useCallback(async (uid) => {
+    await blockUser(uid);
+    await refresh();
+  }, [refresh]);
+  const unblock = useCallback(async (uid) => {
+    await unblockUser(uid);
+    await refresh();
+  }, [refresh]);
+
   return {
     blockedUids,
     loading,
     error,
     refresh,
-    isBlocked: (uid) => blockedUids.includes(uid),
-    blockUser: async (uid) => {
-      await blockUser(uid);
-      await refresh();
-    },
-    unblockUser: async (uid) => {
-      await unblockUser(uid);
-      await refresh();
-    },
+    isBlocked,
+    blockUser: block,
+    unblockUser: unblock,
   };
 }
 

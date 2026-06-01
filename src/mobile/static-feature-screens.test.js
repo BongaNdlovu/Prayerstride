@@ -67,4 +67,16 @@ describe('static feature screens', () => {
     expect(source.default).toMatch(/readyToLog/);
     expect(source.default).toMatch(/disabled=\{busy\}/);
   });
+
+  it('notification quiet hours are presented as static text until configuration is implemented', async () => {
+    const source = await import('./screens/NotificationSettingsScreen.jsx?raw');
+    expect(source.default).toMatch(/<View style=\{styles\.quietRow\}>/);
+    expect(source.default).not.toMatch(/<Pressable style=\{styles\.quietRow\}>/);
+  });
+
+  it('Praise screen passes card navigation directly without nesting press targets', async () => {
+    const source = await import('./screens/PraiseScreen.jsx?raw');
+    expect(source.default).toMatch(/onPress=\{\(\) => onOpenTestimony\?\.\(testimony\)\}/);
+    expect(source.default).not.toMatch(/<Pressable key=\{testimony\.id\}/);
+  });
 });

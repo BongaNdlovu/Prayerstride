@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
 import { alpha, spacing } from '../theme';
 import { useTestimonies } from '../usePrayerData';
 import { filterBlockedItems, useBlocks } from '../useBlocks';
@@ -72,16 +72,16 @@ export default function PraiseScreen({ onOpenTestimony }) {
       >
         <View style={styles.list}>
           {visible.map((testimony) => (
-            <Pressable key={testimony.id} onPress={() => onOpenTestimony?.(testimony)}>
-              <TestimonyCard
-                testimony={{
-                  ...testimony,
-                  praiseGod: Number(testimony.praiseGod || 0) + (reacted[`${testimony.id}:praiseGod`] ? 1 : 0),
-                  amen: Number(testimony.amen || 0) + (reacted[`${testimony.id}:amen`] ? 1 : 0),
-                }}
-                onReact={react}
-              />
-            </Pressable>
+            <TestimonyCard
+              key={testimony.id}
+              testimony={{
+                ...testimony,
+                praiseGod: Number(testimony.praiseGod || 0) + (reacted[`${testimony.id}:praiseGod`] ? 1 : 0),
+                amen: Number(testimony.amen || 0) + (reacted[`${testimony.id}:amen`] ? 1 : 0),
+              }}
+              onPress={() => onOpenTestimony?.(testimony)}
+              onReact={react}
+            />
           ))}
         </View>
       </AsyncState>

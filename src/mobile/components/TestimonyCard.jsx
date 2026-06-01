@@ -26,7 +26,13 @@ export default function TestimonyCard({ testimony, onPress, onReact }) {
             <Text style={styles.authorName}>{testimony.authorName || 'Anonymous'}</Text>
           </View>
           {onReact ? (
-            <Pressable onPress={() => onReact(testimony.id, 'praiseGod')} style={styles.likeBtn}>
+            <Pressable
+              onPress={(event) => {
+                event.stopPropagation();
+                onReact(testimony.id, 'praiseGod');
+              }}
+              style={styles.likeBtn}
+            >
               <Heart size={16} color={colors.gold} />
               <Text style={styles.likeCount}>{testimony.praiseGod || testimony.likes || 0}</Text>
             </Pressable>

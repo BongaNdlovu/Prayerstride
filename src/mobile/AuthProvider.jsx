@@ -16,6 +16,7 @@ import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import { bootstrapOwner, completeRegistration, deleteOwnAccount } from './api';
 import { PRIVACY_VERSION, TERMS_VERSION } from './legal';
+import { error as logError } from './logger';
 
 const AuthContext = createContext(null);
 const MIN_PASSWORD_LENGTH = 12;
@@ -36,7 +37,7 @@ export function AuthProvider({ children }) {
       }
     },
     (error) => {
-      console.error('Auth state change error', error);
+      logError('Auth state change error', error);
       setLoading(false);
     },
   ), []);
