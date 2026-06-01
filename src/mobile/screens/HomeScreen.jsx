@@ -74,7 +74,10 @@ export default function HomeScreen({ onOpenPrayer, go }) {
     retry: retryStats,
   } = useGamification(uid, Boolean(uid));
 
-  const visiblePrayers = useMemo(() => filterBlockedItems(prayers, blockedUids), [prayers, blockedUids]);
+  const visiblePrayers = useMemo(
+    () => (blocksLoading ? [] : filterBlockedItems(prayers, blockedUids)),
+    [prayers, blockedUids, blocksLoading],
+  );
   const featured = visiblePrayers[0];
   const recentPrayers = visiblePrayers.slice(0, 3);
   const listLoading = prayersLoading || blocksLoading || statsLoading;

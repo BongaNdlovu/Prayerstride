@@ -19,7 +19,7 @@ export function mapAnnouncement(docSnap) {
     body: data.body || '',
     category: data.category || 'updates',
     categoryLabel: CATEGORY_LABELS[data.category] || 'Updates',
-    startsAt: data.startsAt,
+    startsAt,
     endsAt,
     status: data.status || 'active',
     createdByUid: data.createdByUid,

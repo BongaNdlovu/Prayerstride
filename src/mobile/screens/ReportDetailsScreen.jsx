@@ -44,7 +44,7 @@ export default function ReportDetailsScreen({ report, go, back }) {
           onPress={() => {
             Alert.alert('Delete Content', 'Are you sure?', [
               { text: 'Cancel', style: 'cancel' },
-              { text: 'Delete', style: 'destructive', onPress: () => runReportAction(() => adminDeleteContent(report.targetId, report.targetType), 'Could not delete content') },
+              { text: 'Delete', style: 'destructive', onPress: () => runReportAction(() => adminDeleteContent(report.targetId, report.targetType), 'Could not delete content', back) },
             ]);
           }}
           variant="ghost"
