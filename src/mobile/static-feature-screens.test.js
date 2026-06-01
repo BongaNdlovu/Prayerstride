@@ -9,6 +9,8 @@ const staticScreens = [
   'CalendarScreen',
   'RemindersScreen',
   'AchievementsScreen',
+  'DailyChallengeScreen',
+  'WeeklyEncouragersScreen',
   'QuickActionsScreen',
 ];
 

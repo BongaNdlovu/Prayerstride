@@ -116,6 +116,21 @@ vi.mock('../../mobile/useIsAdmin', () => ({
   useIsAdmin: () => ({ isAdmin: false, loading: false }),
 }));
 
+vi.mock('../../mobile/useGamification', () => ({
+  useGamification: () => ({
+    summary: {
+      streak: 0,
+      totalXP: 0,
+      levelInfo: { level: 1, progress: 0, xpIntoLevel: 0 },
+      badges: [],
+      impact: { prayerSessions: 0, peoplePrayedFor: 0, encouragementsSent: 0, answeredPrayers: 0 },
+    },
+    loading: false,
+    error: null,
+    retry: vi.fn(),
+  }),
+}));
+
 vi.mock('../../mobile/usePrayerData', () => ({
   usePrayers: () => ({ prayers: [], loading: false, error: null }),
   useTestimonies: () => ({ testimonies: [], loading: false, error: null }),

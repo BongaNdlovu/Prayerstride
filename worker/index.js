@@ -22,6 +22,20 @@ import {
   computeSpiritualEngagementMetrics,
   normalizeEngagementDays,
 } from './spiritual-engagement.js';
+import {
+  awardPrayActionXp,
+  awardTestimonyXp,
+  backfillGamificationXp,
+  buildGamificationSummary,
+  createPrayerSessionRecord,
+  deleteUserXpEvents,
+  resolveUserTimeZone,
+  updateGamificationTimeZone,
+} from './gamification.js';
+import {
+  createEncouragementRecord,
+  getWeeklyEncouragers,
+} from './encouragements.js';
 
 const FIREBASE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const FIREBASE_SCOPE = 'https://www.googleapis.com/auth/datastore https://www.googleapis.com/auth/firebase.messaging https://www.googleapis.com/auth/identitytoolkit https://www.googleapis.com/auth/devstorage.read_write';
@@ -108,6 +122,56 @@ async function handleApi(request, env, url, requestId) {
   if (match && request.method === 'POST') {
     await checkNotSuspended(env, user.uid);
     return registerDevice(env, user, body);
+  }
+
+  match = url.pathname.match(/^\/api\/gamification\/summary$/);
+  if (match && request.method === 'GET') {
+    await checkNotSuspended(env, user.uid);
+    const summary = await buildGamificationSummary(gamificationFirestore, env, user.uid, url.searchParams.get('timeZone'));
+    return json(summary);
+  }
+
+  match = url.pathname.match(/^\/api\/gamification\/timezone$/);
+  if (match && request.method === 'POST') {
+    await checkNotSuspended(env, user.uid);
+    const result = await updateGamificationTimeZone(gamificationFirestore, env, user.uid, body.timeZone);
+    if (result.error) return json({ error: result.error }, result.status);
+    return json(result);
+  }
+
+  match = url.pathname.match(/^\/api\/gamification\/backfill$/);
+  if (match && request.method === 'POST') {
+    await checkNotSuspended(env, user.uid);
+    const result = await backfillGamificationXp(gamificationFirestore, env, user.uid, body.timeZone);
+    return json(result);
+  }
+
+  match = url.pathname.match(/^\/api\/prayer-sessions$/);
+  if (match && request.method === 'POST') {
+    await checkNotSuspended(env, user.uid);
+    const result = await createPrayerSessionRecord(gamificationFirestore, env, user, body);
+    if (result.error) return json({ error: result.error }, result.status);
+    return json(result);
+  }
+
+  match = url.pathname.match(/^\/api\/encouragements$/);
+  if (match && request.method === 'POST') {
+    await checkNotSuspended(env, user.uid);
+    const result = await createEncouragementRecord(gamificationFirestore, env, user, body, encouragementDeps);
+    if (result.error) return json({ error: result.error }, result.status);
+    return json(result);
+  }
+
+  match = url.pathname.match(/^\/api\/encouragers\/weekly$/);
+  if (match && request.method === 'GET') {
+    await checkNotSuspended(env, user.uid);
+    const summary = await getWeeklyEncouragers(
+      gamificationFirestore,
+      env,
+      user.uid,
+      url.searchParams.get('timeZone'),
+    );
+    return json(summary);
   }
 
   match = url.pathname.match(/^\/api\/prayers$/);
@@ -231,6 +295,10 @@ function knownApiPath(pathname) {
   return [
     /^\/api\/account(?:\/bootstrap-owner|\/complete-registration|\/resend-guardian-approval)?$/,
     /^\/api\/devices\/register$/,
+    /^\/api\/gamification\/(?:summary|timezone|backfill)$/,
+    /^\/api\/prayer-sessions$/,
+    /^\/api\/encouragements$/,
+    /^\/api\/encouragers\/weekly$/,
     /^\/api\/prayers(?:\/[^/]+(?:\/update|\/mark-answered|\/pray)?)?$/,
     /^\/api\/testimonies(?:\/[^/]+(?:\/update|\/react)?)?$/,
     /^\/api\/blocks(?:\/[^/]+)?$/,
@@ -726,6 +794,15 @@ async function createTestimony(env, user, body) {
   }
 
   await firestoreCommit(env, writes);
+
+  const timeZone = await resolveUserTimeZone(gamificationFirestore, env, user.uid, body.timeZone);
+  await awardTestimonyXp(gamificationFirestore, env, {
+    uid: user.uid,
+    testimonyId: id,
+    timeZone,
+    now: new Date(now),
+  });
+
   return json({ ok: true, testimonyId: id });
 }
 
@@ -942,7 +1019,23 @@ async function prayForRequest(env, user, prayerId) {
     });
   }
 
-  return json({ ok: true, duplicate: false, dayKey, weekKey, prayerLimit });
+  const timeZone = await resolveUserTimeZone(gamificationFirestore, env, user.uid, null);
+  const xp = await awardPrayActionXp(gamificationFirestore, env, {
+    uid: user.uid,
+    prayerId,
+    timeZone,
+    now: new Date(now),
+  });
+
+  return json({
+    ok: true,
+    duplicate: false,
+    dayKey,
+    weekKey,
+    prayerLimit,
+    xpAwarded: xp.awarded,
+    bonuses: xp.bonuses || [],
+  });
 }
 
 async function reactToTestimony(env, user, testimonyId, reaction) {
@@ -1307,8 +1400,10 @@ async function collectUserDeletionWrites(env, uid) {
     const data = fromFirestoreFields(d.fields || {});
     if ([data.followedUid, data.uid, data.targetUid].includes(uid)) addDelete(d.name);
   }
-  await processCollection('encouragements', (d) => d.authorUid === uid);
+  await processCollection('encouragements', (d) => d.senderUid === uid || d.receiverUid === uid);
   await processCollection('prayerSessions', (d) => d.authorUid === uid);
+  const xpDeletes = await deleteUserXpEvents(gamificationFirestore, env, uid);
+  for (const write of xpDeletes) addDelete(write.delete);
   await processCollection('calendarEvents', (d) => d.ownerUid === uid);
   await processCollection('calendarBookmarks', (d) => d.ownerUid === uid);
   await processCollection('notifications', (d) => d.recipientUid === uid || d.actorUid === uid);
@@ -1867,6 +1962,25 @@ async function sign(input, privateKey) {
   const signature = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(input));
   return base64UrlBytes(new Uint8Array(signature));
 }
+
+const gamificationFirestore = {
+  docName,
+  getDocument,
+  firestoreCommit,
+  runCollectionGroupQuery,
+  fromFirestoreFields,
+  toFirestoreFields,
+  getUserProfile,
+};
+
+const encouragementDeps = {
+  checkCommunityAccess,
+  recipientBlockedActor,
+  enforceCooldown,
+  getNotificationSettings,
+  sendPushToUser,
+  notificationWrite,
+};
 
 function docName(env, ...parts) {
   return `projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/${parts.join('/')}`;

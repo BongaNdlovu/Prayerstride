@@ -139,11 +139,13 @@ service cloud.firestore {
     function validUserUpdate() {
       return unchanged(["uid", "email", "role", "owner", "createdAt"])
         && (!("registrationState" in resource.data) || unchanged(["registrationState"]))
-        && changedOnly(["displayName", "handle", "bio", "photoURL", "updatedAt"])
+        && changedOnly(["displayName", "handle", "bio", "photoURL", "timeZone", "showOnEncouragementBoard", "updatedAt"])
         && optionalString("displayName", 80)
         && optionalString("handle", 40)
         && optionalString("bio", 180)
         && optionalString("photoURL", 2048)
+        && optionalString("timeZone", 64)
+        && optionalBool("showOnEncouragementBoard")
         && (!("updatedAt" in request.resource.data) || request.resource.data.updatedAt is timestamp);
     }
 
@@ -279,16 +281,7 @@ service cloud.firestore {
 
     match /prayerSessions/{sessionId} {
       allow read: if signedIn() && resource.data.authorUid == request.auth.uid;
-      allow create: if signedIn() && notSuspended()
-        && request.resource.data.keys().hasOnly(["authorUid", "title", "seconds", "createdAt", "prayerId"])
-        && request.resource.data.keys().hasAll(["authorUid", "title", "seconds", "createdAt", "prayerId"])
-        && request.resource.data.authorUid == request.auth.uid
-        && validString(request.resource.data.title, 140)
-        && request.resource.data.seconds is number
-        && request.resource.data.seconds > 0
-        && request.resource.data.seconds <= 86400
-        && request.resource.data.createdAt is timestamp
-        && validSessionPrayerLink();
+      allow create: if false;
       allow update, delete: if signedIn() && notSuspended()
         && resource.data.authorUid == request.auth.uid
         && unchanged(["authorUid", "createdAt"])
@@ -302,6 +295,11 @@ service cloud.firestore {
 
     match /encouragements/{encouragementId} {
       allow read, write: if false;
+    }
+
+    match /xpEvents/{eventId} {
+      allow read: if signedIn() && resource.data.uid == request.auth.uid;
+      allow write: if false;
     }
 
     match /blocks/{blockId} {

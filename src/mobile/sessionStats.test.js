@@ -87,9 +87,10 @@ describe('sessionStats', () => {
     ]);
   });
 
-  it('HomeScreen uses sessionStats for today prayer time and monthly authors', async () => {
+  it('HomeScreen uses gamification summary for streak and daily goal', async () => {
     const source = await import('./screens/HomeScreen.jsx?raw');
-    expect(source.default).toMatch(/todaySeconds/);
-    expect(source.default).toMatch(/countUniqueAuthorsThisMonth/);
+    expect(source.default).toMatch(/useGamification/);
+    expect(source.default).toMatch(/dailyGoalProgress/);
+    expect(source.default).toMatch(/dailyChallenge/);
   });
 });

@@ -4,11 +4,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   Bookmark,
   Clock,
+  Heart,
   MoreHorizontal,
   Users,
 } from 'lucide-react-native';
 import { alpha, colors, fonts, radii, spacing } from '../theme';
-import { prayForRequest } from '../api';
+import { createEncouragement, prayForRequest } from '../api';
+import { bumpGamificationRefresh } from '../gamificationRefresh';
+import { ENCOURAGEMENT_PRESETS } from '../../../shared/encouragementPresets.js';
 import { markAnswered } from '../usePrayerData';
 import { prayedButtonLabel, prayedStorageKey } from '../prayerLimit';
 import { submitReport } from '../useReports';
@@ -117,6 +120,7 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
       const limit = result.prayerLimit || prayer.prayerLimit || 'daily';
       await AsyncStorage.setItem(prayedStorageKey(prayer.id, limit), 'true');
       setPrayerCountDelta(result.duplicate ? 0 : 1);
+      if (!result.duplicate) bumpGamificationRefresh();
       if (onRefresh) onRefresh();
     } catch (error) {
       setPrayed(false);
@@ -181,6 +185,43 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
     if (go) go('prayerStopwatch', { prayerId: prayer.id, title: prayer.title });
   };
 
+  const sendEncouragement = () => {
+    if (!user) {
+      Alert.alert('Sign in required', 'Please sign in to send encouragement.');
+      return;
+    }
+    if (isOwner) {
+      Alert.alert('Your request', 'You cannot encourage your own prayer request.');
+      return;
+    }
+    Alert.alert(
+      'Send Encouragement',
+      'Choose a supportive message',
+      [
+        ...ENCOURAGEMENT_PRESETS.map((preset) => ({
+          text: preset.label,
+          onPress: () => submitEncouragement(preset.id),
+        })),
+        { text: 'Cancel', style: 'cancel' },
+      ],
+    );
+  };
+
+  const submitEncouragement = async (presetId) => {
+    try {
+      const result = await createEncouragement({ prayerId: prayer.id, presetId });
+      Alert.alert(
+        result.duplicate ? 'Already sent today' : 'Encouragement sent',
+        result.duplicate
+          ? 'You already sent encouragement for this request today.'
+          : 'Your message was delivered.',
+      );
+      if (!result.duplicate) bumpGamificationRefresh();
+    } catch (error) {
+      Alert.alert('Could not send encouragement', error.message);
+    }
+  };
+
   const prayLabel = isOwner
     ? 'Your Request'
     : prayedButtonLabel(prayer.prayerLimit || 'daily', prayed);
@@ -232,6 +273,12 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
           <Clock size={20} color={colors.gold} />
           <BodyText variant="caption">Start Timer</BodyText>
         </MotionPressable>
+        {!isOwner ? (
+          <MotionPressable onPress={sendEncouragement} style={styles.iconButton}>
+            <Heart size={20} color={colors.coral} />
+            <BodyText variant="caption">Encourage</BodyText>
+          </MotionPressable>
+        ) : null}
         <MotionPressable onPress={() => setShowActions(!showActions)} style={styles.iconButton}>
           <MoreHorizontal size={20} color={colors.gold} />
           <BodyText variant="caption">More</BodyText>

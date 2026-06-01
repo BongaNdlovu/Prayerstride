@@ -177,3 +177,55 @@ export function adminArchiveAnnouncement(announcementId) {
     body: JSON.stringify({ announcementId }),
   });
 }
+
+export function getDeviceTimeZone() {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  } catch {
+    return 'UTC';
+  }
+}
+
+export function getGamificationSummary(timeZone = getDeviceTimeZone()) {
+  const query = timeZone ? `?timeZone=${encodeURIComponent(timeZone)}` : '';
+  return apiFetch(`/api/gamification/summary${query}`);
+}
+
+export function updateGamificationTimeZone(timeZone) {
+  return apiFetch('/api/gamification/timezone', {
+    method: 'POST',
+    body: JSON.stringify({ timeZone }),
+  });
+}
+
+export function backfillGamification(timeZone = getDeviceTimeZone()) {
+  return apiFetch('/api/gamification/backfill', {
+    method: 'POST',
+    body: JSON.stringify({ timeZone }),
+  });
+}
+
+export function createPrayerSession(payload) {
+  return apiFetch('/api/prayer-sessions', {
+    method: 'POST',
+    body: JSON.stringify({
+      ...payload,
+      timeZone: payload.timeZone || getDeviceTimeZone(),
+    }),
+  });
+}
+
+export function createEncouragement(payload) {
+  return apiFetch('/api/encouragements', {
+    method: 'POST',
+    body: JSON.stringify({
+      ...payload,
+      timeZone: payload.timeZone || getDeviceTimeZone(),
+    }),
+  });
+}
+
+export function getWeeklyEncouragers(timeZone = getDeviceTimeZone()) {
+  const query = timeZone ? `?timeZone=${encodeURIComponent(timeZone)}` : '';
+  return apiFetch(`/api/encouragers/weekly${query}`);
+}

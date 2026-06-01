@@ -18,14 +18,18 @@
     "test:scenes": "node scripts/scene-assets-smoke.mjs",
     "audit:screens": "node scripts/screen-audit.mjs",
     "test:rules": "firebase emulators:exec --only firestore \"node scripts/rules-smoke.mjs\"",
+    "deploy:firestore": "firebase deploy --only firestore:rules,firestore:indexes",
+    "deploy:worker": "wrangler deploy",
+    "deploy:backend": "npm run deploy:worker && npm run deploy:firestore",
     "test": "npm run test:worker && npm run test:scenes && npm run test:unit",
+    "test:ci": "npm run test && npm run test:rules",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest watch",
     "test:unit:ui": "vitest --ui",
     "test:unit:coverage": "vitest run --coverage",
     "test:performance": "vitest run src/test/performance",
-    "test:all": "npm run test:unit && npm run test:performance",
-    "test:restored": "npm run test:all && node scripts/restored-feature-smoke.mjs && npx expo export --platform android"
+    "test:all": "npm run test:unit && npm run test:performance && npm run test:rules",
+    "test:restored": "npm run test:ci && npm run audit:screens && node scripts/restored-feature-smoke.mjs && npx expo export --platform android"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",

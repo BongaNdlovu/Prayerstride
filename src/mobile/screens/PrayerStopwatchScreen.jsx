@@ -4,6 +4,7 @@ import { Timer } from 'lucide-react-native';
 import { alpha, colors, fonts, radii, sharedStyles, spacing, typography } from '../theme';
 import { addPrayer } from '../usePrayerData';
 import { addPrayerSession } from '../usePrayerSessions';
+import { bumpGamificationRefresh } from '../gamificationRefresh';
 import ScreenScaffold from '../components/ScreenScaffold';
 import AppHeader from '../components/AppHeader';
 import GlassCard from '../components/GlassCard';
@@ -74,6 +75,7 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, us
       }
 
       await addPrayerSession({ prayerId: sessionPrayerId, title: sessionTitle, seconds }, user);
+      bumpGamificationRefresh();
       setSeconds(0);
       setPrivateTitle('');
       setReadyToLog(false);

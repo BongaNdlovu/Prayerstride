@@ -13,7 +13,7 @@ const APP_SCREENS = [
   'home', 'discover', 'detail', 'prayerStopwatch', 'create', 'createTestimony', 'editRequest',
   'quickActions', 'praise', 'praiseDetail',
   'following', 'announcements', 'devotions', 'guideDetail', 'lessonReader',
-  'calendar', 'myStats', 'answeredPrayers', 'myPrayers', 'achievements', 'reminderSettings',
+  'calendar', 'myStats', 'answeredPrayers', 'myPrayers', 'achievements', 'dailyChallenge', 'weeklyEncouragers', 'reminderSettings',
   'profile', 'settings', 'notifications', 'notificationSettings', 'support', 'helpCenter',
   'privacyPolicy', 'termsOfService', 'about', 'copyright', 'adminDashboard', 'reportDetails', 'accountSuspended',
 ];
@@ -21,6 +21,8 @@ const APP_SCREENS = [
 const screenFiles = {
   answeredPrayers: 'AnsweredPrayersScreen',
   achievements: 'AchievementsScreen',
+  dailyChallenge: 'DailyChallengeScreen',
+  weeklyEncouragers: 'WeeklyEncouragersScreen',
   adminDashboard: 'AdminDashboardScreen',
   announcements: 'AnnouncementsScreen',
   calendar: 'CalendarScreen',

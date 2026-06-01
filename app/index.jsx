@@ -25,7 +25,9 @@ import AuthScreen from '../src/mobile/screens/AuthScreen';
 import CalendarScreen from '../src/mobile/screens/CalendarScreen';
 import CreatePrayerScreen from '../src/mobile/screens/CreatePrayerScreen';
 import CreateTestimonyScreen from '../src/mobile/screens/CreateTestimonyScreen';
+import DailyChallengeScreen from '../src/mobile/screens/DailyChallengeScreen';
 import DevotionsScreen from '../src/mobile/screens/DevotionsScreen';
+import WeeklyEncouragersScreen from '../src/mobile/screens/WeeklyEncouragersScreen';
 import DiscoverScreen from '../src/mobile/screens/DiscoverScreen';
 import EditProfileScreen from '../src/mobile/screens/EditProfileScreen';
 import EditRequestScreen from '../src/mobile/screens/EditRequestScreen';
@@ -186,6 +188,8 @@ function renderScreen(screen, params, user, suspended, suspendedReason, signIn, 
     case 'copyright': return <CopyrightScreen onBack={() => backFn('settings')} />;
     case 'reminderSettings': return <RemindersScreen user={user} onBack={() => backFn('profile')} />;
     case 'achievements': return <AchievementsScreen user={user} onBack={() => backFn('profile')} />;
+    case 'dailyChallenge': return <DailyChallengeScreen user={user} onBack={() => backFn('home')} go={goFn} />;
+    case 'weeklyEncouragers': return <WeeklyEncouragersScreen user={user} onBack={() => backFn('home')} />;
     case 'quickActions': return <QuickActionsScreen go={goFn} onBack={() => backFn('profile')} />;
     case 'adminDashboard': return <AdminDashboardScreen user={user} go={goFn} onBack={() => backFn('profile')} />;
     case 'reportDetails': return <ReportDetailsScreen report={params.report} go={goFn} back={() => backFn('adminDashboard')} />;

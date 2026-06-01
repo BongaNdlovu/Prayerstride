@@ -6,9 +6,19 @@ import { resolve } from 'path';
 const PROJECT_ID = 'prayerstride-test';
 const rules = readFileSync(resolve('firestore.rules'), 'utf-8');
 
+function firestoreTestConfig() {
+  const emulatorHost = process.env.FIRESTORE_EMULATOR_HOST;
+  if (!emulatorHost) {
+    console.error('Rules smoke requires the Firestore emulator. Run: npm run test:rules');
+    process.exit(1);
+  }
+  const [host, port] = emulatorHost.split(':');
+  return { rules, host, port: Number(port) };
+}
+
 const testEnv = await initializeTestEnvironment({
   projectId: PROJECT_ID,
-  firestore: { rules },
+  firestore: firestoreTestConfig(),
 });
 
 async function seedFixtures() {
@@ -107,12 +117,15 @@ async function seedFixtures() {
     await db.doc('prayers/prayer-linked').set(prayerDoc());
     await db.doc('testimonies/testimony-a').set(testimonyDoc());
     await db.doc('encouragements/encouragement-a').set({
-      threadId: 'prayer-linked',
-      authorUid: 'user-a',
-      authorName: 'User A',
-      text: 'Praying with you.',
+      senderUid: 'user-a',
+      senderName: 'User A',
+      receiverUid: 'user-b',
+      prayerId: 'prayer-linked',
+      presetId: 'praying-with-you',
+      message: 'Praying with you.',
+      dayKey: '2026-06-01',
+      weekKey: '2026-W22',
       createdAt: new Date(),
-      updatedAt: new Date(),
     });
   });
 }
@@ -211,39 +224,72 @@ async function runTests() {
   await assertFails(bDb.collection('notifications').doc('notification-a').get());
 
   await assertFails(aDb.collection('encouragements').doc('encouragement-new').set({
-    threadId: 'prayer-linked',
-    authorUid: 'user-a',
-    authorName: 'User A',
-    text: 'Praying with you.',
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    senderUid: 'user-a',
+    receiverUid: 'user-b',
+    prayerId: 'prayer-linked',
+    presetId: 'praying-with-you',
+    message: 'Praying with you.',
+    dayKey: '2026-06-01',
+    weekKey: '2026-W22',
+    createdAt: Timestamp.now(),
   }));
   await assertFails(aDb.collection('encouragements').doc('encouragement-a').update({
-    text: 'Updated encouragement',
-    updatedAt: new Date(),
+    message: 'Updated encouragement',
   }));
   await assertFails(aDb.collection('encouragements').doc('encouragement-a').delete());
   await assertFails(aDb.collection('encouragements').doc('encouragement-a').get());
 
-  await assertSucceeds(aDb.collection('prayerSessions').doc('session-a').set({
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await context.firestore().doc('prayerSessions/session-a').set({
+      authorUid: 'user-a',
+      title: 'Morning prayer',
+      seconds: 120,
+      prayerId: 'prayer-linked',
+      createdAt: new Date(),
+    });
+    await context.firestore().doc('xpEvents/xp-a').set({
+      uid: 'user-a',
+      type: 'pray_action',
+      points: 15,
+      sourceId: 'prayer-linked',
+      dayKey: '2026-06-01',
+      weekKey: '2026-W22',
+      createdAt: new Date(),
+    });
+  });
+
+  await assertSucceeds(aDb.collection('prayerSessions').doc('session-a').get());
+  await assertFails(aDb.collection('prayerSessions').doc('session-new').set({
     authorUid: 'user-a',
     title: 'Morning prayer',
     seconds: 120,
     prayerId: 'prayer-linked',
-    createdAt: new Date(),
+    createdAt: Timestamp.now(),
   }));
-  await assertSucceeds(aDb.collection('prayerSessions').doc('session-unlinked').set({
+  await assertFails(aDb.collection('prayerSessions').doc('session-unlinked').set({
     authorUid: 'user-a',
     title: 'Quiet prayer',
     seconds: 60,
     prayerId: null,
-    createdAt: new Date(),
+    createdAt: Timestamp.now(),
   }));
   await assertFails(aDb.collection('prayerSessions').doc('session-b').set({
     authorUid: 'user-a',
     title: 'Invalid',
     seconds: 999999,
     createdAt: new Date(),
+  }));
+
+  await assertSucceeds(aDb.collection('xpEvents').doc('xp-a').get());
+  await assertFails(bDb.collection('xpEvents').doc('xp-a').get());
+  await assertFails(aDb.collection('xpEvents').doc('xp-new').set({
+    uid: 'user-a',
+    type: 'pray_action',
+    points: 15,
+    sourceId: 'prayer-new',
+    dayKey: '2026-06-01',
+    weekKey: '2026-W22',
+    createdAt: Timestamp.now(),
   }));
 
   await assertSucceeds(aDb.doc('notificationSettings/user-a').set({

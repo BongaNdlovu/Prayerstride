@@ -107,12 +107,18 @@ npx expo export --platform android
 
 ## Production deploy
 
-Run Worker and rules deploys after code verification. Create store binaries only
+Run Worker and rules/index deploys after code verification. Create store binaries only
 after secrets, IAM, final store identifiers, and counsel review are complete:
 
 ```bash
-npx wrangler deploy
-firebase deploy --only firestore:rules
+npm run deploy:backend
+```
+
+Or individually:
+
+```bash
+npm run deploy:worker
+npm run deploy:firestore
 ```
 
 Verify public pages:
@@ -130,6 +136,10 @@ Verify public pages:
 5. Block a user and confirm hidden content and suppressed notifications.
 6. Delete an account after password confirmation and confirm Auth removal.
 7. Pray twice for a weekly-limited request and confirm `Prayed This Week`.
+8. Complete a prayer session via stopwatch and confirm XP increases on Home/Profile.
+9. Pray for five distinct requests in one local day and confirm the daily challenge bonus XP.
+10. Send a preset encouragement and confirm it appears in Weekly Encouragers (your rank updates).
+11. Toggle encouragement-board visibility off in Edit Profile and confirm others see `Anonymous` while you still see your rank.
 
 ## Follow-ups
 

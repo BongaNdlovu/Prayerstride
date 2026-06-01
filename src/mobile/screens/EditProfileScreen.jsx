@@ -15,6 +15,7 @@ import GlassCard from '../components/GlassCard';
 import Heading from '../components/Heading';
 import BodyText from '../components/BodyText';
 import PrimaryButton from '../components/PrimaryButton';
+import ToggleRow from '../components/ToggleRow';
 
 const BIO_MAX = 150;
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
@@ -43,6 +44,7 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
   const [handle, setHandle] = useState('');
   const [bio, setBio] = useState('');
   const [photoURL, setPhotoURL] = useState(user?.photoURL || '');
+  const [showOnEncouragementBoard, setShowOnEncouragementBoard] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -59,6 +61,7 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
     setBio(profile.bio || '');
     setHandle(profile.handle || '');
     setPhotoURL(profile.photoURL || user?.photoURL || '');
+    setShowOnEncouragementBoard(Boolean(profile.showOnEncouragementBoard));
   }, [profile, user?.photoURL]);
 
   const pickPhoto = async () => {
@@ -111,6 +114,7 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
       handle: profile?.handle || null,
       bio: profile?.bio || null,
       photoURL: profile?.photoURL || user?.photoURL || null,
+      showOnEncouragementBoard: Boolean(profile?.showOnEncouragementBoard),
     };
     try {
       await updateDoc(doc(db, 'users', user.uid), {
@@ -118,6 +122,7 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
         handle: normalizeHandle(handle),
         bio: bio.trim() || null,
         photoURL: photoURL || null,
+        showOnEncouragementBoard,
         updatedAt: serverTimestamp(),
       });
       try {
@@ -223,6 +228,17 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
           <PrimaryButton label="Save Profile" onPress={save} busy={busy} disabled={busy} style={styles.saveButton} />
         </GlassCard>
 
+        <GlassCard style={styles.privacyCard}>
+          <Heading level="h4" style={styles.sectionTitle}>Recognition</Heading>
+          <ToggleRow
+            label="Show my name on Weekly Encouragers"
+            subtext="When enabled, your display name can appear on the weekly encouragement board."
+            value={showOnEncouragementBoard}
+            onToggle={setShowOnEncouragementBoard}
+            style={styles.toggleLast}
+          />
+        </GlassCard>
+
         <GlassCard>
           <Heading level="h4" style={styles.sectionTitle}>Password</Heading>
           <PrimaryButton label="Send password reset email" onPress={requestPasswordReset} variant="ghost" style={styles.outlineButton} />
@@ -251,6 +267,8 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
 
 const styles = StyleSheet.create({
   profileCard: { marginBottom: spacing.lg },
+  privacyCard: { marginBottom: spacing.lg },
+  toggleLast: { borderBottomWidth: 0 },
   avatarButton: { alignSelf: 'center', marginBottom: spacing.sm },
   avatarImage: { width: 96, height: 96, borderRadius: 48 },
   avatarFallback: {

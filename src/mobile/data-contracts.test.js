@@ -14,6 +14,11 @@ describe('data contracts', () => {
     expect(source.default).toMatch(/export function adminUpdateAnnouncement/);
     expect(source.default).toMatch(/export function adminArchiveAnnouncement/);
     expect(source.default).toMatch(/export function deleteOwnAccount/);
+    expect(source.default).toMatch(/export function getGamificationSummary/);
+    expect(source.default).toMatch(/export function createPrayerSession/);
+    expect(source.default).toMatch(/export function backfillGamification/);
+    expect(source.default).toMatch(/export function createEncouragement/);
+    expect(source.default).toMatch(/export function getWeeklyEncouragers/);
     expect(source.default).not.toMatch(/addDoc\(collection\(db, ['"]announcements['"]\)/);
   });
 
@@ -38,6 +43,8 @@ describe('data contracts', () => {
     const source = await import('./usePrayerSessions.js?raw');
     expect(source.default).toMatch(/export function usePrayerSessions/);
     expect(source.default).toMatch(/export async function addPrayerSession/);
+    expect(source.default).toMatch(/createPrayerSession/);
+    expect(source.default).not.toMatch(/addDoc\(collection\(db, ['"]prayerSessions['"]\)/);
   });
 
   it('useReports exports expected functions', async () => {

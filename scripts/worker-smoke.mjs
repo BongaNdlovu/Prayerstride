@@ -3,7 +3,11 @@ import { join } from 'node:path';
 
 const worker = readFileSync(join(process.cwd(), 'worker', 'index.js'), 'utf8');
 const engagement = readFileSync(join(process.cwd(), 'worker', 'spiritual-engagement.js'), 'utf8');
-const workerSource = `${worker}\n${engagement}`;
+const gamification = readFileSync(join(process.cwd(), 'worker', 'gamification.js'), 'utf8');
+const encouragements = readFileSync(join(process.cwd(), 'worker', 'encouragements.js'), 'utf8');
+const encouragementPresets = readFileSync(join(process.cwd(), 'shared', 'encouragementPresets.js'), 'utf8');
+const gamificationLogic = readFileSync(join(process.cwd(), 'shared', 'gamificationLogic.js'), 'utf8');
+const workerSource = `${worker}\n${engagement}\n${gamification}\n${encouragements}\n${gamificationLogic}`;
 const failures = [];
 
 const assert = (condition, message) => {
@@ -15,8 +19,11 @@ assert(worker.includes('createPrayer(env'), 'Worker should implement createPraye
 assert(worker.includes('updatePrayer(env'), 'Worker should implement updatePrayer handler.');
 assert(worker.includes('deletePrayer(env'), 'Worker should implement deletePrayer handler.');
 assert(worker.includes('createTestimony(env'), 'Worker should implement createTestimony handler.');
-assert(!worker.includes('/api/encouragements'), 'Worker should not expose comment endpoints.');
-assert(!worker.includes('createEncouragement(env'), 'Worker should not implement comment creation.');
+assert(worker.includes("from './encouragements.js'"), 'Worker should use encouragements module.');
+assert(worker.includes('createEncouragementRecord'), 'Worker should implement encouragement creation.');
+assert(worker.includes('getWeeklyEncouragers'), 'Worker should implement weekly encouragers summary.');
+assert(worker.includes('encouragers\\/weekly'), 'Worker should route weekly encouragers.');
+assert(!worker.includes('createEncouragement(env'), 'Worker should not use legacy encouragement handler name.');
 assert(worker.includes('blockUser(env'), 'Worker should implement blockUser handler.');
 assert(worker.includes("from './moderation.js'"), 'Worker should use moderation module.');
 assert(worker.includes("from './firestore-list.js'"), 'Worker should use paginated Firestore list helper.');
@@ -91,6 +98,15 @@ assert(worker.includes("status: 'archived'"), 'Worker should support archiving a
 assert(worker.includes("return json({ error:"), 'Worker should return JSON error responses.');
 
 assert(worker.includes('spiritual-engagement'), 'Worker should implement spiritual-engagement endpoint.');
+assert(worker.includes("from './gamification.js'"), 'Worker should use gamification module.');
+assert(worker.includes('buildGamificationSummary'), 'Worker should expose gamification summary endpoint.');
+assert(worker.includes('createPrayerSessionRecord'), 'Worker should create prayer sessions with XP.');
+assert(worker.includes('awardPrayActionXp'), 'Worker should award pray-action XP after praying.');
+assert(worker.includes('awardTestimonyXp'), 'Worker should award testimony XP after sharing.');
+assert(worker.includes('backfillGamificationXp'), 'Worker should support idempotent gamification backfill.');
+assert(worker.includes('deleteUserXpEvents'), 'Account deletion should remove xpEvents.');
+assert(worker.includes('gamification\\/summary'), 'Worker should route gamification summary.');
+assert(worker.includes('prayer-sessions'), 'Worker should route prayer session creation.');
 assert(worker.includes('spiritualEngagementMetrics'), 'Worker should implement spiritualEngagementMetrics function.');
 assert(worker.includes('runCollectionGroupQuery'), 'Worker should have collection-group query helper.');
 assert(worker.includes('allDescendants = true'), 'Collection-group query should default to allDescendants.');
@@ -105,6 +121,21 @@ assert(engagement.includes('Math.min(90, Math.max(1, Math.floor(requestedDays)))
 assert(!worker.includes('Math.min(90, Math.max(1, Math.floor(requestedDays)))'), 'Engagement day clamp should live in spiritual-engagement module.');
 assert(!worker.includes('metricTitle') && !worker.includes('metricBody'), 'Engagement endpoint must not expose prayer content.');
 assert(worker.includes('requireAdmin(env, user)') || worker.includes('requireAdmin('), 'Spiritual engagement endpoint must require admin.');
+
+assert(gamification.includes('awardXpEvent'), 'Gamification module should award idempotent XP events.');
+assert(gamification.includes('currentDocument: { exists: false }'), 'XP events should use create-if-missing semantics.');
+assert(gamification.includes('allowAlreadyExists: true'), 'XP awards should tolerate duplicate commits.');
+assert(gamification.includes('XP_EVENT_TYPES.dailyChallenge'), 'Gamification should award daily-challenge bonus XP.');
+assert(gamification.includes('XP_EVENT_TYPES.streak7'), 'Gamification should award streak-7 bonus XP.');
+assert(gamificationLogic.includes("return 'UTC'"), 'Gamification should fall back to UTC for invalid time zones.');
+assert(gamification.includes('countEncouragementsSent'), 'Gamification summary should count encouragements sent.');
+assert(worker.includes("d.senderUid === uid || d.receiverUid === uid"), 'Account deletion should remove sent and received encouragements.');
+
+assert(encouragements.includes('getEncouragementPreset'), 'Encouragements should validate reviewed presets.');
+assert(encouragements.includes('showOnEncouragementBoard'), 'Weekly board should respect encouragement opt-in.');
+assert(encouragements.includes('Anonymous'), 'Weekly board should anonymize opted-out users.');
+assert(encouragements.includes('enforceCooldown'), 'Encouragement creation should enforce cooldowns.');
+assert(encouragementPresets.includes('praying-with-you'), 'Shared encouragement presets should include reviewed messages.');
 
 if (failures.length) {
   console.error('Worker smoke test failed:');

@@ -14,6 +14,7 @@ describe('profile settings', () => {
     const source = await import('./screens/EditProfileScreen.jsx?raw');
     expect(source.default).toMatch(/updateProfile/);
     expect(source.default).toMatch(/updateDoc/);
+    expect(source.default).toMatch(/showOnEncouragementBoard/);
     expect(source.default).toMatch(/expo-image-picker/);
     expect(source.default).toMatch(/changePassword/);
     expect(source.default).toMatch(/resetPassword/);

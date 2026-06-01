@@ -3,6 +3,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 
 import { Sparkles } from 'lucide-react-native';
 import { alpha, colors, sharedStyles, spacing } from '../theme';
 import { addTestimony, usePrayers } from '../usePrayerData';
+import { bumpGamificationRefresh } from '../gamificationRefresh';
 import ScreenScaffold from '../components/ScreenScaffold';
 import AppHeader from '../components/AppHeader';
 import GlassCard from '../components/GlassCard';
@@ -29,6 +30,7 @@ export default function CreateTestimonyScreen({ user, linkedPrayerId, onDone }) 
     setBusy(true);
     try {
       await addTestimony({ title: title.trim(), body: body.trim(), prayerId, shared: true }, user);
+      bumpGamificationRefresh();
       setTitle('');
       setBody('');
       setPrayerId(null);
