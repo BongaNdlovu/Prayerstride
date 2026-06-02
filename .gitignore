@@ -40,3 +40,4 @@ android/build/
 android/app/.cxx/
 android/app/build/
 android-capacitor-legacy/
+android/app/google-services.json

@@ -293,6 +293,10 @@ function AnnouncementsAdminList({ announcements }) {
       Alert.alert('Missing fields', 'Title and body are required.');
       return;
     }
+    if (Number.isNaN(new Date(startsAt).getTime())) {
+      Alert.alert('Invalid start time', 'Enter a valid ISO timestamp.');
+      return;
+    }
     setBusy(true);
     try {
       if (editingId) {

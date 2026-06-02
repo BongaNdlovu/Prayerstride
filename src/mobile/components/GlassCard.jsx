@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { colors, glass, radii, shadow, spacing } from '../theme';
 
@@ -10,6 +11,8 @@ const styles = StyleSheet.create({
   },
 });
 
-export default function GlassCard({ children, style }) {
+function GlassCard({ children, style }) {
   return <View style={[styles.card, style]}>{children}</View>;
 }
+
+export default memo(GlassCard);

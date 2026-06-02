@@ -15,9 +15,12 @@ export default function AsyncState({ loading, error, empty, emptyLabel, onRetry,
   }
 
   if (error) {
+    const message = error?.code === 'failed-precondition'
+      ? 'Prayer data is still being prepared. Please try again shortly.'
+      : (error.message || String(error));
     return (
       <View style={styles.center}>
-        <BodyText variant="body" style={styles.error}>{error.message || String(error)}</BodyText>
+        <BodyText variant="body" style={styles.error}>{message}</BodyText>
         {onRetry ? <PrimaryButton label="Try again" variant="secondary" onPress={onRetry} /> : null}
       </View>
     );

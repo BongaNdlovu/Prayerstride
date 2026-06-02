@@ -12,6 +12,9 @@ export default function SegmentedControl({ options, value, onChange, style }) {
           <Pressable
             key={option.value}
             onPress={() => onChange(option.value)}
+            accessibilityRole="tab"
+            accessibilityLabel={option.label}
+            accessibilityState={{ selected: value === option.value }}
             style={[styles.segment, selected && styles.segmentActive]}
           >
             {Icon ? <Icon size={16} color={selected ? colors.navy : colors.textMuted} /> : null}

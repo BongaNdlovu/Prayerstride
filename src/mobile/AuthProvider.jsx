@@ -34,7 +34,9 @@ export function AuthProvider({ children }) {
       if (!nextUser) bootstrappedUidRef.current = '';
       if (nextUser && bootstrappedUidRef.current !== nextUser.uid) {
         bootstrappedUidRef.current = nextUser.uid;
-        bootstrapOwner().catch(() => {});
+        bootstrapOwner().catch((error) => {
+          logError('Owner bootstrap failed', error);
+        });
       }
     },
     (error) => {
@@ -88,8 +90,17 @@ export function AuthProvider({ children }) {
         if (credential?.user) {
           try {
             await deleteOwnAccount();
-          } catch {
-            await deleteUser(credential.user).catch(() => {});
+          } catch (backendCleanupError) {
+            logError('Registration backend cleanup failed', backendCleanupError);
+            try {
+              await deleteUser(credential.user);
+            } catch (authCleanupError) {
+              logError('Registration auth cleanup failed', authCleanupError);
+              await firebaseSignOut(auth).catch((signOutError) => {
+                logError('Registration cleanup sign-out failed', signOutError);
+              });
+              throw new Error('Registration could not be completed or fully rolled back. Please contact support.');
+            }
           }
         }
         throw error;
@@ -139,7 +150,7 @@ export function AuthProvider({ children }) {
       await deleteOwnAccount();
       await firebaseSignOut(auth);
     },
-  }), [user, loading]);
+  }), [user, loading, registering]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

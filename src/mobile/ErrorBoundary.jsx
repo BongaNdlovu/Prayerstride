@@ -1,5 +1,5 @@
 import { Component } from 'react';
-import { Pressable, SafeAreaView, Text, View } from 'react-native';
+import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { colors, radii, spacing } from './theme';
 import { error as logError } from './logger';
 
@@ -24,29 +24,24 @@ export class ErrorBoundary extends Component {
   render() {
     if (this.state.hasError) {
       return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xxl }}>
-            <Text style={{ color: colors.navy, fontSize: 32, fontWeight: '800', marginBottom: spacing.md }}>
+        <SafeAreaView style={styles.screen}>
+          <View style={styles.content}>
+            <Text style={styles.title}>
               Something went wrong
             </Text>
-            <Text style={{ color: colors.textSecondary, fontSize: 15, textAlign: 'center', lineHeight: 22, marginBottom: spacing.sm }}>
+            <Text style={styles.message}>
               The app encountered an unexpected error.
             </Text>
-            <Text style={{ color: colors.textMuted, fontSize: 12, textAlign: 'center', marginBottom: spacing.xxl }}>
+            <Text style={styles.detail}>
               {this.state.error?.message || 'Unknown error'}
             </Text>
             <Pressable
               onPress={this.handleRetry}
-              style={{
-                minHeight: 48,
-                paddingHorizontal: 32,
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: radii.md,
-                backgroundColor: colors.navy,
-              }}
+              accessibilityRole="button"
+              accessibilityLabel="Try again"
+              style={styles.button}
             >
-              <Text style={{ color: colors.white, fontSize: 15, fontWeight: '800' }}>Try Again</Text>
+              <Text style={styles.buttonText}>Try Again</Text>
             </Pressable>
           </View>
         </SafeAreaView>
@@ -56,3 +51,13 @@ export class ErrorBoundary extends Component {
     return this.props.children;
   }
 }
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.canvas },
+  content: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xxl },
+  title: { color: colors.navy, fontSize: 32, fontWeight: '800', marginBottom: spacing.md },
+  message: { color: colors.textSecondary, fontSize: 15, textAlign: 'center', lineHeight: 22, marginBottom: spacing.sm },
+  detail: { color: colors.textMuted, fontSize: 12, textAlign: 'center', marginBottom: spacing.xxl },
+  button: { minHeight: 48, paddingHorizontal: 32, alignItems: 'center', justifyContent: 'center', borderRadius: radii.md, backgroundColor: colors.navy },
+  buttonText: { color: colors.white, fontSize: 15, fontWeight: '800' },
+});

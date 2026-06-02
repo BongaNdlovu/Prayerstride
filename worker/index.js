@@ -68,6 +68,7 @@ export default {
         return withCors(htmlResponse(deleteAccountPageHtml()), env, request);
       }
       if (url.pathname === '/guardian/approve' && request.method === 'GET') {
+        await enforceGlobalRateLimit(env, request, requestId);
         const response = await handleGuardianApprove(env, url);
         return withCors(response, env, request);
       }
@@ -85,7 +86,7 @@ export default {
       return withCors(json({ error: 'Not found' }, 404), env, request);
     } catch (error) {
       const status = Number(error.status || 500);
-      const message = status >= 500 ? 'Unexpected server error' : (error.publicMessage || error.message || 'Request failed');
+      const message = error.publicMessage || (status >= 500 ? 'Unexpected server error' : 'Request failed');
       log(env, status >= 500 ? 'error' : 'warn', { requestId, status, message: error.message }, 'error');
       return withCors(json({ error: message }, status), env, request);
     }
@@ -105,6 +106,7 @@ export default {
 
 async function handleApi(request, env, url, requestId) {
   const user = await verifyFirebaseUser(request, env);
+  await enforceUserRateLimit(env, user.uid, requestId);
   const body = await parseJsonBody(request);
 
   let match = url.pathname.match(/^\/api\/account\/bootstrap-owner$/);
@@ -234,6 +236,7 @@ async function handleApi(request, env, url, requestId) {
 
   match = url.pathname.match(/^\/api\/blocks$/);
   if (match && request.method === 'GET') {
+    await checkNotSuspended(env, user.uid);
     return listBlocks(env, user);
   }
 
@@ -259,6 +262,7 @@ async function handleApi(request, env, url, requestId) {
 
   match = url.pathname.match(/^\/api\/prayer-bookmarks\/([^/]+)$/);
   if (match && request.method === 'GET') {
+    await checkNotSuspended(env, user.uid);
     return getPrayerBookmark(env, user, decodeURIComponent(match[1]));
   }
   if (match && request.method === 'POST') {
@@ -780,7 +784,7 @@ async function createTestimony(env, user, body) {
     praiseGod: 0,
     prayerId,
     shared: Boolean(body.shared),
-    tags: Array.isArray(body.tags) ? body.tags.slice(0, 10) : [],
+    tags: normalizeTags(body.tags),
   };
 
   const writes = [{
@@ -843,7 +847,7 @@ async function updateTestimony(env, user, testimonyId, body) {
         authorName: resolveAuthorName(profile, user, isAnonymous),
         isAnonymous,
         shared: body.shared != null ? Boolean(body.shared) : Boolean(data.shared),
-        tags: Array.isArray(body.tags) ? body.tags.slice(0, 10) : (data.tags || []),
+        tags: body.tags != null ? normalizeTags(body.tags) : (data.tags || []),
         updatedAt: now,
       }),
     },
@@ -1218,7 +1222,7 @@ async function adminSuspendUser(env, user, body) {
   const targetData = fromFirestoreFields(targetUser.fields);
   if (targetData.role === 'admin') return json({ error: 'Cannot suspend another admin' }, 400);
 
-  const reason = body.reason || 'Violation of community guidelines';
+  const reason = String(body.reason || 'Violation of community guidelines').trim().slice(0, 240);
   const writes = [
     {
       update: {
@@ -1314,6 +1318,15 @@ function validateAnnouncementFields(body, requireId = false) {
 
 function isIsoDate(value) {
   return typeof value === 'string' && !Number.isNaN(new Date(value).getTime());
+}
+
+function normalizeTags(tags) {
+  if (!Array.isArray(tags)) return [];
+  return tags
+    .filter((tag) => typeof tag === 'string')
+    .map((tag) => tag.trim().slice(0, 40))
+    .filter(Boolean)
+    .slice(0, 10);
 }
 
 async function adminCreateAnnouncement(env, user, body) {
@@ -1804,10 +1817,10 @@ async function verifyFirebaseUser(request, env) {
 
 async function requireAdmin(env, user) {
   const userDoc = await getDocument(env, docName(env, 'users', user.uid));
-  if (!userDoc.exists) throw Object.assign(new Error('User profile not found'), { status: 403 });
+  if (!userDoc.exists) throw Object.assign(new Error('User profile not found'), { status: 403, publicMessage: 'Access denied' });
   const data = fromFirestoreFields(userDoc.fields);
   if (data.suspended === true) throw Object.assign(new Error('Your account has been suspended.'), { status: 403, publicMessage: 'Account suspended' });
-  if (data.role !== 'admin') throw Object.assign(new Error('Admin access required'), { status: 403 });
+  if (data.role !== 'admin') throw Object.assign(new Error('Admin access required'), { status: 403, publicMessage: 'Access denied' });
 }
 
 async function checkNotSuspended(env, uid) {
@@ -2072,6 +2085,31 @@ async function enforceGlobalRateLimit(env, request, requestId) {
   }
 }
 
+async function enforceUserRateLimit(env, uid, requestId) {
+  const configuredLimit = Number(env.USER_RATE_LIMIT_PER_MINUTE);
+  const maxPerMinute = Number.isFinite(configuredLimit) && configuredLimit > 0 ? configuredLimit : 180;
+  const userKey = await hashToken(`rate:user:${uid}`);
+  const rateDoc = docName(env, 'apiRateLimits', userKey);
+  const now = Date.now();
+  const minuteWindow = Math.floor(now / 60000).toString();
+  const current = await getDocument(env, rateDoc);
+  const data = current.exists ? fromFirestoreFields(current.fields) : {};
+  if (data.window === minuteWindow && data.count >= maxPerMinute) {
+    log(env, 'warn', { requestId, uidHashPrefix: userKey.slice(0, 10), count: data.count }, 'user-rate-limited');
+    throw Object.assign(new Error('Too many requests. Please slow down.'), { status: 429, publicMessage: 'Rate limit exceeded' });
+  }
+  const count = data.window === minuteWindow ? (data.count || 0) + 1 : 1;
+  const result = await firestoreCommit(env, [{
+    update: {
+      name: rateDoc,
+      fields: toFirestoreFields({ uidHash: userKey, window: minuteWindow, count, updatedAt: new Date().toISOString() }),
+    },
+  }], { precondition: current.exists ? { updateTime: current.updateTime } : { exists: false } });
+  if (result.preconditionFailed) {
+    throw Object.assign(new Error('Too many concurrent requests. Please retry shortly.'), { status: 429, publicMessage: 'Rate limit exceeded' });
+  }
+}
+
 let cachedAccessToken = null;
 let cachedAccessTokenExpiry = 0;
 
@@ -2194,7 +2232,8 @@ function withCors(response, env, request) {
     env.CORS_ORIGIN || 'https://prayerstride.fanelesibonge50.workers.dev',
     'https://prayerstride.app',
   ];
-  const allowDevOrigins = env.ALLOW_DEV_ORIGINS === 'true' || env.ALLOW_DEV_ORIGINS === '1';
+  const isDevelopment = env.ENVIRONMENT === 'development';
+  const allowDevOrigins = isDevelopment && (env.ALLOW_DEV_ORIGINS === 'true' || env.ALLOW_DEV_ORIGINS === '1');
   const isDevOrigin = origin.startsWith('http://localhost:')
     || origin.startsWith('http://127.0.0.1:')
     || origin.startsWith('http://10.')
@@ -2208,6 +2247,8 @@ function withCors(response, env, request) {
   next.headers.set('Access-Control-Allow-Origin', resolvedOrigin);
   next.headers.set('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
   next.headers.set('Access-Control-Allow-Headers', 'Authorization,Content-Type');
+  next.headers.set('Access-Control-Max-Age', '86400');
+  next.headers.set('Vary', 'Origin');
   return next;
 }
 

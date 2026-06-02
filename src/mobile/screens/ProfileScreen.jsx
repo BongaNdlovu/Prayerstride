@@ -90,7 +90,7 @@ export default function ProfileScreen({ user, signOut, go }) {
         )}
       />
 
-      <AsyncState loading={profileLoading || gamificationLoading} error={profileError || gamificationError} onRetry={retry}>
+      <AsyncState loading={profileLoading || gamificationLoading} error={profileError} onRetry={retry}>
       <GlassCard style={styles.profileCard}>
         <View style={styles.avatarWrap}>
           {photoURL ? (

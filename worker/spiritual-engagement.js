@@ -13,12 +13,7 @@ export function computeSpiritualEngagementMetrics(prayers, prays, days, now = ne
 
   const activityByDay = {};
   for (const p of prayers) {
-    let day;
-    try {
-      day = (p.createdAt || '').slice(0, 10);
-    } catch {
-      continue;
-    }
+    const day = isoDay(p.createdAt);
     if (!day) continue;
     activityByDay[day] = (activityByDay[day] || 0) + 1;
   }
@@ -60,14 +55,10 @@ export function computeSpiritualEngagementMetrics(prayers, prays, days, now = ne
   for (const p of prayers) {
     const firstPray = prayByPrayer[p.id];
     if (!firstPray || !p.createdAt) continue;
-    try {
-      const created = new Date(p.createdAt).getTime();
-      const first = new Date(firstPray).getTime();
-      if (Number.isFinite(created) && Number.isFinite(first) && first >= created) {
-        timeDeltas.push((first - created) / 60000);
-      }
-    } catch {
-      // ignore invalid timestamps
+    const created = new Date(p.createdAt).getTime();
+    const first = new Date(firstPray).getTime();
+    if (Number.isFinite(created) && Number.isFinite(first) && first >= created) {
+      timeDeltas.push((first - created) / 60000);
     }
   }
 
@@ -86,23 +77,15 @@ export function computeSpiritualEngagementMetrics(prayers, prays, days, now = ne
   for (const p of prayers) {
     if (p.authorUid) {
       if (!activityByUser[p.authorUid]) activityByUser[p.authorUid] = { created: new Set(), prayed: new Set() };
-      try {
-        const day = (p.createdAt || '').slice(0, 10);
-        if (day) activityByUser[p.authorUid].created.add(day);
-      } catch {
-        // ignore
-      }
+      const day = isoDay(p.createdAt);
+      if (day) activityByUser[p.authorUid].created.add(day);
     }
   }
   for (const p of prays) {
     if (p.uid) {
       if (!activityByUser[p.uid]) activityByUser[p.uid] = { created: new Set(), prayed: new Set() };
-      try {
-        const day = (p.createdAt || '').slice(0, 10);
-        if (day) activityByUser[p.uid].prayed.add(day);
-      } catch {
-        // ignore
-      }
+      const day = isoDay(p.createdAt);
+      if (day) activityByUser[p.uid].prayed.add(day);
     }
   }
 
@@ -160,4 +143,8 @@ export function computeSpiritualEngagementMetrics(prayers, prays, days, now = ne
     groupingAvailable: false,
     windowTooShortForRetention,
   };
+}
+
+function isoDay(value) {
+  return typeof value === 'string' ? value.slice(0, 10) : '';
 }

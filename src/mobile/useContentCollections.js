@@ -9,7 +9,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 
-function useCollection(collectionName, enabled = true, mapper = defaultMapper) {
+function useCollection(collectionName, enabled = true, mapper) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(Boolean(enabled));
   const [error, setError] = useState(null);
@@ -31,7 +31,7 @@ function useCollection(collectionName, enabled = true, mapper = defaultMapper) {
         orderBy('order', 'asc'),
       ),
       (snapshot) => {
-        setItems(snapshot.docs.map(mapper));
+        setItems(snapshot.docs.map(mapper || defaultMapper));
         setLoading(false);
       },
       (err) => {

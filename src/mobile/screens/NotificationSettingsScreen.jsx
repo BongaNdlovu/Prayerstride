@@ -34,7 +34,9 @@ export default function NotificationSettingsScreen({ user, onBack }) {
       if (key === 'pushEnabled' && value) {
         registerForPushNotifications().catch((error) => {
           setPushEnabled(false);
-          updateNotificationSettings(user.uid, { pushEnabled: false }).catch(() => {});
+          updateNotificationSettings(user.uid, { pushEnabled: false }).catch((saveError) => {
+            Alert.alert('Could not save preference', saveError.message);
+          });
           Alert.alert('Push notifications unavailable', error.message);
         });
       }

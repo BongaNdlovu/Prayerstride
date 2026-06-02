@@ -3,11 +3,11 @@ import {
   ActivityIndicator,
   BackHandler,
   Pressable,
-  SafeAreaView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../src/mobile/AuthProvider';
 import { colors, radii, spacing } from '../src/mobile/theme';
 import { registerForPushNotifications } from '../src/mobile/notifications';
@@ -121,7 +121,10 @@ export default function MobileApp() {
   const handleTabChange = (s, p) => setNav(reset(s, p));
   const handleBack = (fallback) => setNav((prev) => back(prev, fallback || 'home'));
 
-  const content = renderScreen(screen, params, user, suspended, suspendedReason, signIn, register, signOut, resetPassword, deleteAccount, handleGo, handleBack);
+  const content = renderScreen({
+    screen, params, user, suspended, suspendedReason, signIn, register, signOut,
+    resetPassword, deleteAccount, goFn: handleGo, backFn: handleBack,
+  });
 
   return (
     <SafeAreaView style={styles.shell}>
@@ -131,7 +134,7 @@ export default function MobileApp() {
   );
 }
 
-function renderScreen(screen, params, user, suspended, suspendedReason, signIn, register, signOut, resetPassword, deleteAccount, goFn, backFn) {
+function renderScreen({ screen, params, user, suspended, suspendedReason, signIn, register, signOut, resetPassword, deleteAccount, goFn, backFn }) {
   if (!user) {
     if (screen === 'splash') {
       return <SplashScreen onReady={() => goFn('welcome')} />;
@@ -176,7 +179,9 @@ function renderScreen(screen, params, user, suspended, suspendedReason, signIn, 
       ? <PraiseDetailScreen testimony={params.testimony} onBack={() => backFn('praise')} />
       : <PlaceholderScreen screen="Praise report unavailable" onBack={() => backFn('praise')} />;
     case 'createTestimony': return <CreateTestimonyScreen user={user} linkedPrayerId={params.prayerId} onDone={() => backFn('praise')} />;
-    case 'editRequest': return <EditRequestScreen prayer={params.prayer} user={user} onDone={() => backFn('myPrayers')} />;
+    case 'editRequest': return params.prayer
+      ? <EditRequestScreen prayer={params.prayer} user={user} onDone={() => backFn('myPrayers')} />
+      : <PlaceholderScreen screen="Prayer unavailable" onBack={() => backFn('myPrayers')} />;
     case 'prayerStopwatch': return <PrayerStopwatchScreen prayerId={params.prayerId} title={params.title} user={user} onBack={() => backFn('myStats')} onDone={() => backFn('myStats')} />;
     case 'answeredPrayers': return <AnsweredPrayersScreen user={user} onOpenPrayer={(p) => goFn('detail', { prayer: p })} onBack={() => backFn('profile')} />;
     case 'settings': return <SettingsScreen go={goFn} deleteAccount={deleteAccount} onBack={() => backFn('profile')} />;

@@ -2,6 +2,7 @@ import 'react-native-gesture-handler';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '../src/mobile/AuthProvider';
 import { ErrorBoundary } from '../src/mobile/ErrorBoundary';
 import { useAppFonts } from '../src/mobile/useAppFonts';
@@ -30,12 +31,14 @@ function FontGate({ children }) {
 export default function RootLayout() {
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <FontGate>
-          <StatusBar style="dark" />
-          <Stack screenOptions={{ headerShown: false }} />
-        </FontGate>
-      </AuthProvider>
+      <SafeAreaProvider>
+        <AuthProvider>
+          <FontGate>
+            <StatusBar style="dark" />
+            <Stack screenOptions={{ headerShown: false }} />
+          </FontGate>
+        </AuthProvider>
+      </SafeAreaProvider>
     </ErrorBoundary>
   );
 }

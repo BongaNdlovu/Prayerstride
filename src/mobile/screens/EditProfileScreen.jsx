@@ -9,6 +9,7 @@ import { auth, db, storage } from '../firebase';
 import { alpha, colors, fonts, sharedStyles, spacing } from '../theme';
 import { useAuth } from '../AuthProvider';
 import { useUserProfile } from '../useUsers';
+import { error as logError } from '../logger';
 import ScreenScaffold from '../components/ScreenScaffold';
 import AppHeader from '../components/AppHeader';
 import GlassCard from '../components/GlassCard';
@@ -48,6 +49,7 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [busy, setBusy] = useState(false);
+  const [passwordBusy, setPasswordBusy] = useState(false);
   const uploadControllerRef = useRef(null);
   const mountedRef = useRef(true);
 
@@ -134,7 +136,9 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
         await updateDoc(doc(db, 'users', user.uid), {
           ...previousProfile,
           updatedAt: serverTimestamp(),
-        }).catch(() => {});
+        }).catch((rollbackError) => {
+          logError('Profile rollback failed', rollbackError);
+        });
         throw error;
       }
       if (onDone) onDone();
@@ -160,6 +164,8 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
   };
 
   const savePassword = async () => {
+    if (passwordBusy) return;
+    setPasswordBusy(true);
     try {
       await changePassword(currentPassword, newPassword);
       setCurrentPassword('');
@@ -167,6 +173,8 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
       Alert.alert('Password updated', 'Your password has been changed.');
     } catch (error) {
       Alert.alert('Could not change password', error.message);
+    } finally {
+      setPasswordBusy(false);
     }
   };
 
@@ -258,7 +266,7 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
             style={styles.input}
             placeholderTextColor={colors.textMuted}
           />
-          <PrimaryButton label="Change Password" onPress={savePassword} style={styles.saveButton} />
+          <PrimaryButton label="Change Password" onPress={savePassword} busy={passwordBusy} disabled={passwordBusy} style={styles.saveButton} />
         </GlassCard>
       </KeyboardAvoidingView>
     </ScreenScaffold>

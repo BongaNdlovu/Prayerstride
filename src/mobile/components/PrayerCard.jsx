@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ChevronRight } from 'lucide-react-native';
 import { alpha, colors, fonts, radii, spacing } from '../theme';
@@ -16,14 +17,14 @@ const CATEGORY_ICONS = {
   protection: '🛡',
 };
 
-export default function PrayerCard({ prayer, onPress, variant = 'glass' }) {
+function PrayerCard({ prayer, onPress, variant = 'glass' }) {
   const icon = CATEGORY_ICONS[prayer.category?.toLowerCase()] || '🙏';
   const prayedCount = prayer.prayedCount ?? prayer.count ?? 0;
   const isActive = prayer.status !== 'answered';
 
   if (variant === 'list') {
     return (
-      <Pressable onPress={onPress} style={styles.listRow}>
+      <Pressable onPress={onPress} style={styles.listRow} accessibilityRole="button" accessibilityLabel={`Open prayer: ${prayer.title}`}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{(prayer.authorName || prayer.name || 'P').slice(0, 1)}</Text>
         </View>
@@ -37,7 +38,7 @@ export default function PrayerCard({ prayer, onPress, variant = 'glass' }) {
   }
 
   return (
-    <Pressable onPress={onPress}>
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`Open prayer: ${prayer.title}`}>
       <GlassCard style={styles.card}>
         <View style={styles.metaRow}>
           <View style={styles.iconWrap}>
@@ -58,6 +59,8 @@ export default function PrayerCard({ prayer, onPress, variant = 'glass' }) {
     </Pressable>
   );
 }
+
+export default memo(PrayerCard);
 
 const styles = StyleSheet.create({
   card: { marginBottom: spacing.md },

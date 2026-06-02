@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Heart, Star } from 'lucide-react-native';
 import { alpha, colors, fonts, spacing } from '../theme';
@@ -6,9 +7,9 @@ import Heading from './Heading';
 import BodyText from './BodyText';
 import GlassCard from './GlassCard';
 
-export default function TestimonyCard({ testimony, onPress, onReact }) {
+function TestimonyCard({ testimony, onPress, onReact }) {
   return (
-    <Pressable onPress={onPress}>
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`Open testimony: ${testimony.title}`}>
       <GlassCard style={styles.card}>
         <View style={styles.header}>
           <View style={styles.badgeRow}>
@@ -33,6 +34,8 @@ export default function TestimonyCard({ testimony, onPress, onReact }) {
                 onReact(testimony.id, 'praiseGod');
               }}
               style={styles.likeBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Praise God"
             >
               <Heart size={16} color={colors.coral} />
               <Text style={styles.likeCount}>{testimony.praiseGod ?? testimony.likes ?? 0}</Text>
@@ -48,6 +51,8 @@ export default function TestimonyCard({ testimony, onPress, onReact }) {
     </Pressable>
   );
 }
+
+export default memo(TestimonyCard);
 
 const styles = StyleSheet.create({
   card: { marginBottom: spacing.md },

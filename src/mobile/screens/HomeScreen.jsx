@@ -81,7 +81,7 @@ export default function HomeScreen({ onOpenPrayer, go }) {
   const featured = visiblePrayers[0];
   const recentPrayers = visiblePrayers.slice(0, 3);
   const listLoading = prayersLoading || blocksLoading || statsLoading;
-  const listError = prayersError || statsError;
+  const listError = prayersError;
   const retry = () => {
     retryPrayers();
     retryBlocks();

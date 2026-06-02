@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.canvas },
   scroll: { flex: 1, width: '100%' },
   content: { flexGrow: 1, width: '100%', paddingBottom: spacing.xxl },
-  pageContent: { flexGrow: 1, width: '100%', paddingBottom: spacing.tabBar, paddingHorizontal: spacing.lg },
+  pageContent: { flexGrow: 1, width: '100%', paddingTop: spacing.md, paddingBottom: spacing.tabBar, paddingHorizontal: spacing.lg },
   header: {
     flexDirection: 'row',
     alignItems: 'flex-start',

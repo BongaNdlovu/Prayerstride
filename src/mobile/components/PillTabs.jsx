@@ -15,6 +15,9 @@ export default function PillTabs({ tabs, active, onChange, style }) {
           <Pressable
             key={tab}
             onPress={() => onChange(tab)}
+            accessibilityRole="tab"
+            accessibilityLabel={tab}
+            accessibilityState={{ selected: active === tab }}
             style={[styles.pill, selected && styles.pillActive]}
           >
             <Text style={[styles.text, selected && styles.textActive]}>{tab}</Text>

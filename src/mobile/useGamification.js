@@ -7,6 +7,7 @@ import {
   updateGamificationTimeZone,
 } from './api';
 import { subscribeGamificationRefresh } from './gamificationRefresh';
+import { warn } from './logger';
 import { usePrayers, useTestimonies } from './usePrayerData';
 import { usePrayerSessions } from './usePrayerSessions';
 
@@ -39,7 +40,9 @@ export function useGamification(userId, enabled = true) {
     const timeZone = getDeviceTimeZone();
 
     try {
-      await updateGamificationTimeZone(timeZone).catch(() => {});
+      await updateGamificationTimeZone(timeZone).catch((error) => {
+        warn('Gamification timezone sync failed', error);
+      });
       const backfillKey = gamificationBackfillKey(userId);
       const backfillDone = await AsyncStorage.getItem(backfillKey);
       if (!backfillDone) {

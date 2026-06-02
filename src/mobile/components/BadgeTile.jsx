@@ -10,7 +10,7 @@ export default function BadgeTile({ badge, onPress, compact = false }) {
   const locked = badge.state === 'locked';
 
   return (
-    <Pressable onPress={onPress} style={[styles.tile, compact && styles.tileCompact, earned && styles.tileEarned]}>
+    <Pressable onPress={onPress} style={[styles.tile, compact && styles.tileCompact, earned && styles.tileEarned]} accessibilityRole="button" accessibilityLabel={badge.name}>
       <View style={[styles.iconWrap, earned && styles.iconWrapEarned, locked && styles.iconWrapLocked]}>
         {earned ? (
           <Star size={compact ? 18 : 22} color={colors.gold} fill={colors.gold} />
