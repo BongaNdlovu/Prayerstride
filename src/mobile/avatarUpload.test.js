@@ -15,4 +15,10 @@ describe('avatar upload errors', () => {
     expect(getUploadErrorMessage({ code: 'storage/unauthorized' }))
       .toMatch(/2 MB/i);
   });
+
+  it('explains when Firebase Storage is disabled by the project plan', () => {
+    expect(getUploadErrorMessage({
+      message: 'Cloud Storage for Firebase no longer supports Firebase projects that are on the no-cost Spark pricing plan. Please upgrade to the pay-as-you-go Blaze pricing plan.',
+    })).toMatch(/app storage is not enabled/i);
+  });
 });

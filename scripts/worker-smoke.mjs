@@ -60,6 +60,7 @@ assert(worker.includes("profile.registrationState === 'pending_completion'"), 'W
 assert(worker.includes('privacyPageHtml'), 'Worker should serve public privacy HTML.');
 assert(worker.includes('accountDeletionJobs'), 'Worker should write account deletion tombstones.');
 assert(worker.includes('deleteFirebaseAuthUser'), 'Worker should delete Firebase Auth user last.');
+assert(worker.includes('retryFailedDeletionJobs'), 'Scheduled maintenance should retry failed account deletions.');
 assert(worker.includes('purgeExpiredDeletionTombstones'), 'Worker should purge expired deletion tombstones.');
 assert(worker.includes('deletion-query-fallback'), 'Account deletion should fall back when collection-group indexes are unavailable.');
 assert(worker.includes('storage-delete-non-fatal'), 'Account deletion should continue when avatar storage cleanup fails.');
@@ -130,6 +131,10 @@ assert(worker.includes('isoWeekKeyFromDayKey(dayKey)'), 'Worker should enforce w
 assert(worker.includes('awardTestimonyXp'), 'Worker should award testimony XP after sharing.');
 assert(worker.includes('backfillGamificationXp'), 'Worker should support idempotent gamification backfill.');
 assert(worker.includes('deleteUserXpEvents'), 'Account deletion should remove xpEvents.');
+assert(gamification.includes("fs.runCollectionQuery(env, 'xpEvents'"), 'Account deletion should query top-level xpEvents without collection-group indexes.');
+assert(gamification.includes("fs.listDocuments(env, fs.docName(env, 'xpEvents'))"), 'Account deletion should fall back to listing top-level xpEvents.');
+assert(worker.includes("hashToken(`rate:user:${uid}`)"), 'Account deletion should remove the hashed per-user rate-limit record directly.');
+assert(worker.includes("'account-deletion-failed'"), 'Account deletion should log its original failure before returning a generic response.');
 assert(worker.includes('gamification\\/summary'), 'Worker should route gamification summary.');
 assert(worker.includes('prayer-sessions'), 'Worker should route prayer session creation.');
 assert(worker.includes('spiritualEngagementMetrics'), 'Worker should implement spiritualEngagementMetrics function.');

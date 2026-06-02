@@ -32,9 +32,13 @@ describe('security hardening', () => {
 
   it('cascades content deletion and removes account-owned interactions', async () => {
     const source = await import('../../worker/index.js?raw');
+    const gamification = await import('../../worker/gamification.js?raw');
     expect(source.default).toMatch(/deleteContentAndActions/);
     expect(source.default).toMatch(/processOwnedActionCollection\('prays'\)/);
     expect(source.default).toMatch(/processOwnedActionCollection\('reactions'\)/);
+    expect(source.default).toMatch(/hashToken\(`rate:user:\$\{uid\}`\)/);
+    expect(gamification.default).toMatch(/fs\.runCollectionQuery\(env,\s*'xpEvents'/);
+    expect(gamification.default).toMatch(/fs\.listDocuments\(env,\s*fs\.docName\(env,\s*'xpEvents'\)\)/);
   });
 
   it('allows account deletion retries after partial cleanup', async () => {

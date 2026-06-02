@@ -98,6 +98,8 @@ export default {
   async scheduled(event, env) {
     log(env, 'info', { cron: event.cron }, 'scheduled-start');
     try {
+      const retriedDeletionJobs = await retryFailedDeletionJobs(env);
+      log(env, 'info', retriedDeletionJobs, 'scheduled-deletion-retry');
       const purged = await purgeExpiredDeletionTombstones(env);
       log(env, 'info', { purged }, 'scheduled-tombstone-purge');
       const purgedRateLimits = await purgeExpiredRateLimits(env);
@@ -1500,6 +1502,10 @@ async function deleteUserData(env, uid, options = {}) {
     }]);
     return json({ ok: true });
   } catch (error) {
+    log(env, 'error', {
+      uidHashPrefix: (await hashToken(`account:${uid}`)).slice(0, 10),
+      message: error.message,
+    }, 'account-deletion-failed');
     await firestoreCommit(env, [{
       update: {
         name: tombstoneName,
@@ -1617,12 +1623,7 @@ async function collectUserDeletionWrites(env, uid) {
   await processCollection('notifications', (d) => d.recipientUid === uid || d.actorUid === uid);
   await processCollection('reports', (d) => d.reportedByUid === uid || d.targetId === uid);
   await processCollection('blocks', (d, doc) => d.blockerUid === uid || d.blockedUid === uid || doc.name.endsWith(`_${uid}`) || doc.name.startsWith(`${uid}_`));
-
-  const apiDocs = await listDocuments(env, docName(env, 'apiRateLimits'));
-  for (const d of apiDocs) {
-    const data = fromFirestoreFields(d.fields || {});
-    if (data.uid === uid) addDelete(d.name);
-  }
+  addDelete(docName(env, 'apiRateLimits', await hashToken(`rate:user:${uid}`)));
 
   const deviceDocs = await listDocuments(env, docName(env, 'users', uid, 'devices'));
   for (const d of deviceDocs) addDelete(d.name);
@@ -1703,6 +1704,30 @@ async function deleteStoragePrefix(env, prefix) {
   } while (pageToken);
 
   return deleted;
+}
+
+async function retryFailedDeletionJobs(env, maxJobs = 20) {
+  const docs = await listDocuments(env, docName(env, 'accountDeletionJobs'));
+  let retried = 0;
+  let completed = 0;
+
+  for (const document of docs) {
+    if (retried >= maxJobs) break;
+    const job = fromFirestoreFields(document.fields || {});
+    if (job.status !== 'failed') continue;
+    retried += 1;
+    try {
+      const response = await deleteUserData(env, job.uid || dataId(document));
+      if (response.ok) completed += 1;
+    } catch (error) {
+      log(env, 'warn', {
+        uidHashPrefix: (await hashToken(`account:${job.uid || dataId(document)}`)).slice(0, 10),
+        message: error.message,
+      }, 'scheduled-deletion-retry-failed');
+    }
+  }
+
+  return { retried, completed };
 }
 
 async function purgeExpiredDeletionTombstones(env) {
@@ -2245,6 +2270,7 @@ const gamificationFirestore = {
   docName,
   getDocument,
   firestoreCommit,
+  listDocuments,
   runCollectionQuery,
   runCollectionGroupQuery,
   fromFirestoreFields,

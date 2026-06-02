@@ -504,13 +504,20 @@ export async function updateGamificationTimeZone(fs, env, uid, timeZone) {
 }
 
 export async function deleteUserXpEvents(fs, env, uid) {
-  const docs = await fs.runCollectionGroupQuery(env, 'xpEvents', [{
-    fieldFilter: {
-      field: { fieldPath: 'uid' },
-      op: 'EQUAL',
-      value: { stringValue: uid },
-    },
-  }]);
-  const writes = docs.map((doc) => ({ delete: doc.name }));
+  let docs;
+  try {
+    docs = await fs.runCollectionQuery(env, 'xpEvents', [{
+      fieldFilter: {
+        field: { fieldPath: 'uid' },
+        op: 'EQUAL',
+        value: { stringValue: uid },
+      },
+    }]);
+  } catch {
+    docs = await fs.listDocuments(env, fs.docName(env, 'xpEvents'));
+  }
+  const writes = docs
+    .filter((doc) => fs.fromFirestoreFields(doc.fields || {}).uid === uid)
+    .map((doc) => ({ delete: doc.name }));
   return writes;
 }
