@@ -12,6 +12,18 @@ const gamificationSummarySource = gamification.slice(
   gamification.indexOf('export async function buildGamificationSummary'),
   gamification.indexOf('export async function backfillGamificationXp'),
 );
+const gamificationBackfillSource = gamification.slice(
+  gamification.indexOf('export async function backfillGamificationXp'),
+  gamification.indexOf('export function deleteUserGamificationSummary'),
+);
+const globalRateLimitSource = worker.slice(
+  worker.indexOf('async function enforceGlobalRateLimit'),
+  worker.indexOf('async function enforceUserRateLimit'),
+);
+const userRateLimitSource = worker.slice(
+  worker.indexOf('async function enforceUserRateLimit'),
+  worker.indexOf('function waitForRateLimitRetry'),
+);
 const failures = [];
 
 const assert = (condition, message) => {
@@ -77,6 +89,12 @@ assert(worker.includes('getNotificationSettings'), 'Worker should read notificat
 assert(worker.includes('...targetData') && worker.includes('suspended: true'), 'Suspending a user should preserve existing profile fields.');
 assert(worker.includes("currentDocument: { exists: false }"), 'Worker should create notifications and action docs without overwriting existing documents.');
 assert(worker.includes("publicMessage: 'Rate limit exceeded'"), 'Rate-limit write collisions should fail closed.');
+assert(worker.includes('const RATE_LIMIT_COMMIT_ATTEMPTS = 3'), 'Rate-limit counters should retry transient write conflicts.');
+assert(globalRateLimitSource.includes('for (let attempt = 1; attempt <= RATE_LIMIT_COMMIT_ATTEMPTS'), 'Global rate limiting should retry precondition conflicts.');
+assert(userRateLimitSource.includes('for (let attempt = 1; attempt <= RATE_LIMIT_COMMIT_ATTEMPTS'), 'User rate limiting should retry precondition conflicts.');
+assert(globalRateLimitSource.includes('if (!result.preconditionFailed) return') && userRateLimitSource.includes('if (!result.preconditionFailed) return'), 'Rate limiting should only fail after retry attempts are exhausted.');
+assert(globalRateLimitSource.includes('await waitForRateLimitRetry(attempt)') && userRateLimitSource.includes('await waitForRateLimitRetry(attempt)'), 'Rate-limit retry attempts should yield before rereading counters.');
+assert(globalRateLimitSource.includes("publicMessage: 'Please retry shortly.'") && userRateLimitSource.includes("publicMessage: 'Please retry shortly.'"), 'Exhausted rate-limit conflicts should not be mislabeled as quota exhaustion.');
 assert(worker.includes('ipHash: ipKey') && !worker.includes('{ requestId, clientIp'), 'Rate limiting should store and log hashed IP identifiers instead of raw client IPs.');
 assert(worker.includes("op: 'EQUAL'") && worker.includes("fieldPath: 'blockerUid'"), 'Block listing should query only the current user blocks.');
 assert(worker.includes("(?:\\.\\d+)?Z$"), 'Worker timestamp detection should require a complete timestamp string.');
@@ -135,7 +153,13 @@ assert(gamification.includes('dailyChallengeComplete') && gamification.includes(
 assert(gamification.includes('streak7Awarded') && gamification.includes('XP_AWARDS.streak7'), 'Gamification should award streak-7 bonus XP.');
 assert(gamificationLogic.includes("return 'UTC'"), 'Gamification should fall back to UTC for invalid time zones.');
 assert(gamification.includes('SUMMARY_COLLECTION') && gamification.includes('gamificationSummaries'), 'Gamification summary should read a materialized summary document.');
+assert(gamificationSummarySource.includes('fs.getDocument(env, fs.docName(env, SUMMARY_COLLECTION, uid))'), 'Gamification summary endpoint should perform a single stored-summary read.');
 assert(!gamificationSummarySource.includes('runCollectionGroupQuery'), 'Gamification summary should not fan out across collection-group queries.');
+assert(!gamificationSummarySource.includes('Promise.all'), 'Gamification summary should not parallelize live collection scans.');
+assert(!gamificationSummarySource.includes('listDocuments'), 'Gamification summary should not list Firestore collections on app startup.');
+assert(!gamificationBackfillSource.includes('runCollectionGroupQuery'), 'Gamification backfill compatibility endpoint should not scan historical collections.');
+assert(!gamificationBackfillSource.includes('awardXpEvent'), 'Gamification backfill compatibility endpoint should not rewrite historical XP events.');
+assert(gamification.includes('recordPrayerCreated') && gamification.includes('recordPrayerAnswered'), 'Gamification should maintain prayer counters incrementally.');
 assert(gamification.includes('recordEncouragementSent'), 'Gamification should maintain encouragement counters incrementally.');
 assert(worker.includes("d.senderUid === uid || d.receiverUid === uid"), 'Account deletion should remove sent and received encouragements.');
 

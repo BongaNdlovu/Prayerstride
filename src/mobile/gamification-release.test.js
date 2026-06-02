@@ -86,6 +86,10 @@ describe('gamification release hardening', () => {
     expect(source.default).not.toMatch(/useTestimonies/);
     expect(source.default).not.toMatch(/updateGamificationTimeZone/);
     expect(source.default).not.toMatch(/backfillGamification/);
+    expect(source.default).not.toMatch(/AsyncStorage/);
     expect(source.default).toMatch(/SUMMARY_CACHE_TTL_MS/);
+    expect(source.default).toMatch(/summaryRequests/);
+    expect(source.default).toMatch(/loadGamificationSummary/);
+    expect(source.default).toMatch(/summaryCache\.delete/);
   });
 });
