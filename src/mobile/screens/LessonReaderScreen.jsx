@@ -9,7 +9,7 @@ import BodyText from '../components/BodyText';
 import AsyncState from '../components/AsyncState';
 
 export default function LessonReaderScreen({ guideId, lessonId, onBack }) {
-  const { lesson, loading, error } = useGuideLesson(guideId, lessonId, true);
+  const { lesson, loading, error, retry } = useGuideLesson(guideId, lessonId, true);
   const eyebrow = lesson ? `Day ${lesson.day || 1}${lesson.totalDays ? ` of ${lesson.totalDays}` : ''}` : 'Lesson';
 
   return (
@@ -19,7 +19,7 @@ export default function LessonReaderScreen({ guideId, lessonId, onBack }) {
         subtitle={lesson?.reference || 'Open a published study lesson.'}
         onBack={onBack}
       />
-      <AsyncState loading={loading} error={error} empty={!loading && !error && !lesson} emptyLabel="This lesson is not available.">
+      <AsyncState loading={loading} error={error} onRetry={retry} empty={!loading && !error && !lesson} emptyLabel="This lesson is not available.">
         <Heading level="eyebrow" style={styles.eyebrow}>{eyebrow}</Heading>
         <GlassCard>
           {lesson?.verse ? (

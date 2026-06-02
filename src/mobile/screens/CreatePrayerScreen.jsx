@@ -16,6 +16,7 @@ import BodyText from '../components/BodyText';
 import SegmentedControl from '../components/SegmentedControl';
 import ToggleRow from '../components/ToggleRow';
 import PrimaryButton from '../components/PrimaryButton';
+import { getErrorMessage } from '../errors';
 
 const PRIVACY_OPTIONS = privacyOptionsWithIcons({ Users, Lock, EyeOff });
 
@@ -51,7 +52,7 @@ export default function CreatePrayerScreen({ user }) {
       setUrgent(false);
       Alert.alert('Prayer shared', 'Your request is now in the community feed.');
     } catch (error) {
-      Alert.alert('Could not share prayer', error.message);
+      Alert.alert('Could not share prayer', getErrorMessage(error));
     } finally {
       setBusy(false);
     }

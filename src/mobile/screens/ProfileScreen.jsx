@@ -20,7 +20,6 @@ import { alpha, colors, fonts, radii, spacing } from '../theme';
 import { XP_PER_LEVEL } from '../gamification';
 import { useUserProfile } from '../useUsers';
 import { useGamification } from '../useGamification';
-import { useIsAdmin } from '../useIsAdmin';
 import ScreenScaffold from '../components/ScreenScaffold';
 import AppHeader from '../components/AppHeader';
 import GlassCard from '../components/GlassCard';
@@ -28,7 +27,6 @@ import Heading from '../components/Heading';
 import BodyText from '../components/BodyText';
 import StatCard from '../components/StatCard';
 import ProgressRing from '../components/ProgressRing';
-import MotionPressable from '../components/MotionPressable';
 import AsyncState from '../components/AsyncState';
 
 const PROFILE_ROUTES = {
@@ -62,18 +60,18 @@ export default function ProfileScreen({ user, signOut, go }) {
   const { profile, loading: profileLoading, error: profileError, retry: retryProfile } = useUserProfile(user?.uid, Boolean(user?.uid));
   const {
     summary: gamified,
-    loading: gamificationLoading,
     error: gamificationError,
     retry: retryGamification,
   } = useGamification(user?.uid, Boolean(user?.uid));
-  const { isAdmin } = useIsAdmin(user);
 
   const displayName = profile?.displayName || user?.displayName || 'PrayerStride User';
   const handle = profile?.handle || '';
   const bio = profile?.bio || '';
   const photoURL = profile?.photoURL || user?.photoURL;
+  const statsUnavailable = Boolean(gamificationError);
   const earnedBadges = gamified.badges.filter((badge) => badge.state === 'earned').length;
   const impact = gamified.impact || {};
+  const isAdmin = profile?.role === 'admin' && profile?.suspended !== true;
   const retry = () => {
     retryProfile();
     retryGamification();
@@ -90,7 +88,7 @@ export default function ProfileScreen({ user, signOut, go }) {
         )}
       />
 
-      <AsyncState loading={profileLoading || gamificationLoading} error={profileError} onRetry={retry}>
+      <AsyncState loading={profileLoading} error={profileError} onRetry={retry}>
       <GlassCard style={styles.profileCard}>
         <View style={styles.avatarWrap}>
           {photoURL ? (
@@ -107,6 +105,12 @@ export default function ProfileScreen({ user, signOut, go }) {
           <BodyText variant="caption" style={styles.bio}>{user?.email || ''}</BodyText>
         )}
       </GlassCard>
+
+      {statsUnavailable ? (
+        <BodyText variant="caption" style={styles.statsError}>
+          Prayer stats are temporarily unavailable. Showing your profile with default stats.
+        </BodyText>
+      ) : null}
 
       <GlassCard style={styles.levelCard}>
         <View style={styles.levelRow}>
@@ -126,16 +130,13 @@ export default function ProfileScreen({ user, signOut, go }) {
         </View>
       </GlassCard>
 
-      <View style={styles.statsRow}>
-        <StatCard icon={Flame} value={String(gamified.streak)} label="Day Streak" sublabel="Keep going" accent={colors.coral} />
-        <StatCard icon={BarChart3} value={String(impact.prayerSessions || 0)} label="Sessions" accent={colors.emerald} />
-        <StatCard icon={Users} value={String(impact.peoplePrayedFor || 0)} label="People Prayed For" accent={colors.community} />
-      </View>
-
-      <View style={styles.statsRow}>
-        <StatCard icon={Heart} value={String(impact.answeredPrayers || 0)} label="Answered Prayers" accent={colors.violet} />
-        <StatCard icon={Sparkles} value={String(impact.encouragementsSent || 0)} label="Encouragements" accent={colors.gold} />
-        <StatCard icon={Trophy} value={String(earnedBadges)} label="Badges" accent={colors.navy} />
+      <View style={styles.statsGrid}>
+        <StatCard icon={Flame} value={String(gamified.streak)} label="Day Streak" sublabel="Keep going" accent={colors.coral} style={styles.statCard} />
+        <StatCard icon={BarChart3} value={String(impact.prayerSessions || 0)} label="Sessions" accent={colors.emerald} style={styles.statCard} />
+        <StatCard icon={Users} value={String(impact.peoplePrayedFor || 0)} label="Prayers Carried" accent={colors.community} style={styles.statCard} />
+        <StatCard icon={Heart} value={String(impact.answeredPrayers || 0)} label="Answered Prayers" accent={colors.violet} style={styles.statCard} />
+        <StatCard icon={Sparkles} value={String(impact.encouragementsSent || 0)} label="Encouragements" accent={colors.gold} style={styles.statCard} />
+        <StatCard icon={Trophy} value={String(earnedBadges)} label="Badges" accent={colors.navy} style={styles.statCard} />
       </View>
 
       <Heading level="h4" style={styles.sectionTitle}>Quick Links</Heading>
@@ -143,10 +144,10 @@ export default function ProfileScreen({ user, signOut, go }) {
         {QUICK_LINKS.map((item, index) => {
           const Icon = item.icon;
           return (
-            <MotionPressable
+            <Pressable
               key={item.route}
               onPress={() => go(item.route)}
-              style={[styles.menuItem, index === QUICK_LINKS.length - 1 && styles.menuItemLast]}
+              style={({ pressed }) => [styles.menuItem, index === QUICK_LINKS.length - 1 && styles.menuItemLast, pressed && styles.pressed]}
             >
               <View style={styles.menuLeft}>
                 <View style={styles.menuIcon}>
@@ -155,7 +156,7 @@ export default function ProfileScreen({ user, signOut, go }) {
                 <BodyText variant="label">{item.label}</BodyText>
               </View>
               <ChevronRight size={18} color={colors.textMuted} />
-            </MotionPressable>
+            </Pressable>
           );
         })}
       </GlassCard>
@@ -165,10 +166,10 @@ export default function ProfileScreen({ user, signOut, go }) {
         {MORE_LINKS.map((item, index) => {
           const Icon = item.icon;
           return (
-            <MotionPressable
+            <Pressable
               key={item.route}
               onPress={() => go(item.route)}
-              style={[styles.menuItem, index === MORE_LINKS.length - 1 && styles.menuItemLast]}
+              style={({ pressed }) => [styles.menuItem, index === MORE_LINKS.length - 1 && styles.menuItemLast, pressed && styles.pressed]}
             >
               <View style={styles.menuLeft}>
                 <View style={styles.menuIcon}>
@@ -177,11 +178,11 @@ export default function ProfileScreen({ user, signOut, go }) {
                 <BodyText variant="label">{item.label}</BodyText>
               </View>
               <ChevronRight size={18} color={colors.textMuted} />
-            </MotionPressable>
+            </Pressable>
           );
         })}
         {isAdmin ? (
-          <MotionPressable onPress={() => go('adminDashboard')} style={[styles.menuItem, styles.menuItemLast]}>
+          <Pressable onPress={() => go('adminDashboard')} style={({ pressed }) => [styles.menuItem, styles.menuItemLast, pressed && styles.pressed]}>
             <View style={styles.menuLeft}>
               <View style={styles.menuIcon}>
                 <Settings size={18} color={colors.navy} />
@@ -189,13 +190,13 @@ export default function ProfileScreen({ user, signOut, go }) {
               <BodyText variant="label">Admin Dashboard</BodyText>
             </View>
             <ChevronRight size={18} color={colors.textMuted} />
-          </MotionPressable>
+          </Pressable>
         ) : null}
       </GlassCard>
 
-      <MotionPressable onPress={signOut} style={styles.signOutButton}>
+      <Pressable onPress={signOut} style={({ pressed }) => [styles.signOutButton, pressed && styles.pressed]}>
         <BodyText variant="label">Sign Out</BodyText>
-      </MotionPressable>
+      </Pressable>
       </AsyncState>
     </ScreenScaffold>
   );
@@ -218,6 +219,7 @@ const styles = StyleSheet.create({
   name: { textAlign: 'center' },
   handle: { marginTop: spacing.xs, color: colors.textMuted, textAlign: 'center' },
   bio: { marginTop: spacing.md, textAlign: 'center', maxWidth: 280 },
+  statsError: { marginBottom: spacing.md, color: colors.coral, textAlign: 'center' },
   levelCard: { marginBottom: spacing.lg },
   levelRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
   levelCopy: { flex: 1 },
@@ -230,7 +232,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   levelFill: { height: 6, borderRadius: 3, backgroundColor: colors.gold },
-  statsRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.lg },
+  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.lg },
+  statCard: { minWidth: '46%' },
   sectionTitle: { marginBottom: spacing.sm },
   menuCard: { paddingVertical: spacing.xs },
   menuItem: {
@@ -261,4 +264,5 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     backgroundColor: colors.surfaceMuted,
   },
+  pressed: { opacity: 0.92 },
 });

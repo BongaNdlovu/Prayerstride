@@ -9,6 +9,7 @@ export default function ScreenScaffold({
   children,
   scroll = true,
   pageContent = false,
+  centerContent = false,
   showLogo = false,
   title,
   subtitle,
@@ -47,6 +48,7 @@ export default function ScreenScaffold({
   const containerStyle = [styles.screen, style];
   const scrollContentStyle = [
     pageContent ? styles.pageContent : styles.content,
+    centerContent && styles.centerContent,
     contentStyle,
   ];
 
@@ -84,6 +86,7 @@ const styles = StyleSheet.create({
   scroll: { flex: 1, width: '100%' },
   content: { flexGrow: 1, width: '100%', paddingBottom: spacing.xxl },
   pageContent: { flexGrow: 1, width: '100%', paddingTop: spacing.md, paddingBottom: spacing.tabBar, paddingHorizontal: spacing.lg },
+  centerContent: { justifyContent: 'center' },
   header: {
     flexDirection: 'row',
     alignItems: 'flex-start',

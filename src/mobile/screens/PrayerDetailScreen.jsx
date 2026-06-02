@@ -24,6 +24,7 @@ import BodyText from '../components/BodyText';
 import PrimaryButton from '../components/PrimaryButton';
 import MotionPressable from '../components/MotionPressable';
 import { warn } from '../logger';
+import { getErrorMessage } from '../errors';
 
 function Tag({ label, tone = 'default' }) {
   return (
@@ -102,7 +103,7 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
       else await unbookmarkPrayer(prayer.id);
       setBookmarked(newValue);
     } catch (error) {
-      Alert.alert('Could not save bookmark', error.message);
+      Alert.alert('Could not save bookmark', getErrorMessage(error));
     }
   };
 
@@ -124,7 +125,7 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
     } catch (error) {
       setPrayed(false);
       setPrayerCountDelta(0);
-      Alert.alert('Prayer not saved', error.message);
+      Alert.alert('Prayer not saved', getErrorMessage(error));
     } finally {
       prayingRef.current = false;
     }
@@ -152,7 +153,7 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
       await submitReport(prayer.id, 'prayer', reason, user);
       Alert.alert('Report submitted', 'Thank you for helping keep PrayerStride safe.');
     } catch (error) {
-      Alert.alert('Could not submit report', error.message);
+      Alert.alert('Could not submit report', getErrorMessage(error));
     }
   };
 
@@ -172,7 +173,7 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
               if (go) go('createTestimony', { prayerId: prayer.id });
               if (onRefresh) onRefresh();
             } catch (error) {
-              Alert.alert('Could not update', error.message);
+              Alert.alert('Could not update', getErrorMessage(error));
             }
           },
         },
@@ -189,7 +190,7 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
       await followUser(prayer.authorUid);
       Alert.alert('Following', 'This member has been added to your Following list.');
     } catch (error) {
-      Alert.alert('Could not follow', error.message);
+      Alert.alert('Could not follow', getErrorMessage(error));
     }
   };
 
@@ -226,7 +227,7 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
       );
       if (!result.duplicate) bumpGamificationRefresh();
     } catch (error) {
-      Alert.alert('Could not send encouragement', error.message);
+      Alert.alert('Could not send encouragement', getErrorMessage(error));
     }
   };
 

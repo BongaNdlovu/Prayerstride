@@ -66,11 +66,9 @@ function PrayerSessionButton({ onPress }) {
 export default function HomeScreen({ onOpenPrayer, go }) {
   const uid = auth.currentUser?.uid;
   const { prayers, loading: prayersLoading, error: prayersError, retry: retryPrayers } = usePrayers(true);
-  const { blockedUids, loading: blocksLoading, refresh: retryBlocks } = useBlocks(true);
+  const { blockedUids, loading: blocksLoading, error: blocksError, refresh: retryBlocks } = useBlocks(true);
   const {
     summary: gamified,
-    loading: statsLoading,
-    error: statsError,
     retry: retryStats,
   } = useGamification(uid, Boolean(uid));
 
@@ -80,8 +78,8 @@ export default function HomeScreen({ onOpenPrayer, go }) {
   );
   const featured = visiblePrayers[0];
   const recentPrayers = visiblePrayers.slice(0, 3);
-  const listLoading = prayersLoading || blocksLoading || statsLoading;
-  const listError = prayersError;
+  const listLoading = prayersLoading || blocksLoading;
+  const listError = prayersError || blocksError;
   const retry = () => {
     retryPrayers();
     retryBlocks();

@@ -11,7 +11,7 @@ import EmptyState from '../components/EmptyState';
 import AsyncState from '../components/AsyncState';
 
 export default function DevotionsScreen({ go, onBack }) {
-  const { devotions, loading, error } = useDevotions(true);
+  const { devotions, loading, error, retry } = useDevotions(true);
 
   return (
     <ScreenScaffold scroll={false} style={styles.shell}>
@@ -19,6 +19,7 @@ export default function DevotionsScreen({ go, onBack }) {
       <AsyncState
         loading={loading}
         error={error}
+        onRetry={retry}
         empty={!loading && !error && devotions.length === 0}
         emptyLabel="No devotions available."
       >

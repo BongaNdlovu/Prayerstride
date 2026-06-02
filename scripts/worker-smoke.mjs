@@ -8,6 +8,10 @@ const encouragements = readFileSync(join(process.cwd(), 'worker', 'encouragement
 const encouragementPresets = readFileSync(join(process.cwd(), 'shared', 'encouragementPresets.js'), 'utf8');
 const gamificationLogic = readFileSync(join(process.cwd(), 'shared', 'gamificationLogic.js'), 'utf8');
 const workerSource = `${worker}\n${engagement}\n${gamification}\n${encouragements}\n${gamificationLogic}`;
+const gamificationSummarySource = gamification.slice(
+  gamification.indexOf('export async function buildGamificationSummary'),
+  gamification.indexOf('export async function backfillGamificationXp'),
+);
 const failures = [];
 
 const assert = (condition, message) => {
@@ -79,6 +83,7 @@ assert(worker.includes("(?:\\.\\d+)?Z$"), 'Worker timestamp detection should req
 assert(worker.includes("fieldPath.endsWith('At')"), 'Worker timestamp detection should only apply to timestamp fields.');
 assert(worker.includes('response.ok') && worker.includes('invalidToken'), 'Worker should check FCM responses and clean up invalid tokens.');
 assert(!worker.includes("Access-Control-Allow-Origin', env.CORS_ORIGIN || '*'"), 'Worker should not fall back to wildcard CORS.');
+assert(worker.includes("let resolvedOrigin = origin ? '' : allowedOrigins[0]"), 'Worker should omit CORS access for untrusted browser origins.');
 assert(!worker.includes('runFirestoreQuery'), 'Unused runFirestoreQuery helper should be removed.');
 assert(worker.includes("status >= 500 ? 'Unexpected server error'"), 'Worker should hide raw internal errors from clients.');
 assert(worker.includes("status: 401") && worker.includes("publicMessage: 'Authentication required'"), 'Worker should classify missing authentication as 401.');
@@ -126,10 +131,12 @@ assert(worker.includes('requireAdmin(env, user)') || worker.includes('requireAdm
 assert(gamification.includes('awardXpEvent'), 'Gamification module should award idempotent XP events.');
 assert(gamification.includes('currentDocument: { exists: false }'), 'XP events should use create-if-missing semantics.');
 assert(gamification.includes('allowAlreadyExists: true'), 'XP awards should tolerate duplicate commits.');
-assert(gamification.includes('XP_EVENT_TYPES.dailyChallenge'), 'Gamification should award daily-challenge bonus XP.');
-assert(gamification.includes('XP_EVENT_TYPES.streak7'), 'Gamification should award streak-7 bonus XP.');
+assert(gamification.includes('dailyChallengeComplete') && gamification.includes('XP_AWARDS.dailyChallenge'), 'Gamification should award daily-challenge bonus XP.');
+assert(gamification.includes('streak7Awarded') && gamification.includes('XP_AWARDS.streak7'), 'Gamification should award streak-7 bonus XP.');
 assert(gamificationLogic.includes("return 'UTC'"), 'Gamification should fall back to UTC for invalid time zones.');
-assert(gamification.includes('countEncouragementsSent'), 'Gamification summary should count encouragements sent.');
+assert(gamification.includes('SUMMARY_COLLECTION') && gamification.includes('gamificationSummaries'), 'Gamification summary should read a materialized summary document.');
+assert(!gamificationSummarySource.includes('runCollectionGroupQuery'), 'Gamification summary should not fan out across collection-group queries.');
+assert(gamification.includes('recordEncouragementSent'), 'Gamification should maintain encouragement counters incrementally.');
 assert(worker.includes("d.senderUid === uid || d.receiverUid === uid"), 'Account deletion should remove sent and received encouragements.');
 
 assert(encouragements.includes('getEncouragementPreset'), 'Encouragements should validate reviewed presets.');

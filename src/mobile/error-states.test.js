@@ -55,7 +55,15 @@ describe('error states', () => {
     const screens = ['DiscoverScreen', 'MyPrayersScreen', 'PraiseScreen'];
     for (const name of screens) {
       const source = await import(`./screens/${name}.jsx?raw`);
-      expect(source.default).toMatch(/empty=\{!loading && !(?:error|listError)/);
+      expect(source.default).toMatch(/empty=\{!(?:feedLoading|loading) && !(?:error|listError)/);
+    }
+  });
+
+  it('feed screens stay closed when blocked-user loading fails', async () => {
+    const screens = ['DiscoverScreen', 'HomeScreen', 'PraiseScreen'];
+    for (const name of screens) {
+      const source = await import(`./screens/${name}.jsx?raw`);
+      expect(source.default).toMatch(/blocksError/);
     }
   });
 

@@ -24,6 +24,7 @@ import Heading from '../components/Heading';
 import BodyText from '../components/BodyText';
 import PrimaryButton from '../components/PrimaryButton';
 import GlassCard from '../components/GlassCard';
+import { getErrorMessage } from '../errors';
 
 export default function AuthScreen({ mode: initialMode, onSignIn, onRegister, onResetPassword, onSwitchMode, resumeRegistration = false, onResumeRegistration }) {
   const [mode, setMode] = useState(initialMode || 'signIn');
@@ -105,7 +106,7 @@ export default function AuthScreen({ mode: initialMode, onSignIn, onRegister, on
         await onSignIn(email.trim(), password);
       }
     } catch (error) {
-      Alert.alert('Could not continue', error.message);
+      Alert.alert('Could not continue', getErrorMessage(error));
     } finally {
       setBusy(false);
     }
@@ -114,7 +115,7 @@ export default function AuthScreen({ mode: initialMode, onSignIn, onRegister, on
   const isRegister = mode === 'register';
 
   return (
-    <ScreenScaffold scroll pageContent>
+    <ScreenScaffold scroll pageContent centerContent={!isRegister}>
       <AppHeader centered showLogo title={isRegister ? 'Create Account' : 'Welcome Back'} />
       <BodyText variant="body" style={styles.subtitle}>
         {isRegister ? "Let's get you started on your prayer journey." : 'Sign in to continue your prayer journey.'}

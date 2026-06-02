@@ -7,12 +7,6 @@
       "ios",
       "android"
     ],
-    "android": {
-      "package": "com.lift.prayer"
-    },
-    "ios": {
-      "bundleIdentifier": "com.lift.prayer"
-    },
     "runtimeVersion": {
       "policy": "appVersion"
     },

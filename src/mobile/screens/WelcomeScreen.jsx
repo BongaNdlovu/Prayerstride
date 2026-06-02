@@ -43,10 +43,10 @@ export default function WelcomeScreen({ onContinue, onSignIn }) {
 
 const styles = StyleSheet.create({
   shell: { flex: 1, backgroundColor: colors.screen },
-  hero: { height: 280 },
+  hero: { height: '32%', minHeight: 180, maxHeight: 280 },
   heroFade: { ...StyleSheet.absoluteFillObject },
   contentShell: { flex: 1 },
-  content: { flexGrow: 1, paddingHorizontal: spacing.xxl, paddingBottom: spacing.xxxl },
+  content: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: spacing.xxl, paddingBottom: spacing.xxxl },
   brandBlock: { alignItems: 'center', marginBottom: spacing.xxl },
   brand: { marginTop: spacing.sm, fontSize: 28 },
   tagline: { marginTop: spacing.sm, letterSpacing: 3, color: colors.gold },

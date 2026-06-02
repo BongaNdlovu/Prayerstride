@@ -43,4 +43,11 @@ describe('security hardening', () => {
     expect(source.default).toMatch(/String\(message\)\.includes\('USER_NOT_FOUND'\)/);
     expect(source.default).toMatch(/!targetUser\.exists && !existingDeletionJob\.exists/);
   });
+
+  it('rejects whitespace-only prayer creation in the worker', async () => {
+    const source = await import('../../worker/index.js?raw');
+    expect(source.default).toMatch(/const title = body\.title != null \? String\(body\.title\)\.trim\(\) : ''/);
+    expect(source.default).toMatch(/const prayerBody = body\.body != null \? String\(body\.body\)\.trim\(\) : ''/);
+    expect(source.default).toMatch(/if \(!title \|\| !prayerBody\) return json\(\{ error: 'Missing title or body' \}, 400\)/);
+  });
 });

@@ -1,16 +1,28 @@
 import {
   DAILY_CHALLENGE_GOAL,
+  DAILY_PRAY_GOAL,
+  EARLY_RISER_HOUR,
   XP_AWARDS,
   XP_EVENT_TYPES,
+  XP_PER_LEVEL,
 } from '../shared/gamificationConstants.js';
 import {
-  buildGamificationSummaryFromData,
+  computeBadges,
   dayKeyInTimeZone,
+  hourInTimeZone,
   isoWeekKeyFromDayKey,
+  journeyStageForLevel,
+  previousDayKey,
   resolveTimeZone,
+  WEEKDAY_LABELS,
   xpEventId,
+  xpLevelProgress,
 } from '../shared/gamificationLogic.js';
-import { countEncouragementsSent } from './encouragements.js';
+
+const SUMMARY_COLLECTION = 'gamificationSummaries';
+const SUMMARY_WRITE_ATTEMPTS = 3;
+const SUMMARY_RETRY_MS = 25;
+const MAX_ACTIVE_DAY_KEYS = 60;
 
 export async function resolveUserTimeZone(fs, env, uid, requestedTimeZone) {
   const profile = await fs.getUserProfile(env, uid);
@@ -31,6 +43,203 @@ export async function resolveUserTimeZone(fs, env, uid, requestedTimeZone) {
     },
   }]);
   return requested;
+}
+
+function safeNumber(value, fallback = 0) {
+  const next = Number(value);
+  return Number.isFinite(next) ? next : fallback;
+}
+
+function uniqueStrings(values) {
+  return [...new Set((Array.isArray(values) ? values : [])
+    .map((value) => String(value || '').trim())
+    .filter(Boolean))];
+}
+
+function todayDateFromKey(dayKey) {
+  const [year, month, day] = dayKey.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day, 12));
+}
+
+function buildWeeklyStatsFromDayKeys(dayKeys, todayKey, dayLabels = WEEKDAY_LABELS) {
+  const todayDate = todayDateFromKey(todayKey);
+  const weekStart = new Date(todayDate);
+  weekStart.setUTCDate(weekStart.getUTCDate() - weekStart.getUTCDay());
+  const activeDays = new Set(dayKeys);
+
+  return dayLabels.map((label, index) => {
+    const next = new Date(weekStart);
+    next.setUTCDate(weekStart.getUTCDate() + index);
+    const dayKey = next.toISOString().slice(0, 10);
+    return { day: label, prayers: activeDays.has(dayKey) ? 1 : 0 };
+  });
+}
+
+function calculateStreakFromDayKeys(dayKeys, todayKey) {
+  const activeDays = new Set(dayKeys);
+  let cursorKey = todayKey;
+  let streak = 0;
+  while (activeDays.has(cursorKey)) {
+    streak += 1;
+    cursorKey = previousDayKey(cursorKey);
+  }
+  return streak;
+}
+
+function emptyStoredSummary(uid, timeZone, dayKey, nowIso) {
+  return {
+    uid,
+    timeZone,
+    dayKey,
+    totalXP: 0,
+    todayXP: 0,
+    dailyPrayCount: 0,
+    dailyChallengeComplete: false,
+    prayedTodayIds: [],
+    prayersCreated: 0,
+    prayerSessions: 0,
+    earlySessions: 0,
+    prayersCarried: 0,
+    answeredPrayers: 0,
+    testimonies: 0,
+    encouragementsSent: 0,
+    activeDayKeys: [],
+    streak7Awarded: false,
+    updatedAt: nowIso,
+  };
+}
+
+function normalizeStoredSummary(stored, uid, timeZone, now = new Date()) {
+  const tz = resolveTimeZone(timeZone || stored?.timeZone);
+  const todayKey = dayKeyInTimeZone(now, tz);
+  const nowIso = now.toISOString ? now.toISOString() : new Date(now).toISOString();
+  const base = {
+    ...emptyStoredSummary(uid, tz, todayKey, nowIso),
+    ...(stored || {}),
+    uid,
+    timeZone: tz,
+  };
+  base.totalXP = safeNumber(base.totalXP);
+  base.todayXP = base.dayKey === todayKey ? safeNumber(base.todayXP) : 0;
+  base.dailyPrayCount = base.dayKey === todayKey ? safeNumber(base.dailyPrayCount) : 0;
+  base.dailyChallengeComplete = base.dayKey === todayKey ? Boolean(base.dailyChallengeComplete) : false;
+  base.prayedTodayIds = base.dayKey === todayKey ? uniqueStrings(base.prayedTodayIds) : [];
+  base.prayersCreated = safeNumber(base.prayersCreated);
+  base.prayerSessions = safeNumber(base.prayerSessions);
+  base.earlySessions = safeNumber(base.earlySessions);
+  base.prayersCarried = safeNumber(base.prayersCarried);
+  base.answeredPrayers = safeNumber(base.answeredPrayers);
+  base.testimonies = safeNumber(base.testimonies);
+  base.encouragementsSent = safeNumber(base.encouragementsSent);
+  base.activeDayKeys = uniqueStrings(base.activeDayKeys)
+    .sort()
+    .slice(-MAX_ACTIVE_DAY_KEYS);
+  base.dayKey = todayKey;
+  base.updatedAt = base.updatedAt || nowIso;
+  return base;
+}
+
+function publicSummaryFromStored(stored, uid, requestedTimeZone, today = new Date()) {
+  const normalized = normalizeStoredSummary(stored, uid, requestedTimeZone, today);
+  const todayKey = normalized.dayKey;
+  const streak = calculateStreakFromDayKeys(normalized.activeDayKeys, todayKey);
+  const weeklyStats = buildWeeklyStatsFromDayKeys(normalized.activeDayKeys, todayKey);
+  const activeDayIndexes = weeklyStats
+    .map((item, index) => (item.prayers > 0 ? index : null))
+    .filter((index) => index !== null);
+  const levelInfo = xpLevelProgress(normalized.totalXP);
+  const journey = journeyStageForLevel(levelInfo.level);
+  const badges = computeBadges({
+    prayers: normalized.prayersCreated,
+    streak,
+    sessions: normalized.prayerSessions,
+    earlySessions: normalized.earlySessions,
+    answeredPrayers: normalized.answeredPrayers,
+    testimonies: normalized.testimonies,
+    encouragements: normalized.encouragementsSent,
+  });
+
+  return {
+    streak,
+    dailyPrayCount: normalized.dailyPrayCount,
+    dailyGoalProgress: Math.min(normalized.dailyPrayCount / DAILY_PRAY_GOAL, 1),
+    dailyChallengeComplete: normalized.dailyChallengeComplete,
+    dailyChallengeGoal: DAILY_CHALLENGE_GOAL,
+    dailyPrayGoal: DAILY_PRAY_GOAL,
+    todayXP: normalized.todayXP,
+    totalXP: normalized.totalXP,
+    levelInfo,
+    journey,
+    weeklyStats,
+    activeDayIndexes,
+    weeklyCompletion: activeDayIndexes.length / 7,
+    currentDayIndex: todayDateFromKey(todayKey).getUTCDay(),
+    badges,
+    prayedTodayIds: normalized.prayedTodayIds,
+    impact: {
+      prayerSessions: normalized.prayerSessions,
+      peoplePrayedFor: normalized.prayersCarried,
+      encouragementsSent: normalized.encouragementsSent,
+      answeredPrayers: normalized.answeredPrayers,
+    },
+    timeZone: normalized.timeZone,
+  };
+}
+
+function addXp(summary, points) {
+  const safePoints = safeNumber(points);
+  summary.totalXP += safePoints;
+  summary.todayXP += safePoints;
+}
+
+function addActiveDay(summary, dayKey) {
+  summary.activeDayKeys = uniqueStrings([...summary.activeDayKeys, dayKey])
+    .sort()
+    .slice(-MAX_ACTIVE_DAY_KEYS);
+}
+
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function updateStoredSummary(fs, env, uid, requestedTimeZone, now, applyUpdate) {
+  const date = now instanceof Date ? now : new Date(now);
+  const timeZone = resolveTimeZone(requestedTimeZone);
+  const name = fs.docName(env, SUMMARY_COLLECTION, uid);
+
+  for (let attempt = 1; attempt <= SUMMARY_WRITE_ATTEMPTS; attempt += 1) {
+    const current = await fs.getDocument(env, name);
+    const stored = current.exists ? fs.fromFirestoreFields(current.fields || {}) : {};
+    const next = normalizeStoredSummary(stored, uid, timeZone, date);
+    const meta = { bonuses: [] };
+    applyUpdate(next, meta);
+    next.updatedAt = date.toISOString();
+
+    const result = await fs.firestoreCommit(env, [{
+      update: {
+        name,
+        fields: fs.toFirestoreFields(next),
+      },
+    }], { precondition: current.exists ? { updateTime: current.updateTime } : { exists: false } });
+
+    if (!result.preconditionFailed) {
+      return {
+        bonuses: meta.bonuses,
+        summary: publicSummaryFromStored(next, uid, timeZone, date),
+      };
+    }
+    await wait(attempt * SUMMARY_RETRY_MS);
+  }
+
+  throw new Error('Gamification summary update failed');
+}
+
+async function recordSummaryAction(fs, env, { uid, timeZone, now = new Date(), applyUpdate }) {
+  try {
+    return await updateStoredSummary(fs, env, uid, timeZone, now, applyUpdate);
+  } catch (error) {
+    return { bonuses: [], summaryError: error.message };
+  }
 }
 
 export async function awardXpEvent(fs, env, {
@@ -67,95 +276,46 @@ export async function awardXpEvent(fs, env, {
   return { awarded: true, duplicate: false, eventId };
 }
 
-async function countPrayActionsForDay(fs, env, uid, dayKey) {
-  const docs = await fs.runCollectionGroupQuery(env, 'xpEvents', [{
-    fieldFilter: {
-      field: { fieldPath: 'uid' },
-      op: 'EQUAL',
-      value: { stringValue: uid },
-    },
-  }]);
-  return docs.filter((doc) => {
-    const data = fs.fromFirestoreFields(doc.fields || {});
-    return data.type === XP_EVENT_TYPES.prayAction && data.dayKey === dayKey;
-  }).length;
-}
-
-export async function evaluateBonusRewards(fs, env, {
-  uid,
-  timeZone,
-  sessions,
-  now = new Date(),
-}) {
-  const tz = resolveTimeZone(timeZone);
-  const dayKey = dayKeyInTimeZone(now, tz);
-  const weekKey = isoWeekKeyFromDayKey(dayKey);
-  const awarded = [];
-
-  const prayCount = await countPrayActionsForDay(fs, env, uid, dayKey);
-  if (prayCount >= DAILY_CHALLENGE_GOAL) {
-    const daily = await awardXpEvent(fs, env, {
-      uid,
-      type: XP_EVENT_TYPES.dailyChallenge,
-      points: XP_AWARDS.dailyChallenge,
-      sourceId: dayKey,
-      dayKey,
-      weekKey,
-      now: now.toISOString ? now.toISOString() : now,
-    });
-    if (daily.awarded) awarded.push('dailyChallenge');
-  }
-
-  const streak = buildGamificationSummaryFromData({
-    xpEvents: [],
-    sessions,
-    timeZone: tz,
-    today: now instanceof Date ? now : new Date(now),
-  }).streak;
-
-  if (streak >= 7) {
-    const streakEvent = await awardXpEvent(fs, env, {
-      uid,
-      type: XP_EVENT_TYPES.streak7,
-      points: XP_AWARDS.streak7,
-      sourceId: 'once',
-      dayKey,
-      weekKey,
-      now: now.toISOString ? now.toISOString() : now,
-    });
-    if (streakEvent.awarded) awarded.push('streak7');
-  }
-
-  return awarded;
-}
-
 export async function awardPrayActionXp(fs, env, { uid, prayerId, timeZone, now = new Date() }) {
   const tz = resolveTimeZone(timeZone);
   const dayKey = dayKeyInTimeZone(now, tz);
   const weekKey = isoWeekKeyFromDayKey(dayKey);
   const isoNow = now.toISOString ? now.toISOString() : now;
 
-  const result = await awardXpEvent(fs, env, {
-    uid,
-    type: XP_EVENT_TYPES.prayAction,
-    points: XP_AWARDS.prayAction,
-    sourceId: `${prayerId}_${dayKey}`,
-    dayKey,
-    weekKey,
-    now: isoNow,
-  });
+  try {
+    const result = await awardXpEvent(fs, env, {
+      uid,
+      type: XP_EVENT_TYPES.prayAction,
+      points: XP_AWARDS.prayAction,
+      sourceId: `${prayerId}_${dayKey}`,
+      dayKey,
+      weekKey,
+      now: isoNow,
+    });
 
-  if (!result.awarded) return { ...result, bonuses: [] };
+    if (!result.awarded) return { ...result, bonuses: [] };
 
-  const sessions = await loadUserSessions(fs, env, uid);
-  const bonuses = await evaluateBonusRewards(fs, env, {
-    uid,
-    timeZone: tz,
-    sessions,
-    now,
-  });
+    const summaryResult = await recordSummaryAction(fs, env, {
+      uid,
+      timeZone: tz,
+      now,
+      applyUpdate(summary, meta) {
+        addXp(summary, XP_AWARDS.prayAction);
+        summary.prayersCarried += 1;
+        summary.dailyPrayCount += 1;
+        summary.prayedTodayIds = uniqueStrings([...summary.prayedTodayIds, prayerId]);
+        if (summary.dailyPrayCount >= DAILY_CHALLENGE_GOAL && !summary.dailyChallengeComplete) {
+          summary.dailyChallengeComplete = true;
+          addXp(summary, XP_AWARDS.dailyChallenge);
+          meta.bonuses.push('dailyChallenge');
+        }
+      },
+    });
 
-  return { ...result, bonuses };
+    return { ...result, bonuses: summaryResult.bonuses || [] };
+  } catch (error) {
+    return { awarded: false, duplicate: false, bonuses: [], error: error.message };
+  }
 }
 
 export async function awardSessionXp(fs, env, { uid, sessionId, timeZone, now = new Date() }) {
@@ -164,27 +324,41 @@ export async function awardSessionXp(fs, env, { uid, sessionId, timeZone, now = 
   const weekKey = isoWeekKeyFromDayKey(dayKey);
   const isoNow = now.toISOString ? now.toISOString() : now;
 
-  const result = await awardXpEvent(fs, env, {
-    uid,
-    type: XP_EVENT_TYPES.prayerSession,
-    points: XP_AWARDS.prayerSession,
-    sourceId: sessionId,
-    dayKey,
-    weekKey,
-    now: isoNow,
-  });
+  try {
+    const result = await awardXpEvent(fs, env, {
+      uid,
+      type: XP_EVENT_TYPES.prayerSession,
+      points: XP_AWARDS.prayerSession,
+      sourceId: sessionId,
+      dayKey,
+      weekKey,
+      now: isoNow,
+    });
 
-  if (!result.awarded) return { ...result, bonuses: [] };
+    if (!result.awarded) return { ...result, bonuses: [] };
 
-  const sessions = await loadUserSessions(fs, env, uid);
-  const bonuses = await evaluateBonusRewards(fs, env, {
-    uid,
-    timeZone: tz,
-    sessions,
-    now,
-  });
+    const summaryResult = await recordSummaryAction(fs, env, {
+      uid,
+      timeZone: tz,
+      now,
+      applyUpdate(summary, meta) {
+        addXp(summary, XP_AWARDS.prayerSession);
+        summary.prayerSessions += 1;
+        if (hourInTimeZone(now, tz) < EARLY_RISER_HOUR) summary.earlySessions += 1;
+        addActiveDay(summary, dayKey);
+        const streak = calculateStreakFromDayKeys(summary.activeDayKeys, summary.dayKey);
+        if (streak >= 7 && !summary.streak7Awarded) {
+          summary.streak7Awarded = true;
+          addXp(summary, XP_AWARDS.streak7);
+          meta.bonuses.push('streak7');
+        }
+      },
+    });
 
-  return { ...result, bonuses };
+    return { ...result, bonuses: summaryResult.bonuses || [] };
+  } catch (error) {
+    return { awarded: false, duplicate: false, bonuses: [], error: error.message };
+  }
 }
 
 export async function awardTestimonyXp(fs, env, { uid, testimonyId, timeZone, now = new Date() }) {
@@ -193,181 +367,79 @@ export async function awardTestimonyXp(fs, env, { uid, testimonyId, timeZone, no
   const weekKey = isoWeekKeyFromDayKey(dayKey);
   const isoNow = now.toISOString ? now.toISOString() : now;
 
-  return awardXpEvent(fs, env, {
-    uid,
-    type: XP_EVENT_TYPES.testimony,
-    points: XP_AWARDS.testimony,
-    sourceId: testimonyId,
-    dayKey,
-    weekKey,
-    now: isoNow,
-  });
-}
+  try {
+    const result = await awardXpEvent(fs, env, {
+      uid,
+      type: XP_EVENT_TYPES.testimony,
+      points: XP_AWARDS.testimony,
+      sourceId: testimonyId,
+      dayKey,
+      weekKey,
+      now: isoNow,
+    });
 
-async function loadUserSessions(fs, env, uid) {
-  const docs = await fs.runCollectionGroupQuery(env, 'prayerSessions', [{
-    fieldFilter: {
-      field: { fieldPath: 'authorUid' },
-      op: 'EQUAL',
-      value: { stringValue: uid },
-    },
-  }], [{ field: { fieldPath: 'createdAt' }, direction: 'DESCENDING' }]);
-  return docs.map((doc) => ({
-    id: doc.name.split('/').pop(),
-    ...fs.fromFirestoreFields(doc.fields || {}),
-  }));
-}
+    if (!result.awarded) return result;
 
-async function loadUserXpEvents(fs, env, uid) {
-  const docs = await fs.runCollectionGroupQuery(env, 'xpEvents', [{
-    fieldFilter: {
-      field: { fieldPath: 'uid' },
-      op: 'EQUAL',
-      value: { stringValue: uid },
-    },
-  }]);
-  return docs.map((doc) => fs.fromFirestoreFields(doc.fields || {}));
-}
+    await recordSummaryAction(fs, env, {
+      uid,
+      timeZone: tz,
+      now,
+      applyUpdate(summary) {
+        addXp(summary, XP_AWARDS.testimony);
+        summary.testimonies += 1;
+      },
+    });
 
-async function loadUserPrayers(fs, env, uid) {
-  const docs = await fs.runCollectionGroupQuery(env, 'prayers', [{
-    fieldFilter: {
-      field: { fieldPath: 'authorUid' },
-      op: 'EQUAL',
-      value: { stringValue: uid },
-    },
-  }]);
-  return docs.map((doc) => ({
-    id: doc.name.split('/').pop(),
-    ...fs.fromFirestoreFields(doc.fields || {}),
-  }));
-}
-
-async function loadUserTestimonies(fs, env, uid) {
-  const docs = await fs.runCollectionGroupQuery(env, 'testimonies', [{
-    fieldFilter: {
-      field: { fieldPath: 'authorUid' },
-      op: 'EQUAL',
-      value: { stringValue: uid },
-    },
-  }]);
-  return docs.map((doc) => ({
-    id: doc.name.split('/').pop(),
-    ...fs.fromFirestoreFields(doc.fields || {}),
-  }));
-}
-
-async function countPeoplePrayedFor(fs, env, uid) {
-  const docs = await fs.runCollectionGroupQuery(env, 'prays', [{
-    fieldFilter: {
-      field: { fieldPath: 'uid' },
-      op: 'EQUAL',
-      value: { stringValue: uid },
-    },
-  }], [], ['authorUid']);
-  const authors = new Set();
-  for (const doc of docs) {
-    const data = fs.fromFirestoreFields(doc.fields || {});
-    if (data.authorUid) authors.add(data.authorUid);
+    return result;
+  } catch (error) {
+    return { awarded: false, duplicate: false, error: error.message };
   }
-  return authors.size;
 }
 
 export async function buildGamificationSummary(fs, env, uid, requestedTimeZone) {
-  const timeZone = await resolveUserTimeZone(fs, env, uid, requestedTimeZone);
-  const [sessions, xpEvents, myPrayers, myTestimonies, peoplePrayedFor, encouragementsSent] = await Promise.all([
-    loadUserSessions(fs, env, uid),
-    loadUserXpEvents(fs, env, uid),
-    loadUserPrayers(fs, env, uid),
-    loadUserTestimonies(fs, env, uid),
-    countPeoplePrayedFor(fs, env, uid),
-    countEncouragementsSent(fs, env, uid),
-  ]);
-
-  return buildGamificationSummaryFromData({
-    xpEvents,
-    sessions,
-    myPrayers,
-    myTestimonies,
-    peoplePrayedFor,
-    encouragements: encouragementsSent,
-    timeZone,
-  });
+  const timeZone = resolveTimeZone(requestedTimeZone);
+  const summaryDoc = await fs.getDocument(env, fs.docName(env, SUMMARY_COLLECTION, uid));
+  const stored = summaryDoc.exists ? fs.fromFirestoreFields(summaryDoc.fields || {}) : {};
+  return publicSummaryFromStored(stored, uid, timeZone);
 }
 
 export async function backfillGamificationXp(fs, env, uid, requestedTimeZone) {
-  const timeZone = await resolveUserTimeZone(fs, env, uid, requestedTimeZone);
-  const [sessions, prayers, testimonies, prays] = await Promise.all([
-    loadUserSessions(fs, env, uid),
-    loadUserPrayers(fs, env, uid),
-    loadUserTestimonies(fs, env, uid),
-    fs.runCollectionGroupQuery(env, 'prays', [{
-      fieldFilter: {
-        field: { fieldPath: 'uid' },
-        op: 'EQUAL',
-        value: { stringValue: uid },
-      },
-    }]),
-  ]);
+  const summary = await buildGamificationSummary(fs, env, uid, requestedTimeZone);
+  return { ok: true, created: 0, skipped: 0, summary };
+}
 
-  let created = 0;
-  let skipped = 0;
+export function deleteUserGamificationSummary(fs, env, uid) {
+  return [{ delete: fs.docName(env, SUMMARY_COLLECTION, uid) }];
+}
 
-  for (const session of sessions) {
-    const createdAt = session.createdAt ? new Date(session.createdAt) : new Date();
-    const dayKey = dayKeyInTimeZone(createdAt, timeZone);
-    const weekKey = isoWeekKeyFromDayKey(dayKey);
-    const result = await awardXpEvent(fs, env, {
-      uid,
-      type: XP_EVENT_TYPES.prayerSession,
-      points: XP_AWARDS.prayerSession,
-      sourceId: session.id,
-      dayKey,
-      weekKey,
-      now: session.createdAt || createdAt.toISOString(),
-    });
-    if (result.awarded) created += 1;
-    else skipped += 1;
-  }
+export function recordPrayerCreated(fs, env, uid, requestedTimeZone) {
+  return recordSummaryAction(fs, env, {
+    uid,
+    timeZone: requestedTimeZone,
+    applyUpdate(summary) {
+      summary.prayersCreated += 1;
+    },
+  });
+}
 
-  for (const prayDoc of prays) {
-    const data = fs.fromFirestoreFields(prayDoc.fields || {});
-    if (!data.prayerId) {
-      skipped += 1;
-      continue;
-    }
-    const createdAt = data.createdAt ? new Date(data.createdAt) : new Date();
-    const dayKey = dayKeyInTimeZone(createdAt, timeZone);
-    const weekKey = isoWeekKeyFromDayKey(dayKey);
-    const result = await awardXpEvent(fs, env, {
-      uid,
-      type: XP_EVENT_TYPES.prayAction,
-      points: XP_AWARDS.prayAction,
-      sourceId: `${data.prayerId}_${dayKey}`,
-      dayKey,
-      weekKey,
-      now: data.createdAt || createdAt.toISOString(),
-    });
-    if (result.awarded) created += 1;
-    else skipped += 1;
-  }
+export function recordPrayerAnswered(fs, env, uid, requestedTimeZone) {
+  return recordSummaryAction(fs, env, {
+    uid,
+    timeZone: requestedTimeZone,
+    applyUpdate(summary) {
+      summary.answeredPrayers += 1;
+    },
+  });
+}
 
-  for (const testimony of testimonies) {
-    const createdAt = testimony.createdAt ? new Date(testimony.createdAt) : new Date();
-    const result = await awardTestimonyXp(fs, env, {
-      uid,
-      testimonyId: testimony.id,
-      timeZone,
-      now: createdAt,
-    });
-    if (result.awarded) created += 1;
-    else skipped += 1;
-  }
-
-  void prayers;
-
-  const summary = await buildGamificationSummary(fs, env, uid, timeZone);
-  return { ok: true, created, skipped, summary };
+export function recordEncouragementSent(fs, env, uid, requestedTimeZone) {
+  return recordSummaryAction(fs, env, {
+    uid,
+    timeZone: requestedTimeZone,
+    applyUpdate(summary) {
+      summary.encouragementsSent += 1;
+    },
+  });
 }
 
 export async function createPrayerSessionRecord(fs, env, user, body) {

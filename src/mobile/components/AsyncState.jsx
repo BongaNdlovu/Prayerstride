@@ -3,6 +3,7 @@ import { colors, spacing } from '../theme';
 import BodyText from './BodyText';
 import EmptyState from './EmptyState';
 import PrimaryButton from './PrimaryButton';
+import { getErrorMessage } from '../errors';
 
 export default function AsyncState({ loading, error, empty, emptyLabel, onRetry, children }) {
   if (loading) {
@@ -15,9 +16,7 @@ export default function AsyncState({ loading, error, empty, emptyLabel, onRetry,
   }
 
   if (error) {
-    const message = error?.code === 'failed-precondition'
-      ? 'Prayer data is still being prepared. Please try again shortly.'
-      : (error.message || String(error));
+    const message = getErrorMessage(error);
     return (
       <View style={styles.center}>
         <BodyText variant="body" style={styles.error}>{message}</BodyText>

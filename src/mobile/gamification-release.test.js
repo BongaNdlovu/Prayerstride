@@ -35,6 +35,16 @@ describe('gamification release hardening', () => {
     expect(source.default).toMatch(/XP total/);
   });
 
+  it('keeps core screens open when only gamification stats fail', async () => {
+    const home = await import('./screens/HomeScreen.jsx?raw');
+    const profile = await import('./screens/ProfileScreen.jsx?raw');
+    expect(home.default).toMatch(/const listError = prayersError \|\| blocksError/);
+    expect(home.default).not.toMatch(/listError = .*statsError/);
+    expect(profile.default).toMatch(/const statsUnavailable = Boolean\(gamificationError\)/);
+    expect(profile.default).toMatch(/error=\{profileError\}/);
+    expect(profile.default).not.toMatch(/error=\{profileError \|\| gamificationError\}/);
+  });
+
   it('EditProfileScreen persists encouragement board opt-in', async () => {
     const source = await import('./screens/EditProfileScreen.jsx?raw');
     expect(source.default).toMatch(/showOnEncouragementBoard/);
@@ -67,5 +77,15 @@ describe('gamification release hardening', () => {
   it('scopes the backfill marker to the signed-in account', () => {
     expect(gamificationBackfillKey('user-a')).toBe('gamificationBackfillV2:user-a');
     expect(gamificationBackfillKey('user-b')).toBe('gamificationBackfillV2:user-b');
+  });
+
+  it('loads authoritative gamification summaries without duplicate live collection listeners', async () => {
+    const source = await import('./useGamification.js?raw');
+    expect(source.default).not.toMatch(/usePrayers/);
+    expect(source.default).not.toMatch(/usePrayerSessions/);
+    expect(source.default).not.toMatch(/useTestimonies/);
+    expect(source.default).not.toMatch(/updateGamificationTimeZone/);
+    expect(source.default).not.toMatch(/backfillGamification/);
+    expect(source.default).toMatch(/SUMMARY_CACHE_TTL_MS/);
   });
 });

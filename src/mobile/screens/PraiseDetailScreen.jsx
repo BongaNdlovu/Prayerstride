@@ -11,6 +11,7 @@ import GlassCard from '../components/GlassCard';
 import Heading from '../components/Heading';
 import BodyText from '../components/BodyText';
 import MotionPressable from '../components/MotionPressable';
+import { getErrorMessage } from '../errors';
 
 function ReactionButton({ label, count, onPress }) {
   return (
@@ -42,7 +43,7 @@ export default function PraiseDetailScreen({ testimony, onBack }) {
       if (key === 'praiseGod') setPraiseGod((value) => value + 1);
       if (key === 'amen') setAmen((value) => value + 1);
     } catch (error) {
-      Alert.alert('Reaction not saved', error.message);
+      Alert.alert('Reaction not saved', getErrorMessage(error));
     } finally {
       reactingRef.current.delete(key);
     }
@@ -50,11 +51,11 @@ export default function PraiseDetailScreen({ testimony, onBack }) {
 
   const report = () => submitReport(testimony.id, 'testimony', 'User submitted report', user)
     .then(() => Alert.alert('Report submitted', 'Thank you for helping keep PrayerStride safe.'))
-    .catch((error) => Alert.alert('Could not submit report', error.message));
+    .catch((error) => Alert.alert('Could not submit report', getErrorMessage(error)));
 
   const remove = () => Alert.alert('Delete testimony', 'Are you sure?', [
     { text: 'Cancel', style: 'cancel' },
-    { text: 'Delete', style: 'destructive', onPress: () => deleteTestimony(testimony.id).then(onBack).catch((error) => Alert.alert('Could not delete', error.message)) },
+    { text: 'Delete', style: 'destructive', onPress: () => deleteTestimony(testimony.id).then(onBack).catch((error) => Alert.alert('Could not delete', getErrorMessage(error))) },
   ]);
 
   return (

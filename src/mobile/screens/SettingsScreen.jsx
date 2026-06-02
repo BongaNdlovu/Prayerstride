@@ -7,6 +7,7 @@ import AppHeader from '../components/AppHeader';
 import GlassCard from '../components/GlassCard';
 import PrimaryButton from '../components/PrimaryButton';
 import BodyText from '../components/BodyText';
+import { getErrorMessage } from '../errors';
 
 const ITEMS = [
   { label: 'Notification Settings', route: 'notificationSettings' },
@@ -38,12 +39,12 @@ export default function SettingsScreen({ go, deleteAccount, onBack }) {
     setBusy(true);
     try {
       await deleteAccount(password);
-    } catch (error) {
-      Alert.alert('Could not delete account', error.message);
-    } finally {
-      setBusy(false);
       setPassword('');
       setConfirmingDelete(false);
+    } catch (error) {
+      Alert.alert('Could not delete account', getErrorMessage(error));
+    } finally {
+      setBusy(false);
     }
   };
 

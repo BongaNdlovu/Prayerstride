@@ -17,6 +17,7 @@ import BodyText from '../components/BodyText';
 import SegmentedControl from '../components/SegmentedControl';
 import ToggleRow from '../components/ToggleRow';
 import PrimaryButton from '../components/PrimaryButton';
+import { getErrorMessage } from '../errors';
 
 const PRIVACY_OPTIONS = privacyOptionsWithIcons({ Users, Lock, EyeOff });
 
@@ -48,7 +49,7 @@ export default function EditRequestScreen({ prayer, user, onDone }) {
       });
       if (onDone) onDone();
     } catch (error) {
-      Alert.alert('Could not save', error.message);
+      Alert.alert('Could not save', getErrorMessage(error));
     } finally {
       setBusy(false);
     }
@@ -68,7 +69,7 @@ export default function EditRequestScreen({ prayer, user, onDone }) {
               await markAnswered(prayer.id);
               if (onDone) onDone();
             } catch (error) {
-              Alert.alert('Could not update', error.message);
+              Alert.alert('Could not update', getErrorMessage(error));
             } finally {
               setMarkingAnswered(false);
             }
@@ -89,7 +90,7 @@ export default function EditRequestScreen({ prayer, user, onDone }) {
             await deletePrayer(prayer.id);
             if (onDone) onDone();
           } catch (error) {
-            Alert.alert('Could not delete', error.message);
+            Alert.alert('Could not delete', getErrorMessage(error));
           }
         },
       },

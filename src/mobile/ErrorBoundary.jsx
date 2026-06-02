@@ -33,7 +33,7 @@ export class ErrorBoundary extends Component {
               The app encountered an unexpected error.
             </Text>
             <Text style={styles.detail}>
-              {this.state.error?.message || 'Unknown error'}
+              Please try again. If the problem continues, restart the app.
             </Text>
             <Pressable
               onPress={this.handleRetry}

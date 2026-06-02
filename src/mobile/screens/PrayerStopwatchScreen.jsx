@@ -10,6 +10,7 @@ import AppHeader from '../components/AppHeader';
 import GlassCard from '../components/GlassCard';
 import BodyText from '../components/BodyText';
 import PrimaryButton from '../components/PrimaryButton';
+import { getErrorMessage } from '../errors';
 
 function formatTime(totalSeconds) {
   const h = Math.floor(totalSeconds / 3600);
@@ -88,7 +89,7 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, us
         isDirectPrivateSession ? 'Your private prayer session has been recorded.' : 'Your prayer time has been recorded.',
       );
     } catch (error) {
-      Alert.alert('Could not save', error.message);
+      Alert.alert('Could not save', getErrorMessage(error));
     } finally {
       loggingRef.current = false;
       setBusy(false);

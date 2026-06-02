@@ -4,18 +4,7 @@ import {
   isoWeekKeyFromDayKey,
   resolveTimeZone,
 } from '../shared/gamificationLogic.js';
-import { resolveUserTimeZone } from './gamification.js';
-
-export async function countEncouragementsSent(fs, env, uid) {
-  const docs = await fs.runCollectionGroupQuery(env, 'encouragements', [{
-    fieldFilter: {
-      field: { fieldPath: 'senderUid' },
-      op: 'EQUAL',
-      value: { stringValue: uid },
-    },
-  }]);
-  return docs.length;
-}
+import { recordEncouragementSent, resolveUserTimeZone } from './gamification.js';
 
 export async function createEncouragementRecord(fs, env, user, body, deps) {
   const prayerId = body.prayerId != null ? String(body.prayerId).trim() : '';
@@ -95,6 +84,8 @@ export async function createEncouragementRecord(fs, env, user, body, deps) {
   if (result.alreadyExists) {
     return { ok: true, duplicate: true, encouragementId, weekKey, dayKey };
   }
+
+  await recordEncouragementSent(fs, env, user.uid, timeZone);
 
   if (notifyAllowed && prefs.pushEnabled !== false) {
     await deps.sendPushToUser(env, receiverUid, {

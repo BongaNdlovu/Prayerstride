@@ -41,8 +41,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   day: {
-    width: 34,
-    height: 34,
+    flex: 1,
+    maxWidth: 34,
+    aspectRatio: 1,
     borderRadius: 17,
     alignItems: 'center',
     justifyContent: 'center',

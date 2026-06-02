@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import { db } from './firebase';
 import { useIsAdmin } from './useIsAdmin';
@@ -40,11 +40,14 @@ export function useAnnouncements(enabled = true, options = {}) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(enabled);
   const [error, setError] = useState(null);
+  const [retryVersion, setRetryVersion] = useState(0);
+  const retry = useCallback(() => setRetryVersion((version) => version + 1), []);
 
   useEffect(() => {
     if (!enabled) {
       setItems([]);
       setLoading(false);
+      setError(null);
       return undefined;
     }
 
@@ -64,6 +67,7 @@ export function useAnnouncements(enabled = true, options = {}) {
       announcementsQuery,
       (snapshot) => {
         setItems(snapshot.docs.map(mapAnnouncement));
+        setError(null);
         setLoading(false);
       },
       (err) => {
@@ -71,7 +75,7 @@ export function useAnnouncements(enabled = true, options = {}) {
         setLoading(false);
       },
     );
-  }, [enabled, includeArchived]);
+  }, [enabled, includeArchived, retryVersion]);
 
   const activeAnnouncements = useMemo(
     () => items.filter((item) => item.status === 'active' && (!item.endsAt || item.endsAt > new Date())),
@@ -83,5 +87,6 @@ export function useAnnouncements(enabled = true, options = {}) {
     allAnnouncements: items,
     loading,
     error,
+    retry,
   };
 }

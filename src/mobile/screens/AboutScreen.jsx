@@ -5,7 +5,7 @@ import BodyText from '../components/BodyText';
 
 export default function AboutScreen({ onBack }) {
   return (
-    <ScreenScaffold pageContent>
+    <ScreenScaffold pageContent centerContent>
       <AppHeader title="PrayerStride" subtitle="A mobile-first prayer community." onBack={onBack} />
       <GlassCard>
         <BodyText variant="body">

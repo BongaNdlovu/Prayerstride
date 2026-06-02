@@ -19,9 +19,10 @@ import PrimaryButton from '../components/PrimaryButton';
 import Heading from '../components/Heading';
 import BodyText from '../components/BodyText';
 import AsyncState from '../components/AsyncState';
+import { getErrorMessage } from '../errors';
 
 export default function CalendarScreen({ user, onBack }) {
-  const { events, bookmarkedDateKeys, loading, error } = useCalendarEvents(user?.uid, Boolean(user?.uid));
+  const { events, bookmarkedDateKeys, loading, error, retry } = useCalendarEvents(user?.uid, Boolean(user?.uid));
   const [title, setTitle] = useState('');
   const [notes, setNotes] = useState('');
   const [dateKey, setDateKey] = useState(toDateKey());
@@ -56,7 +57,7 @@ export default function CalendarScreen({ user, onBack }) {
       }
       resetForm();
     } catch (err) {
-      Alert.alert('Could not save', err.message);
+      Alert.alert('Could not save', getErrorMessage(err));
     } finally {
       setBusy(false);
     }
@@ -70,7 +71,7 @@ export default function CalendarScreen({ user, onBack }) {
           await deleteCalendarEvent(event.id);
           if (editingId === event.id) resetForm();
         } catch (err) {
-          Alert.alert('Could not delete', err.message);
+          Alert.alert('Could not delete', getErrorMessage(err));
         }
       }},
     ]);
@@ -84,14 +85,14 @@ export default function CalendarScreen({ user, onBack }) {
         await bookmarkDate(dateKey, user);
       }
     } catch (err) {
-      Alert.alert('Bookmark failed', err.message);
+      Alert.alert('Bookmark failed', getErrorMessage(err));
     }
   };
 
   return (
     <ScreenScaffold scroll={false} style={styles.shell}>
       <AppHeader title="Your rhythm" subtitle="Personal prayer events and bookmarked dates." onBack={onBack} />
-      <AsyncState loading={loading} error={error} empty={false}>
+      <AsyncState loading={loading} error={error} onRetry={retry} empty={false}>
       <FlatList
         data={sortedEvents}
         keyExtractor={(item) => item.id}

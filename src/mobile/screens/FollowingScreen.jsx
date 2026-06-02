@@ -9,9 +9,10 @@ import EmptyState from '../components/EmptyState';
 import AsyncState from '../components/AsyncState';
 import PrimaryButton from '../components/PrimaryButton';
 import { unfollowUser } from '../api';
+import { getErrorMessage } from '../errors';
 
 export default function FollowingScreen({ user, onBack }) {
-  const { following, loading, error } = useFollowing(user?.uid, true);
+  const { following, loading, error, retry } = useFollowing(user?.uid, true);
 
   return (
     <ScreenScaffold scroll={false} style={styles.shell}>
@@ -19,6 +20,7 @@ export default function FollowingScreen({ user, onBack }) {
       <AsyncState
         loading={loading}
         error={error}
+        onRetry={retry}
         empty={!loading && !error && following.length === 0}
         emptyLabel="Not following anyone yet."
       >
@@ -40,7 +42,7 @@ export default function FollowingScreen({ user, onBack }) {
                 <PrimaryButton
                   label="Unfollow"
                   variant="ghost"
-                  onPress={() => unfollowUser(item.followedUid || item.id).catch((err) => Alert.alert('Could not unfollow', err.message))}
+                  onPress={() => unfollowUser(item.followedUid || item.id).catch((err) => Alert.alert('Could not unfollow', getErrorMessage(err)))}
                   style={styles.unfollow}
                 />
               </View>

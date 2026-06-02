@@ -31,8 +31,9 @@ function matchesCategory(prayer, category) {
 
 export default function DiscoverScreen({ onOpenPrayer }) {
   const { prayers, loading, error, retry } = usePrayers(true);
-  const { blockedUids, loading: blocksLoading, refresh: retryBlocks } = useBlocks(true);
-  const listError = error;
+  const { blockedUids, loading: blocksLoading, error: blocksError, refresh: retryBlocks } = useBlocks(true);
+  const feedLoading = loading || blocksLoading;
+  const listError = error || blocksError;
   const retryAll = () => {
     retry();
     retryBlocks();
@@ -101,10 +102,10 @@ export default function DiscoverScreen({ onOpenPrayer }) {
         ListHeaderComponent={header}
         ListEmptyComponent={(
           <AsyncState
-            loading={loading}
+            loading={feedLoading}
             error={listError}
             onRetry={retryAll}
-            empty={!loading && !listError}
+            empty={!feedLoading && !listError}
             emptyLabel="No matching prayers."
           />
         )}

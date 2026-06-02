@@ -28,7 +28,10 @@ import {
   backfillGamificationXp,
   buildGamificationSummary,
   createPrayerSessionRecord,
+  deleteUserGamificationSummary,
   deleteUserXpEvents,
+  recordPrayerAnswered,
+  recordPrayerCreated,
   resolveUserTimeZone,
   updateGamificationTimeZone,
 } from './gamification.js';
@@ -45,6 +48,7 @@ const FIREBASE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const FIREBASE_SCOPE = 'https://www.googleapis.com/auth/datastore https://www.googleapis.com/auth/firebase.messaging https://www.googleapis.com/auth/identitytoolkit https://www.googleapis.com/auth/devstorage.read_write';
 const CURRENT_TERMS_VERSION = '2026-05-31';
 const CURRENT_PRIVACY_VERSION = '2026-05-31';
+const RATE_LIMIT_COMMIT_ATTEMPTS = 3;
 
 export default {
   async fetch(request, env) {
@@ -670,8 +674,10 @@ async function canAccessPrayer(env, prayerId, user) {
 
 async function createPrayer(env, user, body) {
   await checkCommunityAccess(env, user.uid);
-  if (!body.title || !body.body) return json({ error: 'Missing title or body' }, 400);
-  assertModerationAllowed({ title: body.title, body: body.body }, moderationBlocklist(env));
+  const title = body.title != null ? String(body.title).trim() : '';
+  const prayerBody = body.body != null ? String(body.body).trim() : '';
+  if (!title || !prayerBody) return json({ error: 'Missing title or body' }, 400);
+  assertModerationAllowed({ title, body: prayerBody }, moderationBlocklist(env));
 
   const profile = await getUserProfile(env, user.uid);
   const isAnonymous = Boolean(body.isAnonymous ?? body.anonymous);
@@ -683,8 +689,8 @@ async function createPrayer(env, user, body) {
     update: {
       name: docName(env, 'prayers', id),
       fields: toFirestoreFields({
-        title: String(body.title).trim().slice(0, 120),
-        body: String(body.body).trim().slice(0, 2000),
+        title: title.slice(0, 120),
+        body: prayerBody.slice(0, 2000),
         authorUid: user.uid,
         authorName: resolveAuthorName(profile, user, isAnonymous),
         isAnonymous,
@@ -699,6 +705,8 @@ async function createPrayer(env, user, body) {
       }),
     },
   }]);
+
+  await recordPrayerCreated(gamificationFirestore, env, user.uid, body.timeZone);
 
   return json({ ok: true, prayerId: id });
 }
@@ -740,6 +748,7 @@ async function updatePrayer(env, user, prayerId, body) {
 
 async function markPrayerAnswered(env, user, prayerId) {
   const { contentDoc, data } = await loadAuthorContent(env, 'prayers', prayerId, user);
+  const alreadyAnswered = data.status === 'answered';
   await firestoreCommit(env, [{
     update: {
       name: contentDoc.name,
@@ -750,6 +759,9 @@ async function markPrayerAnswered(env, user, prayerId) {
       }),
     },
   }]);
+  if (!alreadyAnswered) {
+    await recordPrayerAnswered(gamificationFirestore, env, user.uid, null);
+  }
   return json({ ok: true, prayerId });
 }
 
@@ -771,6 +783,7 @@ async function createTestimony(env, user, body) {
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
   const prayerId = body.prayerId || null;
+  let linkedPrayerWasAnswered = false;
 
   const testimonyFields = {
     title: title.slice(0, 120),
@@ -798,6 +811,7 @@ async function createTestimony(env, user, body) {
     const prayerDoc = await getDocument(env, docName(env, 'prayers', prayerId));
     if (!prayerDoc.exists) return json({ error: 'Linked prayer not found' }, 404);
     const prayerData = fromFirestoreFields(prayerDoc.fields);
+    linkedPrayerWasAnswered = prayerData.status === 'answered';
     if (prayerData.authorUid !== user.uid && !(await userIsAdmin(env, user))) {
       return json({ error: 'You can only link your own prayer requests.' }, 403);
     }
@@ -822,6 +836,9 @@ async function createTestimony(env, user, body) {
     timeZone,
     now: new Date(now),
   });
+  if (prayerId && !linkedPrayerWasAnswered) {
+    await recordPrayerAnswered(gamificationFirestore, env, user.uid, body.timeZone);
+  }
 
   return json({ ok: true, testimonyId: id });
 }
@@ -1550,6 +1567,7 @@ async function collectUserDeletionWrites(env, uid) {
   await processCollection('prayerSessions', (d) => d.authorUid === uid);
   const xpDeletes = await deleteUserXpEvents(gamificationFirestore, env, uid);
   for (const write of xpDeletes) addDelete(write.delete);
+  for (const write of deleteUserGamificationSummary(gamificationFirestore, env, uid)) addDelete(write.delete);
   await processCollection('calendarEvents', (d) => d.ownerUid === uid);
   await processCollection('calendarBookmarks', (d) => d.ownerUid === uid);
   await processCollection('notifications', (d) => d.recipientUid === uid || d.actorUid === uid);
@@ -2026,7 +2044,10 @@ async function enforceCooldown(env, uid, action, seconds) {
     const data = fromFirestoreFields(current.fields);
     const last = data.updatedAt ? new Date(data.updatedAt).getTime() : 0;
     if (Number.isFinite(last) && now.getTime() - last < seconds * 1000) {
-      throw Object.assign(new Error('Please wait a moment before trying again.'), { status: 429 });
+      throw Object.assign(new Error('Please wait a moment before trying again.'), {
+        status: 429,
+        publicMessage: 'Please wait a moment before trying again.',
+      });
     }
   }
   const precondition = current.exists
@@ -2039,7 +2060,10 @@ async function enforceCooldown(env, uid, action, seconds) {
     },
   }], { precondition }).then((result) => {
     if (result.preconditionFailed) {
-      throw Object.assign(new Error('Please wait a moment before trying again.'), { status: 429 });
+      throw Object.assign(new Error('Please wait a moment before trying again.'), {
+        status: 429,
+        publicMessage: 'Please wait a moment before trying again.',
+      });
     }
   });
 }
@@ -2050,39 +2074,39 @@ async function enforceGlobalRateLimit(env, request, requestId) {
   const clientIp = request.headers.get('CF-Connecting-IP') || 'unknown';
   const ipKey = await hashToken(`rate:ip:${clientIp}`);
   const rateDoc = docName(env, 'apiRateLimits', ipKey);
-  const now = Date.now();
-  const minuteWindow = Math.floor(now / 60000).toString();
 
-  const current = await getDocument(env, rateDoc);
-  if (current.exists) {
-    const data = fromFirestoreFields(current.fields);
+  for (let attempt = 1; attempt <= RATE_LIMIT_COMMIT_ATTEMPTS; attempt += 1) {
+    const now = Date.now();
+    const minuteWindow = Math.floor(now / 60000).toString();
+    const current = await getDocument(env, rateDoc);
+    const data = current.exists ? fromFirestoreFields(current.fields) : {};
     if (data.window === minuteWindow && data.count >= maxPerMinute) {
       log(env, 'warn', { requestId, ipHashPrefix: ipKey.slice(0, 10), count: data.count }, 'rate-limited');
       throw Object.assign(new Error('Too many requests. Please slow down.'), { status: 429, publicMessage: 'Rate limit exceeded' });
     }
+
+    const isNewWindow = !current.exists || data.window !== minuteWindow;
+    const count = isNewWindow ? 1 : ((data.count || 0) + 1);
+    const result = await firestoreCommit(env, [{
+      update: {
+        name: rateDoc,
+        fields: toFirestoreFields({
+          ipHash: ipKey,
+          window: minuteWindow,
+          count,
+          updatedAt: new Date(now).toISOString(),
+        }),
+      },
+    }], { precondition: current.exists ? { updateTime: current.updateTime } : { exists: false } });
+    if (!result.preconditionFailed) return;
+    await waitForRateLimitRetry(attempt);
   }
 
-  const isNewWindow = !current.exists || fromFirestoreFields(current.fields).window !== minuteWindow;
-  const count = isNewWindow ? 1 : ((fromFirestoreFields(current.fields).count || 0) + 1);
-  const precondition = current.exists ? { updateTime: current.updateTime } : { exists: false };
-  const result = await firestoreCommit(env, [{
-    update: {
-      name: rateDoc,
-      fields: toFirestoreFields({
-        ipHash: ipKey,
-        window: minuteWindow,
-        count,
-        updatedAt: new Date().toISOString(),
-      }),
-    },
-  }], { precondition });
-  if (result.preconditionFailed) {
-    log(env, 'warn', { requestId, ipHashPrefix: ipKey.slice(0, 10) }, 'rate-limit-precondition-failed');
-    throw Object.assign(new Error('Too many concurrent requests. Please retry shortly.'), {
-      status: 429,
-      publicMessage: 'Rate limit exceeded',
-    });
-  }
+  log(env, 'warn', { requestId, ipHashPrefix: ipKey.slice(0, 10) }, 'rate-limit-precondition-failed');
+  throw Object.assign(new Error('Too many concurrent requests. Please retry shortly.'), {
+    status: 429,
+    publicMessage: 'Please retry shortly.',
+  });
 }
 
 async function enforceUserRateLimit(env, uid, requestId) {
@@ -2090,24 +2114,34 @@ async function enforceUserRateLimit(env, uid, requestId) {
   const maxPerMinute = Number.isFinite(configuredLimit) && configuredLimit > 0 ? configuredLimit : 180;
   const userKey = await hashToken(`rate:user:${uid}`);
   const rateDoc = docName(env, 'apiRateLimits', userKey);
-  const now = Date.now();
-  const minuteWindow = Math.floor(now / 60000).toString();
-  const current = await getDocument(env, rateDoc);
-  const data = current.exists ? fromFirestoreFields(current.fields) : {};
-  if (data.window === minuteWindow && data.count >= maxPerMinute) {
-    log(env, 'warn', { requestId, uidHashPrefix: userKey.slice(0, 10), count: data.count }, 'user-rate-limited');
-    throw Object.assign(new Error('Too many requests. Please slow down.'), { status: 429, publicMessage: 'Rate limit exceeded' });
+
+  for (let attempt = 1; attempt <= RATE_LIMIT_COMMIT_ATTEMPTS; attempt += 1) {
+    const now = Date.now();
+    const minuteWindow = Math.floor(now / 60000).toString();
+    const current = await getDocument(env, rateDoc);
+    const data = current.exists ? fromFirestoreFields(current.fields) : {};
+    if (data.window === minuteWindow && data.count >= maxPerMinute) {
+      log(env, 'warn', { requestId, uidHashPrefix: userKey.slice(0, 10), count: data.count }, 'user-rate-limited');
+      throw Object.assign(new Error('Too many requests. Please slow down.'), { status: 429, publicMessage: 'Rate limit exceeded' });
+    }
+
+    const count = data.window === minuteWindow ? (data.count || 0) + 1 : 1;
+    const result = await firestoreCommit(env, [{
+      update: {
+        name: rateDoc,
+        fields: toFirestoreFields({ uidHash: userKey, window: minuteWindow, count, updatedAt: new Date(now).toISOString() }),
+      },
+    }], { precondition: current.exists ? { updateTime: current.updateTime } : { exists: false } });
+    if (!result.preconditionFailed) return;
+    await waitForRateLimitRetry(attempt);
   }
-  const count = data.window === minuteWindow ? (data.count || 0) + 1 : 1;
-  const result = await firestoreCommit(env, [{
-    update: {
-      name: rateDoc,
-      fields: toFirestoreFields({ uidHash: userKey, window: minuteWindow, count, updatedAt: new Date().toISOString() }),
-    },
-  }], { precondition: current.exists ? { updateTime: current.updateTime } : { exists: false } });
-  if (result.preconditionFailed) {
-    throw Object.assign(new Error('Too many concurrent requests. Please retry shortly.'), { status: 429, publicMessage: 'Rate limit exceeded' });
-  }
+
+  log(env, 'warn', { requestId, uidHashPrefix: userKey.slice(0, 10) }, 'user-rate-limit-precondition-failed');
+  throw Object.assign(new Error('Too many concurrent requests. Please retry shortly.'), { status: 429, publicMessage: 'Please retry shortly.' });
+}
+
+function waitForRateLimitRetry(attempt) {
+  return new Promise((resolve) => setTimeout(resolve, attempt * 25));
 }
 
 let cachedAccessToken = null;
@@ -2238,13 +2272,13 @@ function withCors(response, env, request) {
     || origin.startsWith('http://127.0.0.1:')
     || origin.startsWith('http://10.')
     || origin.startsWith('http://192.168.');
-  let resolvedOrigin = allowedOrigins[0];
+  let resolvedOrigin = origin ? '' : allowedOrigins[0];
   if (origin && allowedOrigins.includes(origin)) {
     resolvedOrigin = origin;
   } else if (allowDevOrigins && isDevOrigin && origin) {
     resolvedOrigin = origin;
   }
-  next.headers.set('Access-Control-Allow-Origin', resolvedOrigin);
+  if (resolvedOrigin) next.headers.set('Access-Control-Allow-Origin', resolvedOrigin);
   next.headers.set('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
   next.headers.set('Access-Control-Allow-Headers', 'Authorization,Content-Type');
   next.headers.set('Access-Control-Max-Age', '86400');

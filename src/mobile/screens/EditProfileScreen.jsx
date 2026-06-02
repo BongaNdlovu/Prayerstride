@@ -17,6 +17,7 @@ import Heading from '../components/Heading';
 import BodyText from '../components/BodyText';
 import PrimaryButton from '../components/PrimaryButton';
 import ToggleRow from '../components/ToggleRow';
+import { getErrorMessage } from '../errors';
 
 const BIO_MAX = 150;
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
@@ -35,7 +36,7 @@ function getUploadErrorMessage(error) {
   if (error?.code === 'storage/unauthorized') {
     return 'This photo could not be uploaded. Choose an image smaller than 2 MB and try again.';
   }
-  return error?.message || 'This photo could not be uploaded. Please try again.';
+  return getErrorMessage(error, 'This photo could not be uploaded. Please try again.');
 }
 
 export default function EditProfileScreen({ user, onBack, onDone }) {
@@ -144,7 +145,7 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
       if (onDone) onDone();
       Alert.alert('Profile updated', 'Your profile has been saved.');
     } catch (error) {
-      Alert.alert('Could not save', error.message);
+      Alert.alert('Could not save', getErrorMessage(error));
     } finally {
       setBusy(false);
     }
@@ -159,7 +160,7 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
       await resetPassword(user.email);
       Alert.alert('Email sent', 'Check your inbox for password reset instructions.');
     } catch (error) {
-      Alert.alert('Could not send reset email', error.message);
+      Alert.alert('Could not send reset email', getErrorMessage(error));
     }
   };
 
@@ -172,7 +173,7 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
       setNewPassword('');
       Alert.alert('Password updated', 'Your password has been changed.');
     } catch (error) {
-      Alert.alert('Could not change password', error.message);
+      Alert.alert('Could not change password', getErrorMessage(error));
     } finally {
       setPasswordBusy(false);
     }

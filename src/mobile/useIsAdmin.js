@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from './firebase';
 
@@ -43,6 +43,8 @@ export function useSuspendedStatus(user) {
   const [profileUid, setProfileUid] = useState('');
   const [loading, setLoading] = useState(Boolean(user));
   const [error, setError] = useState(null);
+  const [retryVersion, setRetryVersion] = useState(0);
+  const retry = useCallback(() => setRetryVersion((version) => version + 1), []);
 
   useEffect(() => {
     if (!user) {
@@ -60,6 +62,15 @@ export function useSuspendedStatus(user) {
     return onSnapshot(
       doc(db, 'users', user.uid),
       (snapshot) => {
+        if (!snapshot.exists()) {
+          setSuspended(false);
+          setSuspendedReason('');
+          setRegistrationState('');
+          setProfileUid('');
+          setError(new Error('Your account profile could not be found. Please try again or sign out.'));
+          setLoading(false);
+          return;
+        }
         const data = snapshot.data();
         setSuspended(Boolean(data?.suspended));
         setSuspendedReason(data?.suspendedReason || '');
@@ -73,7 +84,7 @@ export function useSuspendedStatus(user) {
         setLoading(false);
       },
     );
-  }, [user]);
+  }, [user, retryVersion]);
 
-  return { suspended, suspendedReason, registrationState, profileUid, loading, error };
+  return { suspended, suspendedReason, registrationState, profileUid, loading, error, retry };
 }

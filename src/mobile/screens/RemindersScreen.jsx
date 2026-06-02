@@ -11,6 +11,7 @@ import ToggleRow from '../components/ToggleRow';
 import PrimaryButton from '../components/PrimaryButton';
 import SectionDivider from '../components/SectionDivider';
 import AsyncState from '../components/AsyncState';
+import { getErrorMessage } from '../errors';
 
 const DAILY_REMINDERS = [
   { id: 'prayerActivity', title: 'Morning Prayer', time: '6:30 AM', schedule: 'Every day', icon: Sunrise },
@@ -33,7 +34,7 @@ export default function RemindersScreen({ user, onBack }) {
     try {
       await updateNotificationSettings(user.uid, { [id]: value });
     } catch (err) {
-      Alert.alert('Could not save reminder', err.message);
+      Alert.alert('Could not save reminder', getErrorMessage(err));
     }
   };
 

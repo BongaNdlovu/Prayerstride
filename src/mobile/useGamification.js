@@ -1,33 +1,56 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  backfillGamification,
   getDeviceTimeZone,
   getGamificationSummary,
-  updateGamificationTimeZone,
 } from './api';
 import { subscribeGamificationRefresh } from './gamificationRefresh';
-import { warn } from './logger';
-import { usePrayers, useTestimonies } from './usePrayerData';
-import { usePrayerSessions } from './usePrayerSessions';
 
 const BACKFILL_KEY = 'gamificationBackfillV2';
+const EMPTY_LIST = [];
+const SUMMARY_CACHE_TTL_MS = 60000;
+const summaryCache = new Map();
+const summaryRequests = new Map();
 
 export function gamificationBackfillKey(userId) {
   return `${BACKFILL_KEY}:${userId}`;
 }
 
+function cacheKey(userId, timeZone) {
+  return `${userId}:${timeZone || 'UTC'}`;
+}
+
+async function loadGamificationSummary(userId, timeZone, force = false) {
+  const key = cacheKey(userId, timeZone);
+  const cached = summaryCache.get(key);
+  if (!force && cached && Date.now() - cached.loadedAt < SUMMARY_CACHE_TTL_MS) {
+    return cached.summary;
+  }
+  if (!force && summaryRequests.has(key)) {
+    return summaryRequests.get(key);
+  }
+
+  const request = getGamificationSummary(timeZone)
+    .then((summary) => {
+      summaryCache.set(key, { summary, loadedAt: Date.now() });
+      return summary;
+    })
+    .finally(() => {
+      summaryRequests.delete(key);
+    });
+  summaryRequests.set(key, request);
+  return request;
+}
+
 export function useGamification(userId, enabled = true) {
   const active = Boolean(userId && enabled);
-  const { prayers, loading: prayersLoading, error: prayersError, retry: retryPrayers } = usePrayers(active, { userId });
-  const { sessions, loading: sessionsLoading, error: sessionsError, retry: retrySessions } = usePrayerSessions(userId, active);
-  const { testimonies, loading: testimoniesLoading, error: testimoniesError, retry: retryTestimonies } = useTestimonies(active);
   const [summary, setSummary] = useState(null);
   const [summaryLoading, setSummaryLoading] = useState(active);
   const [summaryError, setSummaryError] = useState(null);
   const [retryVersion, setRetryVersion] = useState(0);
+  const requestIdRef = useRef(0);
 
   const refreshSummary = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
     if (!active) {
       setSummary(null);
       setSummaryLoading(false);
@@ -40,47 +63,28 @@ export function useGamification(userId, enabled = true) {
     const timeZone = getDeviceTimeZone();
 
     try {
-      await updateGamificationTimeZone(timeZone).catch((error) => {
-        warn('Gamification timezone sync failed', error);
-      });
-      const backfillKey = gamificationBackfillKey(userId);
-      const backfillDone = await AsyncStorage.getItem(backfillKey);
-      if (!backfillDone) {
-        await backfillGamification(timeZone);
-        await AsyncStorage.setItem(backfillKey, '1');
-      }
-      const next = await getGamificationSummary(timeZone);
-      setSummary(next);
+      const next = await loadGamificationSummary(userId, timeZone, retryVersion > 0);
+      if (requestId === requestIdRef.current) setSummary(next);
     } catch (error) {
-      setSummaryError(error);
+      if (requestId === requestIdRef.current) setSummaryError(error);
     } finally {
-      setSummaryLoading(false);
+      if (requestId === requestIdRef.current) setSummaryLoading(false);
     }
-  }, [active, userId]);
+  }, [active, retryVersion, userId]);
 
   useEffect(() => {
     refreshSummary();
+    return () => {
+      requestIdRef.current += 1;
+    };
   }, [refreshSummary, retryVersion]);
 
   useEffect(() => subscribeGamificationRefresh(() => {
     setRetryVersion((version) => version + 1);
   }), []);
 
-  const myPrayers = useMemo(
-    () => (active ? prayers.filter((prayer) => prayer.authorUid === userId) : []),
-    [active, prayers, userId],
-  );
-  const myTestimonies = useMemo(
-    () => (active ? testimonies.filter((item) => item.authorUid === userId) : []),
-    [active, testimonies, userId],
-  );
-
-  const loading = prayersLoading || sessionsLoading || testimoniesLoading || summaryLoading;
-  const error = prayersError || sessionsError || testimoniesError || summaryError;
   const retry = () => {
-    retryPrayers();
-    retrySessions();
-    retryTestimonies();
+    if (userId) summaryCache.delete(cacheKey(userId, getDeviceTimeZone()));
     setRetryVersion((version) => version + 1);
   };
 
@@ -102,18 +106,18 @@ export function useGamification(userId, enabled = true) {
       badges: [],
       prayedTodayIds: [],
       impact: {
-        prayerSessions: sessions.length,
+        prayerSessions: 0,
         peoplePrayedFor: 0,
         encouragementsSent: 0,
-        answeredPrayers: myPrayers.filter((prayer) => prayer.status === 'answered').length,
+        answeredPrayers: 0,
       },
     },
-    loading,
-    error,
+    loading: summaryLoading,
+    error: summaryError,
     retry,
-    myPrayers,
-    myTestimonies,
-    sessions,
+    myPrayers: EMPTY_LIST,
+    myTestimonies: EMPTY_LIST,
+    sessions: EMPTY_LIST,
     refreshSummary,
   };
 }

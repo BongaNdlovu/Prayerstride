@@ -17,6 +17,7 @@ import { auth, db } from './firebase';
 import { bootstrapOwner, completeRegistration, deleteOwnAccount } from './api';
 import { PRIVACY_VERSION, TERMS_VERSION } from './legal';
 import { error as logError } from './logger';
+import { toUserFacingError } from './errors';
 
 const AuthContext = createContext(null);
 const MIN_PASSWORD_LENGTH = 12;
@@ -50,7 +51,11 @@ export function AuthProvider({ children }) {
     loading,
     registering,
     async signIn(email, password) {
-      return signInWithEmailAndPassword(auth, email, password);
+      try {
+        return await signInWithEmailAndPassword(auth, email, password);
+      } catch (error) {
+        throw toUserFacingError(error, 'Could not sign in. Please try again.');
+      }
     },
     async register(email, password, name, profile = {}) {
       if (!password || password.length < MIN_PASSWORD_LENGTH) {
@@ -103,7 +108,7 @@ export function AuthProvider({ children }) {
             }
           }
         }
-        throw error;
+        throw toUserFacingError(error, 'Could not create your account. Please try again.');
       } finally {
         setRegistering(false);
       }
@@ -127,7 +132,11 @@ export function AuthProvider({ children }) {
       return firebaseSignOut(auth);
     },
     async resetPassword(email) {
-      return sendPasswordResetEmail(auth, email);
+      try {
+        return await sendPasswordResetEmail(auth, email);
+      } catch (error) {
+        throw toUserFacingError(error, 'Could not send a reset email. Please try again.');
+      }
     },
     async changePassword(currentPassword, newPassword) {
       const currentUser = auth.currentUser;
@@ -137,18 +146,26 @@ export function AuthProvider({ children }) {
         throw new Error(`New password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
       }
       const credential = EmailAuthProvider.credential(currentUser.email, currentPassword);
-      await reauthenticateWithCredential(currentUser, credential);
-      return updatePassword(currentUser, newPassword);
+      try {
+        await reauthenticateWithCredential(currentUser, credential);
+        return await updatePassword(currentUser, newPassword);
+      } catch (error) {
+        throw toUserFacingError(error, 'Could not change your password. Please try again.');
+      }
     },
     async deleteAccount(password) {
       const currentUser = auth.currentUser;
       if (!currentUser?.email) throw new Error('No email is linked to this account.');
       if (!password) throw new Error('Enter your password to confirm deletion.');
       const credential = EmailAuthProvider.credential(currentUser.email, password);
-      await reauthenticateWithCredential(currentUser, credential);
-      await currentUser.getIdToken(true);
-      await deleteOwnAccount();
-      await firebaseSignOut(auth);
+      try {
+        await reauthenticateWithCredential(currentUser, credential);
+        await currentUser.getIdToken(true);
+        await deleteOwnAccount();
+        await firebaseSignOut(auth);
+      } catch (error) {
+        throw toUserFacingError(error, 'Could not delete your account. Please try again.');
+      }
     },
   }), [user, loading, registering]);
 

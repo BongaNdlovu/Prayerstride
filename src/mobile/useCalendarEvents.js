@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   addDoc,
   collection,
@@ -87,12 +87,15 @@ export function useCalendarEvents(userId, enabled = true) {
   const [bookmarks, setBookmarks] = useState([]);
   const [loading, setLoading] = useState(Boolean(userId && enabled));
   const [error, setError] = useState(null);
+  const [retryVersion, setRetryVersion] = useState(0);
+  const retry = useCallback(() => setRetryVersion((version) => version + 1), []);
 
   useEffect(() => {
     if (!userId || !enabled) {
       setEvents([]);
       setBookmarks([]);
       setLoading(false);
+      setError(null);
       return undefined;
     }
 
@@ -147,14 +150,14 @@ export function useCalendarEvents(userId, enabled = true) {
       unsubEvents();
       unsubBookmarks();
     };
-  }, [userId, enabled]);
+  }, [userId, enabled, retryVersion]);
 
   const bookmarkedDateKeys = useMemo(
     () => new Set(bookmarks.map((item) => item.dateKey)),
     [bookmarks],
   );
 
-  return { events, bookmarks, bookmarkedDateKeys, loading, error };
+  return { events, bookmarks, bookmarkedDateKeys, loading, error, retry };
 }
 
 export async function createCalendarEvent({ title, notes, dateKey, startsAt, endsAt }, user) {

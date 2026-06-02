@@ -17,6 +17,7 @@ import Heading from '../components/Heading';
 import BodyText from '../components/BodyText';
 import EmptyState from '../components/EmptyState';
 import AsyncState from '../components/AsyncState';
+import { getErrorMessage } from '../errors';
 
 const TABS = ['Overview', 'Reports', 'Members', 'Content', 'Announcements', 'Analytics'];
 const ANNOUNCEMENT_CATEGORIES = ['events', 'prayer', 'updates'];
@@ -76,7 +77,7 @@ async function runAdminAction(action, errorTitle) {
   try {
     await action();
   } catch (error) {
-    Alert.alert(errorTitle, error.message);
+    Alert.alert(errorTitle, getErrorMessage(error));
   }
 }
 
@@ -97,7 +98,7 @@ function AnalyticsPanel({ user }) {
       })
       .catch((err) => {
         if (mountedRef.current && requestId === requestIdRef.current) {
-          setError(err.message || 'Failed to load analytics');
+          setError(getErrorMessage(err, 'Failed to load analytics'));
         }
       })
       .finally(() => {
@@ -322,7 +323,7 @@ function AnnouncementsAdminList({ announcements }) {
       setEditingId(null);
       Alert.alert('Saved', 'Announcement saved.');
     } catch (error) {
-      Alert.alert('Could not save', error.message);
+      Alert.alert('Could not save', getErrorMessage(error));
     } finally {
       setBusy(false);
     }
@@ -333,7 +334,7 @@ function AnnouncementsAdminList({ announcements }) {
       await adminArchiveAnnouncement(announcementId);
       if (editingId === announcementId) setEditingId(null);
     } catch (error) {
-      Alert.alert('Could not archive', error.message);
+      Alert.alert('Could not archive', getErrorMessage(error));
     }
   };
 

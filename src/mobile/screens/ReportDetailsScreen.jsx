@@ -8,6 +8,7 @@ import GlassCard from '../components/GlassCard';
 import PrimaryButton from '../components/PrimaryButton';
 import Heading from '../components/Heading';
 import BodyText from '../components/BodyText';
+import { getErrorMessage } from '../errors';
 
 export default function ReportDetailsScreen({ report, go, back }) {
   if (!report) return null;
@@ -60,7 +61,7 @@ async function runReportAction(action, errorTitle, onDone) {
     await action();
     Alert.alert('Saved', 'The report has been updated.', [{ text: 'OK', onPress: onDone }]);
   } catch (error) {
-    Alert.alert(errorTitle, error.message);
+    Alert.alert(errorTitle, getErrorMessage(error));
   }
 }
 

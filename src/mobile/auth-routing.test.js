@@ -87,4 +87,13 @@ describe('auth routing', () => {
     expect(adminSuspended.suspended).toBe(true);
     expect(adminSuspended.isAdmin).toBe(true);
   });
+
+  it('renders a recoverable account error instead of waiting forever', async () => {
+    const app = await import('../../app/index.jsx?raw');
+    const accountStatus = await import('./useIsAdmin.js?raw');
+    expect(app.default).toMatch(/accountError/);
+    expect(app.default).toMatch(/AccountStateError/);
+    expect(app.default).toMatch(/retryAccount/);
+    expect(accountStatus.default).toMatch(/Your account profile could not be found/);
+  });
 });

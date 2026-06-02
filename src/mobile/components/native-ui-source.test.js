@@ -71,6 +71,15 @@ describe('native UI kit', () => {
     expect(source.default).toMatch(/horizontal=\{false\}/);
     expect(source.default).toMatch(/flexGrow:\s*1/);
     expect(source.default).toMatch(/width:\s*'100%'/);
+    expect(source.default).toMatch(/centerContent/);
+    expect(source.default).toMatch(/justifyContent:\s*'center'/);
+  });
+
+  it('streak days shrink proportionately on narrow smartphone screens', async () => {
+    const source = await import('../components/StreakCalendar.jsx?raw');
+    expect(source.default).toMatch(/flex:\s*1/);
+    expect(source.default).toMatch(/maxWidth:\s*34/);
+    expect(source.default).toMatch(/aspectRatio:\s*1/);
   });
 
   it('uses the supplied transparent logo for in-app branding', async () => {

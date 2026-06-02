@@ -15,6 +15,8 @@ import { back, createNavState, go, reset } from '../src/mobile/navigation';
 import { useSuspendedStatus } from '../src/mobile/useIsAdmin';
 import { warn } from '../src/mobile/logger';
 import BottomTabs from '../src/mobile/components/BottomTabs';
+import AsyncState from '../src/mobile/components/AsyncState';
+import PrimaryButton from '../src/mobile/components/PrimaryButton';
 import ScreenScaffold from '../src/mobile/components/ScreenScaffold';
 import AccountSuspendedScreen from '../src/mobile/screens/AccountSuspendedScreen';
 import AchievementsScreen from '../src/mobile/screens/AchievementsScreen';
@@ -66,7 +68,15 @@ const MAIN_TAB_ROUTES = ['home', 'discover', 'create', 'praise', 'profile'];
 export default function MobileApp() {
   const { user, loading, registering, signIn, register, completePendingRegistration, signOut, resetPassword, deleteAccount } = useAuth();
   const [nav, setNav] = useState(() => createNavState());
-  const { suspended, suspendedReason, registrationState, profileUid, loading: accountLoading } = useSuspendedStatus(user);
+  const {
+    suspended,
+    suspendedReason,
+    registrationState,
+    profileUid,
+    loading: accountLoading,
+    error: accountError,
+    retry: retryAccount,
+  } = useSuspendedStatus(user);
   const waitingForAccountProfile = Boolean(user && profileUid !== user.uid);
 
   useEffect(() => {
@@ -103,7 +113,17 @@ export default function MobileApp() {
     return () => subscription.remove();
   }, [loading, nav.screen, user]);
 
-  if (loading || registering || accountLoading || waitingForAccountProfile) return <Centered label="Preparing PrayerStride..." />;
+  if (loading || registering || accountLoading) return <Centered label="Preparing PrayerStride..." />;
+
+  if (user && accountError) {
+    return (
+      <SafeAreaView style={styles.shell}>
+        <AccountStateError error={accountError} onRetry={retryAccount} onSignOut={signOut} />
+      </SafeAreaView>
+    );
+  }
+
+  if (waitingForAccountProfile) return <Centered label="Preparing PrayerStride..." />;
 
   if (user && registrationState === 'pending_completion') {
     return (
@@ -214,7 +234,7 @@ function renderScreen({ screen, params, user, suspended, suspendedReason, signIn
 
 function PlaceholderScreen({ screen, onBack }) {
   return (
-    <ScreenScaffold pageContent showLogo title={screen}>
+    <ScreenScaffold pageContent centerContent showLogo title={screen}>
       <Pressable onPress={onBack} style={styles.glassBackButton}>
         <Text style={styles.glassLinkText}>Back</Text>
       </Pressable>
@@ -222,6 +242,15 @@ function PlaceholderScreen({ screen, onBack }) {
         <Text style={styles.placeholderTitle}>{screen}</Text>
         <Text style={styles.glassBody}>This screen is coming soon.</Text>
       </View>
+    </ScreenScaffold>
+  );
+}
+
+function AccountStateError({ error, onRetry, onSignOut }) {
+  return (
+    <ScreenScaffold scroll={false} style={styles.accountError}>
+      <AsyncState error={error} onRetry={onRetry} />
+      <PrimaryButton label="Sign Out" variant="ghost" onPress={onSignOut} style={styles.accountErrorSignOut} />
     </ScreenScaffold>
   );
 }
@@ -240,6 +269,8 @@ const styles = StyleSheet.create({
   appBody: { flex: 1, backgroundColor: colors.screen },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.screen },
   centeredText: { marginTop: spacing.md, color: colors.textPrimary, fontWeight: '700' },
+  accountError: { flex: 1, justifyContent: 'center', padding: spacing.xxl },
+  accountErrorSignOut: { marginTop: spacing.md },
   glassBackButton: { alignSelf: 'flex-start', marginTop: spacing.lg, marginBottom: spacing.xs, paddingVertical: spacing.sm, paddingRight: spacing.lg },
   glassLinkText: { color: colors.navy, fontWeight: '800' },
   glassCard: { borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, borderRadius: radii.xxl, padding: spacing.xl - 2 },

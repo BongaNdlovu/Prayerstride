@@ -11,6 +11,7 @@ import BodyText from '../components/BodyText';
 import PrimaryButton from '../components/PrimaryButton';
 import EmptyState from '../components/EmptyState';
 import ToggleRow from '../components/ToggleRow';
+import { getErrorMessage } from '../errors';
 
 const DETAILS_LIMIT = 1500;
 
@@ -40,7 +41,7 @@ export default function CreateTestimonyScreen({ user, linkedPrayerId, onDone }) 
         { text: 'OK', onPress: () => { if (onDone) onDone(); } },
       ]);
     } catch (error) {
-      Alert.alert('Could not share testimony', error.message);
+      Alert.alert('Could not share testimony', getErrorMessage(error));
     } finally {
       setBusy(false);
     }

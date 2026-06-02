@@ -11,6 +11,7 @@ import ToggleRow from '../components/ToggleRow';
 import Heading from '../components/Heading';
 import BodyText from '../components/BodyText';
 import AsyncState from '../components/AsyncState';
+import { getErrorMessage } from '../errors';
 
 export default function NotificationSettingsScreen({ user, onBack }) {
   const { settings, loading, error, retry } = useNotificationSettings(user?.uid, true);
@@ -28,20 +29,21 @@ export default function NotificationSettingsScreen({ user, onBack }) {
     }
   }, [settings]);
 
-  const save = async (key, value) => {
+  const save = async (key, value, setValue) => {
     try {
       await updateNotificationSettings(user.uid, { [key]: value });
       if (key === 'pushEnabled' && value) {
         registerForPushNotifications().catch((error) => {
           setPushEnabled(false);
           updateNotificationSettings(user.uid, { pushEnabled: false }).catch((saveError) => {
-            Alert.alert('Could not save preference', saveError.message);
+            Alert.alert('Could not save preference', getErrorMessage(saveError));
           });
-          Alert.alert('Push notifications unavailable', error.message);
+          Alert.alert('Push notifications unavailable', getErrorMessage(error));
         });
       }
     } catch (error) {
-      Alert.alert('Could not save preference', error.message);
+      setValue(!value);
+      Alert.alert('Could not save preference', getErrorMessage(error));
     }
   };
 
@@ -55,20 +57,20 @@ export default function NotificationSettingsScreen({ user, onBack }) {
           label="Prayer Activity"
           subtext="When someone prays for your request."
           value={prayerActivity}
-          onToggle={(v) => { setPrayerActivity(v); save('prayerActivity', v); }}
+          onToggle={(v) => { setPrayerActivity(v); save('prayerActivity', v, setPrayerActivity); }}
         />
         <ToggleRow
           label="Testimony Reactions"
           subtext="When someone reacts to your testimony."
           value={testimonyReactions}
-          onToggle={(v) => { setTestimonyReactions(v); save('testimonyReactions', v); }}
+          onToggle={(v) => { setTestimonyReactions(v); save('testimonyReactions', v, setTestimonyReactions); }}
           style={styles.toggleBorderless}
         />
         <ToggleRow
           label="Announcements"
           subtext="Community updates from PrayerStride leaders."
           value={announcements}
-          onToggle={(v) => { setAnnouncements(v); save('announcements', v); }}
+          onToggle={(v) => { setAnnouncements(v); save('announcements', v, setAnnouncements); }}
           style={styles.toggleBorderless}
         />
       </GlassCard>
@@ -78,7 +80,7 @@ export default function NotificationSettingsScreen({ user, onBack }) {
           label="Push Notifications"
           subtext="Device alerts for enabled activity."
           value={pushEnabled}
-          onToggle={(v) => { setPushEnabled(v); save('pushEnabled', v); }}
+          onToggle={(v) => { setPushEnabled(v); save('pushEnabled', v, setPushEnabled); }}
           style={styles.toggleBorderless}
         />
         <View style={styles.quietRow}>

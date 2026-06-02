@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { Alert, FlatList, StyleSheet, View } from 'react-native';
 import { alpha, spacing } from '../theme';
 import { useTestimonies } from '../usePrayerData';
 import { filterBlockedItems, useBlocks } from '../useBlocks';
@@ -11,21 +11,24 @@ import AppHeader from '../components/AppHeader';
 import PillTabs from '../components/PillTabs';
 import TestimonyCard from '../components/TestimonyCard';
 import AsyncState from '../components/AsyncState';
+import { getErrorMessage } from '../errors';
 
 const TABS = ['All', 'Following', 'Recent'];
 
 export default function PraiseScreen({ onOpenTestimony }) {
   const { testimonies, loading, error, retry } = useTestimonies(true);
-  const { blockedUids, loading: blocksLoading, refresh: retryBlocks } = useBlocks(true);
+  const { blockedUids, loading: blocksLoading, error: blocksError, refresh: retryBlocks } = useBlocks(true);
   const uid = auth.currentUser?.uid;
-  const { following } = useFollowing(uid, Boolean(uid));
+  const { following, loading: followingLoading, error: followingError, retry: retryFollowing } = useFollowing(uid, Boolean(uid));
   const [tab, setTab] = useState('All');
   const [pendingReactions, setPendingReactions] = useState({});
   const reactingRef = useRef(new Set());
-  const listError = error;
+  const feedLoading = loading || blocksLoading || followingLoading;
+  const listError = error || blocksError || followingError;
   const retryAll = () => {
     retry();
     retryBlocks();
+    retryFollowing();
   };
 
   const followingIds = useMemo(
@@ -93,28 +96,32 @@ export default function PraiseScreen({ onOpenTestimony }) {
         delete next[reactionKey];
         return next;
       });
-      Alert.alert('Reaction not saved', error.message);
+      Alert.alert('Reaction not saved', getErrorMessage(error));
     } finally {
       reactingRef.current.delete(reactionKey);
     }
   };
 
   return (
-    <ScreenScaffold pageContent>
-      <AppHeader title="Praise & Testimonies" subtitle="Celebrate answered prayers together" />
-      <PillTabs tabs={TABS} active={tab} onChange={setTab} style={styles.tabs} />
-
+    <ScreenScaffold scroll={false} pageContent style={styles.screen}>
+      <View style={styles.header}>
+        <AppHeader title="Praise & Testimonies" subtitle="Celebrate answered prayers together" />
+        <PillTabs tabs={TABS} active={tab} onChange={setTab} style={styles.tabs} />
+      </View>
       <AsyncState
-        loading={loading}
+        loading={feedLoading}
         error={listError}
         onRetry={retryAll}
-        empty={!loading && !listError && visible.length === 0}
+        empty={!feedLoading && !listError && visible.length === 0}
         emptyLabel={tab === 'Following' ? 'No testimonies from people you follow yet.' : 'No testimonies yet.'}
       >
-        <View style={styles.list}>
-          {visible.map((testimony) => (
+        <FlatList
+          data={visible}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
+          renderItem={({ item: testimony }) => (
             <TestimonyCard
-              key={testimony.id}
               testimony={{
                 ...testimony,
                 praiseGod: Number(testimony.praiseGod || 0) + (pendingReactions[`${testimony.id}:praiseGod`] !== undefined ? 1 : 0),
@@ -123,14 +130,16 @@ export default function PraiseScreen({ onOpenTestimony }) {
               onPress={() => onOpenTestimony?.(testimony)}
               onReact={react}
             />
-          ))}
-        </View>
+          )}
+        />
       </AsyncState>
     </ScreenScaffold>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: { flex: 1 },
+  header: { paddingTop: spacing.sm },
   tabs: { marginBottom: spacing.md },
-  list: { gap: spacing.sm },
+  list: { gap: spacing.sm, paddingBottom: spacing.tabBar },
 });

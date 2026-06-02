@@ -9,7 +9,7 @@ import BodyText from '../components/BodyText';
 import AsyncState from '../components/AsyncState';
 
 export default function AnnouncementsScreen({ onBack }) {
-  const { announcements, loading, error } = useAnnouncements(true);
+  const { announcements, loading, error, retry } = useAnnouncements(true);
 
   return (
     <ScreenScaffold scroll={false} style={styles.shell}>
@@ -17,6 +17,7 @@ export default function AnnouncementsScreen({ onBack }) {
       <AsyncState
         loading={loading}
         error={error}
+        onRetry={retry}
         empty={!loading && !error && announcements.length === 0}
         emptyLabel="No active announcements right now."
       >

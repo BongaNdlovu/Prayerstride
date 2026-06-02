@@ -10,13 +10,13 @@ import BodyText from '../components/BodyText';
 import AsyncState from '../components/AsyncState';
 
 export default function GuideDetailScreen({ guideId, go, back }) {
-  const { guide, loading, error } = useStudyGuide(guideId, true);
+  const { guide, loading, error, retry } = useStudyGuide(guideId, true);
   const includes = Array.isArray(guide?.includes) ? guide.includes : [];
 
   return (
     <ScreenScaffold pageContent>
       <AppHeader title={guide?.title || 'Study Guide'} subtitle={guide?.subtitle || 'Real study content from the library.'} onBack={back} />
-      <AsyncState loading={loading} error={error} empty={!loading && !error && !guide} emptyLabel="This guide is not available.">
+      <AsyncState loading={loading} error={error} onRetry={retry} empty={!loading && !error && !guide} emptyLabel="This guide is not available.">
         <GlassCard>
           <BodyText variant="body">{guide?.description || 'No description has been published for this guide yet.'}</BodyText>
           <View style={styles.metaRow}>

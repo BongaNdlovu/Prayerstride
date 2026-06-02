@@ -8,7 +8,7 @@ import BodyText from '../components/BodyText';
 
 export default function SupportDonationScreen({ onBack }) {
   return (
-    <ScreenScaffold pageContent>
+    <ScreenScaffold pageContent centerContent>
       <AppHeader title="Support PrayerStride" subtitle="Help us keep this ministry going." onBack={onBack} />
       <GlassCard>
         <Heading level="h3">Donations</Heading>

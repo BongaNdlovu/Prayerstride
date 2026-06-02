@@ -7,6 +7,8 @@ import AppHeader from '../components/AppHeader';
 import BodyText from '../components/BodyText';
 import PrimaryButton from '../components/PrimaryButton';
 import GlassCard from '../components/GlassCard';
+import { getErrorMessage } from '../errors';
+import { isValidEmail } from '../age';
 
 export default function ResetPasswordScreen({ onResetPassword, onBack }) {
   const [email, setEmail] = useState('');
@@ -14,8 +16,8 @@ export default function ResetPasswordScreen({ onResetPassword, onBack }) {
   const [sent, setSent] = useState(false);
 
   const submit = async () => {
-    if (!email.trim()) {
-      Alert.alert('Missing email', 'Enter your email address.');
+    if (!isValidEmail(email)) {
+      Alert.alert('Valid email required', 'Enter a valid email address.');
       return;
     }
     setBusy(true);
@@ -23,14 +25,14 @@ export default function ResetPasswordScreen({ onResetPassword, onBack }) {
       await onResetPassword(email.trim());
       setSent(true);
     } catch (error) {
-      Alert.alert('Could not send reset email', error.message);
+      Alert.alert('Could not send reset email', getErrorMessage(error));
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <ScreenScaffold pageContent scroll>
+    <ScreenScaffold pageContent scroll centerContent>
       <AppHeader centered showLogo title="Reset Password" onBack={onBack} />
       <BodyText variant="body" style={styles.subtitle}>Enter your email and we will send a reset link.</BodyText>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>

@@ -1,23 +1,45 @@
 import { auth } from './firebase';
+import { getApiErrorMessage, toUserFacingError } from './errors';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || '';
+const API_TIMEOUT_MS = 15000;
 
 export async function apiFetch(path, options = {}) {
   const token = await auth.currentUser?.getIdToken();
   if (!token) throw new Error('You must be signed in.');
 
-  const response = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-      ...(options.headers || {}),
-    },
-  });
+  const controller = new AbortController();
+  const abortRequest = () => controller.abort();
+  const timeoutId = setTimeout(abortRequest, API_TIMEOUT_MS);
+  options.signal?.addEventListener?.('abort', abortRequest, { once: true });
 
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error || 'Request failed.');
-  return data;
+  try {
+    const response = await fetch(`${API_URL}${path}`, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        ...(options.headers || {}),
+      },
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const error = new Error(getApiErrorMessage(response.status, data.error));
+      error.status = response.status;
+      throw error;
+    }
+    return data;
+  } catch (error) {
+    if (controller.signal.aborted && !options.signal?.aborted) {
+      throw new Error('The request timed out. Check your connection and try again.');
+    }
+    throw toUserFacingError(error, 'Could not reach PrayerStride. Check your connection and try again.');
+  } finally {
+    clearTimeout(timeoutId);
+    options.signal?.removeEventListener?.('abort', abortRequest);
+  }
 }
 
 export function bootstrapOwner() {
