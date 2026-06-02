@@ -119,6 +119,7 @@ Or individually:
 ```bash
 npm run deploy:worker
 npm run deploy:firestore
+npm run deploy:storage
 ```
 
 Verify public pages:

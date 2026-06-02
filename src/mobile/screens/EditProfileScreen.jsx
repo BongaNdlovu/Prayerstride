@@ -4,8 +4,13 @@ import { Camera } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { updateProfile } from '@firebase/auth';
 import { doc, serverTimestamp, updateDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { auth, db, storage } from '../firebase';
+import {
+  AvatarTooLargeError,
+  getUploadErrorMessage,
+  prepareAvatarBlob,
+  uploadAvatarBlob,
+} from '../avatarUpload';
 import { alpha, colors, fonts, sharedStyles, spacing } from '../theme';
 import { useAuth } from '../AuthProvider';
 import { useUserProfile } from '../useUsers';
@@ -20,23 +25,12 @@ import ToggleRow from '../components/ToggleRow';
 import { getErrorMessage } from '../errors';
 
 const BIO_MAX = 150;
-const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 
 function normalizeHandle(value) {
   const trimmed = value.trim();
   if (!trimmed) return null;
   const handle = trimmed.startsWith('@') ? trimmed : `@${trimmed}`;
   return handle.slice(0, 40);
-}
-
-function getUploadErrorMessage(error) {
-  if (error?.code === 'storage/quota-exceeded' || /quota.*exceeded/i.test(error?.message || '')) {
-    return 'Profile photo uploads are temporarily unavailable because storage capacity has been reached. You can still save your profile details and try the photo again later.';
-  }
-  if (error?.code === 'storage/unauthorized') {
-    return 'This photo could not be uploaded. Choose an image smaller than 2 MB and try again.';
-  }
-  return getErrorMessage(error, 'This photo could not be uploaded. Please try again.');
 }
 
 export default function EditProfileScreen({ user, onBack, onDone }) {
@@ -87,18 +81,15 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
       uploadControllerRef.current?.abort();
       const controller = new AbortController();
       uploadControllerRef.current = controller;
-      const response = await fetch(asset.uri, { signal: controller.signal });
-      const blob = await response.blob();
-      if (blob.size >= MAX_AVATAR_BYTES) {
-        Alert.alert('Photo too large', 'Choose an image smaller than 2 MB and try again.');
-        return;
-      }
-      const fileRef = ref(storage, `avatars/${user.uid}/profile.jpg`);
-      await uploadBytes(fileRef, blob, { contentType: blob.type || 'image/jpeg' });
-      const downloadUrl = await getDownloadURL(fileRef);
+      const blob = await prepareAvatarBlob(asset.uri);
+      const downloadUrl = await uploadAvatarBlob(storage, user.uid, blob, controller.signal);
       if (mountedRef.current) setPhotoURL(downloadUrl);
     } catch (error) {
       if (error?.name === 'AbortError') return;
+      if (error instanceof AvatarTooLargeError) {
+        Alert.alert('Photo too large', getUploadErrorMessage(error));
+        return;
+      }
       Alert.alert('Upload failed', getUploadErrorMessage(error));
     } finally {
       uploadControllerRef.current = null;

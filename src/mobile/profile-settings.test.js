@@ -12,6 +12,7 @@ describe('profile settings', () => {
 
   it('EditProfileScreen imports auth/profile update logic', async () => {
     const source = await import('./screens/EditProfileScreen.jsx?raw');
+    const avatarUpload = await import('./avatarUploadErrors.js?raw');
     expect(source.default).toMatch(/updateProfile/);
     expect(source.default).toMatch(/updateDoc/);
     expect(source.default).toMatch(/showOnEncouragementBoard/);
@@ -19,7 +20,8 @@ describe('profile settings', () => {
     expect(source.default).toMatch(/changePassword/);
     expect(source.default).toMatch(/resetPassword/);
     expect(source.default).toMatch(/handle/);
-    expect(source.default).toMatch(/storage\/quota-exceeded/);
+    expect(source.default).toMatch(/prepareAvatarBlob/);
+    expect(avatarUpload.default).toMatch(/storage\/quota-exceeded/);
     expect(source.default).toMatch(/onBack=\{onBack\}/);
   });
 
