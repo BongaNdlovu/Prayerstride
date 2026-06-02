@@ -4,10 +4,13 @@ function loadEnv(path = '.env.local') {
   return Object.fromEntries(
     readFileSync(path, 'utf8')
       .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter((line) => line && !line.startsWith('#'))
-      .map((line) => {
+      .map((line, index) => ({ line: line.trim(), lineNumber: index + 1 }))
+      .filter(({ line }) => line && !line.startsWith('#'))
+      .map(({ line, lineNumber }) => {
         const separator = line.indexOf('=');
+        if (separator === -1) {
+          throw new Error(`Invalid environment entry in ${path}:${lineNumber}: expected KEY=VALUE`);
+        }
         return [line.slice(0, separator), line.slice(separator + 1)];
       }),
   );
