@@ -31,7 +31,10 @@ export function getApiErrorMessage(status, serverMessage) {
   if (status === 429 && (!message || message === 'Rate limit exceeded')) {
     return 'Too many requests. Please wait a moment and try again.';
   }
-  if (status >= 500) return 'PrayerStride is temporarily unavailable. Please try again shortly.';
+  if (status >= 500) {
+    if (message && message !== 'Unexpected server error') return message;
+    return 'PrayerStride is temporarily unavailable. Please try again shortly.';
+  }
   if (message) return message;
   if (status === 403) return 'You do not have permission to complete this action.';
   if (status === 404) return 'The requested item could not be found.';

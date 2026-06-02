@@ -1479,7 +1479,11 @@ async function deleteUserData(env, uid, options = {}) {
   try {
     const writes = await collectUserDeletionWrites(env, uid);
     await commitInChunks(env, writes);
-    await deleteStoragePrefix(env, `avatars/${uid}/`);
+    try {
+      await deleteStoragePrefix(env, `avatars/${uid}/`);
+    } catch (storageError) {
+      log(env, 'warn', { uid, message: storageError.message }, 'storage-delete-non-fatal');
+    }
     await deleteFirebaseAuthUser(env, uid);
     await firestoreCommit(env, [{
       update: {
@@ -1542,15 +1546,59 @@ async function collectUserDeletionWrites(env, uid) {
   };
 
   const processOwnedActionCollection = async (collectionName) => {
-    const docs = await runCollectionGroupQuery(env, collectionName, [{
-      fieldFilter: {
-        field: { fieldPath: 'uid' },
-        op: 'EQUAL',
-        value: { stringValue: uid },
-      },
-    }]);
-    for (const d of docs) {
-      if (fromFirestoreFields(d.fields || {}).uid === uid) addDelete(d.name);
+    const parentCollection = collectionName === 'prays' ? 'prayers' : 'testimonies';
+    const matchOwned = (data) => data.uid === uid;
+
+    try {
+      const docs = await runCollectionGroupQuery(env, collectionName, [{
+        fieldFilter: {
+          field: { fieldPath: 'uid' },
+          op: 'EQUAL',
+          value: { stringValue: uid },
+        },
+      }]);
+      for (const d of docs) {
+        if (matchOwned(fromFirestoreFields(d.fields || {}))) addDelete(d.name);
+      }
+      return;
+    } catch (error) {
+      log(env, 'warn', { collectionName, message: error.message }, 'deletion-query-fallback');
+    }
+
+    const parents = await listDocuments(env, docName(env, parentCollection));
+    for (const parent of parents) {
+      const parentId = dataId(parent);
+      const subs = await listDocuments(env, docName(env, parentCollection, parentId, collectionName));
+      for (const sub of subs) {
+        if (matchOwned(fromFirestoreFields(sub.fields || {}))) addDelete(sub.name);
+      }
+    }
+  };
+
+  const deleteFollowingReferences = async () => {
+    const matchFollowing = (data, ownerUid) => (
+      [data.followedUid, data.uid, data.targetUid, ownerUid].includes(uid)
+    );
+
+    try {
+      const followingReferences = await runCollectionGroupQuery(env, 'following');
+      for (const d of followingReferences) {
+        const data = fromFirestoreFields(d.fields || {});
+        if ([data.followedUid, data.uid, data.targetUid].includes(uid)) addDelete(d.name);
+      }
+      return;
+    } catch (error) {
+      log(env, 'warn', { message: error.message }, 'following-delete-fallback');
+    }
+
+    const users = await listDocuments(env, docName(env, 'users'));
+    for (const userDoc of users) {
+      const ownerUid = dataId(userDoc);
+      const followingDocs = await listDocuments(env, docName(env, 'users', ownerUid, 'following'));
+      for (const d of followingDocs) {
+        const data = fromFirestoreFields(d.fields || {});
+        if (matchFollowing(data, ownerUid)) addDelete(d.name);
+      }
     }
   };
 
@@ -1558,11 +1606,7 @@ async function collectUserDeletionWrites(env, uid) {
   await processCollection('testimonies', (d) => d.authorUid === uid);
   await processOwnedActionCollection('prays');
   await processOwnedActionCollection('reactions');
-  const followingReferences = await runCollectionGroupQuery(env, 'following');
-  for (const d of followingReferences) {
-    const data = fromFirestoreFields(d.fields || {});
-    if ([data.followedUid, data.uid, data.targetUid].includes(uid)) addDelete(d.name);
-  }
+  await deleteFollowingReferences();
   await processCollection('encouragements', (d) => d.senderUid === uid || d.receiverUid === uid);
   await processCollection('prayerSessions', (d) => d.authorUid === uid);
   const xpDeletes = await deleteUserXpEvents(gamificationFirestore, env, uid);
@@ -1924,11 +1968,9 @@ async function getNotificationSettings(env, uid) {
   return settings.exists ? fromFirestoreFields(settings.fields) : {};
 }
 
-async function runCollectionGroupQuery(env, collectionId, filters = [], orderByFields = [], selectFields = [], allDescendants = true) {
+async function runStructuredQuery(env, fromClause, filters = [], orderByFields = [], selectFields = []) {
   const accessToken = await getGoogleAccessToken(env);
-  const structuredQuery = {
-    from: [{ collectionId, allDescendants }],
-  };
+  const structuredQuery = { from: fromClause };
 
   if (selectFields.length > 0) {
     structuredQuery.select = {
@@ -1948,8 +1990,6 @@ async function runCollectionGroupQuery(env, collectionId, filters = [], orderByF
     structuredQuery.orderBy = orderByFields;
   }
 
-  const body = { structuredQuery };
-
   const response = await fetch(
     `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents:runQuery`,
     {
@@ -1958,13 +1998,13 @@ async function runCollectionGroupQuery(env, collectionId, filters = [], orderByF
         Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ structuredQuery }),
     },
   );
 
   if (!response.ok) {
     const result = await response.json().catch(() => ({}));
-    throw new Error(result.error?.message || 'Collection-group query failed');
+    throw new Error(result.error?.message || 'Firestore query failed');
   }
 
   const results = await response.json();
@@ -1974,6 +2014,20 @@ async function runCollectionGroupQuery(env, collectionId, filters = [], orderByF
       name: r.document.name,
       fields: r.document.fields || {},
     }));
+}
+
+async function runCollectionQuery(env, collectionId, filters = [], orderByFields = [], selectFields = []) {
+  return runStructuredQuery(env, [{ collectionId }], filters, orderByFields, selectFields);
+}
+
+async function runCollectionGroupQuery(env, collectionId, filters = [], orderByFields = [], selectFields = [], allDescendants = true) {
+  return runStructuredQuery(
+    env,
+    [{ collectionId, allDescendants }],
+    filters,
+    orderByFields,
+    selectFields,
+  );
 }
 
 async function spiritualEngagementMetrics(env, user, days) {
@@ -2191,6 +2245,7 @@ const gamificationFirestore = {
   docName,
   getDocument,
   firestoreCommit,
+  runCollectionQuery,
   runCollectionGroupQuery,
   fromFirestoreFields,
   toFirestoreFields,

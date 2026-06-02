@@ -145,7 +145,7 @@ export async function getWeeklyEncouragers(fs, env, viewerUid, requestedTimeZone
   const dayKey = dayKeyInTimeZone(new Date(), resolveTimeZone(timeZone));
   const weekKey = isoWeekKeyFromDayKey(dayKey);
 
-  const docs = await fs.runCollectionGroupQuery(env, 'encouragements', [{
+  const docs = await fs.runCollectionQuery(env, 'encouragements', [{
     fieldFilter: {
       field: { fieldPath: 'weekKey' },
       op: 'EQUAL',

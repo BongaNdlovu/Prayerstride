@@ -61,7 +61,8 @@ assert(worker.includes('privacyPageHtml'), 'Worker should serve public privacy H
 assert(worker.includes('accountDeletionJobs'), 'Worker should write account deletion tombstones.');
 assert(worker.includes('deleteFirebaseAuthUser'), 'Worker should delete Firebase Auth user last.');
 assert(worker.includes('purgeExpiredDeletionTombstones'), 'Worker should purge expired deletion tombstones.');
-assert(worker.includes('deleteStoragePrefix'), 'Worker should delete Storage objects during account deletion.');
+assert(worker.includes('deletion-query-fallback'), 'Account deletion should fall back when collection-group indexes are unavailable.');
+assert(worker.includes('storage-delete-non-fatal'), 'Account deletion should continue when avatar storage cleanup fails.');
 assert(worker.includes('deleteContentAndActions'), 'Worker should cascade content deletion to nested pray and reaction records.');
 assert(
   /async function deleteContentAndActions[\s\S]*runCollectionGroupQuery\(env, 'notifications'/.test(worker),
@@ -164,7 +165,8 @@ assert(gamification.includes('recordEncouragementSent'), 'Gamification should ma
 assert(worker.includes("d.senderUid === uid || d.receiverUid === uid"), 'Account deletion should remove sent and received encouragements.');
 
 assert(encouragements.includes('getEncouragementPreset'), 'Encouragements should validate reviewed presets.');
-assert(encouragements.includes('showOnEncouragementBoard'), 'Weekly board should respect encouragement opt-in.');
+assert(encouragements.includes('runCollectionQuery'), 'Weekly encouragers should query the top-level encouragements collection.');
+assert(!encouragements.includes('runCollectionGroupQuery(env, \'encouragements\''), 'Weekly encouragers should not require a collection-group index.');
 assert(encouragements.includes('Anonymous'), 'Weekly board should anonymize opted-out users.');
 assert(encouragements.includes('anonymous-${rank}'), 'Weekly board should expose opaque IDs for anonymous entries.');
 assert(encouragements.includes('const { sourceUid, ...publicEntry } = entry'), 'Weekly board should remove internal user IDs from public entries.');
