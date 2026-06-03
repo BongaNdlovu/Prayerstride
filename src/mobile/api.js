@@ -148,19 +148,6 @@ export function unblockUser(blockedUid) {
   });
 }
 
-export function followUser(followedUid) {
-  return apiFetch(`/api/following/${encodeURIComponent(followedUid)}`, {
-    method: 'POST',
-    body: JSON.stringify({}),
-  });
-}
-
-export function unfollowUser(followedUid) {
-  return apiFetch(`/api/following/${encodeURIComponent(followedUid)}`, {
-    method: 'DELETE',
-  });
-}
-
 export function bookmarkPrayer(prayerId) {
   return apiFetch(`/api/prayer-bookmarks/${encodeURIComponent(prayerId)}`, {
     method: 'POST',
@@ -286,19 +273,4 @@ export function createPrayerSession(payload) {
       timeZone: payload.timeZone || getDeviceTimeZone(),
     }),
   });
-}
-
-export function createEncouragement(payload) {
-  return apiFetch('/api/encouragements', {
-    method: 'POST',
-    body: JSON.stringify({
-      ...payload,
-      timeZone: payload.timeZone || getDeviceTimeZone(),
-    }),
-  });
-}
-
-export function getWeeklyEncouragers(timeZone = getDeviceTimeZone()) {
-  const query = timeZone ? `?timeZone=${encodeURIComponent(timeZone)}` : '';
-  return apiFetch(`/api/encouragers/weekly${query}`);
 }

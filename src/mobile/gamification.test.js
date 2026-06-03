@@ -92,15 +92,14 @@ describe('gamification', () => {
       earlySessions: 2,
       answeredPrayers: 0,
       testimonies: 0,
-      encouragements: 2,
     });
 
     expect(badges.find((badge) => badge.id === 'first-prayer')?.state).toBe('earned');
     expect(badges.find((badge) => badge.id === 'streak-7')?.state).toBe('in-progress');
     expect(badges.find((badge) => badge.id === 'faithful-heart')?.state).toBe('in-progress');
     expect(badges.find((badge) => badge.id === 'answered-prayer')?.state).toBe('locked');
-    expect(badges.find((badge) => badge.id === 'compassion-helper')?.state).toBe('in-progress');
-    expect(BADGE_DEFS).toHaveLength(7);
+    expect(badges.find((badge) => badge.id === 'compassion-helper')).toBeUndefined();
+    expect(BADGE_DEFS).toHaveLength(6);
   });
 
   it('buildGamificationSummaryFromData exposes weekly completion and streak data', () => {

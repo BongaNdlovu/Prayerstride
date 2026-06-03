@@ -52,41 +52,6 @@ function defaultMapper(item) {
   return { id: item.id, ...item.data() };
 }
 
-export function useFollowing(userId, enabled = true) {
-  const [following, setFollowing] = useState([]);
-  const [loading, setLoading] = useState(Boolean(userId && enabled));
-  const [error, setError] = useState(null);
-  const [retryVersion, setRetryVersion] = useState(0);
-  const retry = useCallback(() => setRetryVersion((version) => version + 1), []);
-
-  useEffect(() => {
-    if (!userId || !enabled) {
-      setFollowing([]);
-      setLoading(false);
-      setError(null);
-      return undefined;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    return onSnapshot(
-      query(collection(db, 'users', userId, 'following'), orderBy('createdAt', 'desc')),
-      (snapshot) => {
-        setFollowing(snapshot.docs.map(defaultMapper));
-        setError(null);
-        setLoading(false);
-      },
-      (err) => {
-        setError(err);
-        setLoading(false);
-      },
-    );
-  }, [userId, enabled, retryVersion]);
-
-  return { following, loading, error, retry };
-}
-
 export function useDevotions(enabled = true) {
   const result = useCollection('devotions', enabled);
   return { devotions: result.items, loading: result.loading, error: result.error, retry: result.retry };

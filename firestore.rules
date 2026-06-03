@@ -139,13 +139,12 @@ service cloud.firestore {
     function validUserUpdate() {
       return unchanged(["uid", "email", "role", "owner", "createdAt"])
         && (!("registrationState" in resource.data) || unchanged(["registrationState"]))
-        && changedOnly(["displayName", "handle", "bio", "photoURL", "timeZone", "showOnEncouragementBoard", "updatedAt"])
+        && changedOnly(["displayName", "handle", "bio", "photoURL", "timeZone", "updatedAt"])
         && optionalString("displayName", 80)
         && optionalString("handle", 40)
         && optionalString("bio", 180)
         && optionalString("photoURL", 2048)
         && optionalString("timeZone", 64)
-        && optionalBool("showOnEncouragementBoard")
         && (!("updatedAt" in request.resource.data) || request.resource.data.updatedAt is timestamp);
     }
 
@@ -228,11 +227,6 @@ service cloud.firestore {
       allow create: if validUserCreate(uid) && notSuspended();
       allow update: if isSelf(uid) && validUserUpdate() && notSuspended();
       allow delete: if false;
-
-      match /following/{followingId} {
-        allow read: if isSelf(uid);
-        allow write: if false;
-      }
 
       match /devices/{deviceId} {
         allow read, write: if false;

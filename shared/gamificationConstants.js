@@ -56,13 +56,6 @@ export const BADGE_DEFS = [
     metric: 'answeredPrayers',
   },
   {
-    id: 'compassion-helper',
-    name: 'Compassion Helper',
-    description: 'Send ten encouragements to others in prayer.',
-    total: 10,
-    metric: 'encouragements',
-  },
-  {
     id: 'seasoned-warrior',
     name: 'Seasoned Warrior',
     description: 'Log two hundred fifty prayer sessions.',

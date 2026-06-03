@@ -139,8 +139,6 @@ Verify public pages:
 7. Pray twice for a weekly-limited request and confirm `Prayed This Week`.
 8. Complete a prayer session via stopwatch and confirm XP increases on Home/Profile.
 9. Pray for five distinct requests in one local day and confirm the daily challenge bonus XP.
-10. Send a preset encouragement and confirm it appears in Weekly Encouragers (your rank updates).
-11. Toggle encouragement-board visibility off in Edit Profile and confirm others see `Anonymous` while you still see your rank.
 
 ## Follow-ups
 

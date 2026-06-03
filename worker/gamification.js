@@ -102,7 +102,6 @@ function emptyStoredSummary(uid, timeZone, dayKey, nowIso) {
     prayersCarried: 0,
     answeredPrayers: 0,
     testimonies: 0,
-    encouragementsSent: 0,
     activeDayKeys: [],
     streak7Awarded: false,
     updatedAt: nowIso,
@@ -130,7 +129,6 @@ function normalizeStoredSummary(stored, uid, timeZone, now = new Date()) {
   base.prayersCarried = safeNumber(base.prayersCarried);
   base.answeredPrayers = safeNumber(base.answeredPrayers);
   base.testimonies = safeNumber(base.testimonies);
-  base.encouragementsSent = safeNumber(base.encouragementsSent);
   base.activeDayKeys = uniqueStrings(base.activeDayKeys)
     .sort()
     .slice(-MAX_ACTIVE_DAY_KEYS);
@@ -156,7 +154,6 @@ function publicSummaryFromStored(stored, uid, requestedTimeZone, today = new Dat
     earlySessions: normalized.earlySessions,
     answeredPrayers: normalized.answeredPrayers,
     testimonies: normalized.testimonies,
-    encouragements: normalized.encouragementsSent,
   });
 
   return {
@@ -179,7 +176,6 @@ function publicSummaryFromStored(stored, uid, requestedTimeZone, today = new Dat
     impact: {
       prayerSessions: normalized.prayerSessions,
       peoplePrayedFor: normalized.prayersCarried,
-      encouragementsSent: normalized.encouragementsSent,
       answeredPrayers: normalized.answeredPrayers,
     },
     timeZone: normalized.timeZone,
@@ -428,16 +424,6 @@ export function recordPrayerAnswered(fs, env, uid, requestedTimeZone) {
     timeZone: requestedTimeZone,
     applyUpdate(summary) {
       summary.answeredPrayers += 1;
-    },
-  });
-}
-
-export function recordEncouragementSent(fs, env, uid, requestedTimeZone) {
-  return recordSummaryAction(fs, env, {
-    uid,
-    timeZone: requestedTimeZone,
-    applyUpdate(summary) {
-      summary.encouragementsSent += 1;
     },
   });
 }

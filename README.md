@@ -7,7 +7,7 @@ A daily prayer companion app built with Expo and React Native.
 - **Splash & Onboarding** – Branded entry with welcome and reminder setup
 - **Home Feed** – Daily prayer mission, streak counter, and prayer requests
 - **Discover** – Search and browse prayers, people, and testimonies
-- **Prayer Detail** – Read full requests, pray with one tap, leave encouragements
+- **Prayer Detail** – Read full requests and pray with one tap
 - **Create Request** – Share prayer needs with privacy and urgency controls
 - **Testimonies (Praise)** – Celebrate answered prayers with the community
 - **Profile** – Track your prayer stats and manage settings

@@ -29,11 +29,9 @@ import CreatePrayerScreen from '../src/mobile/screens/CreatePrayerScreen';
 import CreateTestimonyScreen from '../src/mobile/screens/CreateTestimonyScreen';
 import DailyChallengeScreen from '../src/mobile/screens/DailyChallengeScreen';
 import DevotionsScreen from '../src/mobile/screens/DevotionsScreen';
-import WeeklyEncouragersScreen from '../src/mobile/screens/WeeklyEncouragersScreen';
 import DiscoverScreen from '../src/mobile/screens/DiscoverScreen';
 import EditProfileScreen from '../src/mobile/screens/EditProfileScreen';
 import EditRequestScreen from '../src/mobile/screens/EditRequestScreen';
-import FollowingScreen from '../src/mobile/screens/FollowingScreen';
 import GuideDetailScreen from '../src/mobile/screens/GuideDetailScreen';
 import HelpCenterScreen from '../src/mobile/screens/HelpCenterScreen';
 import HomeScreen from '../src/mobile/screens/HomeScreen';
@@ -212,7 +210,6 @@ function renderScreen({ screen, params, user, suspended, suspendedReason, signIn
     case 'termsOfService': return <TermsOfServiceScreen onBack={() => backFn('settings')} />;
     case 'helpCenter': return <HelpCenterScreen onBack={() => backFn('settings')} />;
     case 'support': return <SupportDonationScreen onBack={() => backFn('settings')} />;
-    case 'following': return <FollowingScreen user={user} onBack={() => backFn('profile')} />;
     case 'announcements': return <AnnouncementsScreen onBack={() => backFn('profile')} />;
     case 'devotions': return <DevotionsScreen go={goFn} onBack={() => backFn('profile')} />;
     case 'guideDetail': return <GuideDetailScreen guideId={params.guideId} go={goFn} back={() => backFn('devotions')} />;
@@ -223,7 +220,6 @@ function renderScreen({ screen, params, user, suspended, suspendedReason, signIn
     case 'reminderSettings': return <RemindersScreen user={user} onBack={() => backFn('profile')} />;
     case 'achievements': return <AchievementsScreen user={user} onBack={() => backFn('profile')} />;
     case 'dailyChallenge': return <DailyChallengeScreen user={user} onBack={() => backFn('home')} go={goFn} />;
-    case 'weeklyEncouragers': return <WeeklyEncouragersScreen user={user} onBack={() => backFn('home')} />;
     case 'quickActions': return <QuickActionsScreen go={goFn} onBack={() => backFn('profile')} />;
     case 'adminDashboard': return <AdminDashboardScreen user={user} go={goFn} onBack={() => backFn('profile')} />;
     case 'reportDetails': return <ReportDetailsScreen report={params.report} go={goFn} back={() => backFn('adminDashboard')} />;

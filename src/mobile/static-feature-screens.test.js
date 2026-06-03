@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 const staticScreens = [
-  'FollowingScreen',
   'AnnouncementsScreen',
   'DevotionsScreen',
   'GuideDetailScreen',
@@ -10,7 +9,6 @@ const staticScreens = [
   'RemindersScreen',
   'AchievementsScreen',
   'DailyChallengeScreen',
-  'WeeklyEncouragersScreen',
   'QuickActionsScreen',
 ];
 
@@ -51,7 +49,6 @@ describe('static feature screens', () => {
       'AnnouncementsScreen',
       'CalendarScreen',
       'DevotionsScreen',
-      'FollowingScreen',
       'GuideDetailScreen',
       'HomeScreen',
       'LessonReaderScreen',

@@ -19,33 +19,6 @@
       ]
     },
     {
-      "collectionGroup": "encouragements",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "senderUid", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" },
-        { "fieldPath": "__name__", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "encouragements",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "weekKey", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" },
-        { "fieldPath": "__name__", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "encouragements",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "receiverUid", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" },
-        { "fieldPath": "__name__", "order": "DESCENDING" }
-      ]
-    },
-    {
       "collectionGroup": "xpEvents",
       "queryScope": "COLLECTION",
       "fields": [

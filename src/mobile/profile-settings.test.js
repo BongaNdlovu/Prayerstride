@@ -15,7 +15,7 @@ describe('profile settings', () => {
     const avatarUpload = await import('./avatarUploadErrors.js?raw');
     expect(source.default).toMatch(/updateProfile/);
     expect(source.default).toMatch(/updateDoc/);
-    expect(source.default).toMatch(/showOnEncouragementBoard/);
+    expect(source.default).not.toMatch(/showOnEncouragementBoard/);
     expect(source.default).toMatch(/expo-image-picker/);
     expect(source.default).toMatch(/changePassword/);
     expect(source.default).toMatch(/resetPassword/);

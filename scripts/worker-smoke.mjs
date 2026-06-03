@@ -4,10 +4,8 @@ import { join } from 'node:path';
 const worker = readFileSync(join(process.cwd(), 'worker', 'index.js'), 'utf8');
 const engagement = readFileSync(join(process.cwd(), 'worker', 'spiritual-engagement.js'), 'utf8');
 const gamification = readFileSync(join(process.cwd(), 'worker', 'gamification.js'), 'utf8');
-const encouragements = readFileSync(join(process.cwd(), 'worker', 'encouragements.js'), 'utf8');
-const encouragementPresets = readFileSync(join(process.cwd(), 'shared', 'encouragementPresets.js'), 'utf8');
 const gamificationLogic = readFileSync(join(process.cwd(), 'shared', 'gamificationLogic.js'), 'utf8');
-const workerSource = `${worker}\n${engagement}\n${gamification}\n${encouragements}\n${gamificationLogic}`;
+const workerSource = `${worker}\n${engagement}\n${gamification}\n${gamificationLogic}`;
 const gamificationSummarySource = gamification.slice(
   gamification.indexOf('export async function buildGamificationSummary'),
   gamification.indexOf('export async function backfillGamificationXp'),
@@ -35,11 +33,13 @@ assert(worker.includes('createPrayer(env'), 'Worker should implement createPraye
 assert(worker.includes('updatePrayer(env'), 'Worker should implement updatePrayer handler.');
 assert(worker.includes('deletePrayer(env'), 'Worker should implement deletePrayer handler.');
 assert(worker.includes('createTestimony(env'), 'Worker should implement createTestimony handler.');
-assert(worker.includes("from './encouragements.js'"), 'Worker should use encouragements module.');
-assert(worker.includes('createEncouragementRecord'), 'Worker should implement encouragement creation.');
-assert(worker.includes('getWeeklyEncouragers'), 'Worker should implement weekly encouragers summary.');
-assert(worker.includes('encouragers\\/weekly'), 'Worker should route weekly encouragers.');
-assert(!worker.includes('createEncouragement(env'), 'Worker should not use legacy encouragement handler name.');
+assert(!worker.includes("from './encouragements.js'"), 'Worker should not import removed encouragements module.');
+assert(!worker.includes('/api/encouragements'), 'Worker should not route encouragement creation.');
+assert(!worker.includes('/api/encouragers/weekly'), 'Worker should not route weekly encouragers.');
+assert(!worker.includes('/api/following/'), 'Worker should not route following endpoints.');
+assert(!worker.includes('async function followUser'), 'Worker should not implement followUser.');
+assert(!worker.includes("processCollection('encouragements'"), 'Account deletion should not scan removed encouragements collection.');
+assert(!worker.includes('deleteFollowingReferences'), 'Account deletion should not scan removed following records.');
 assert(worker.includes('blockUser(env'), 'Worker should implement blockUser handler.');
 assert(worker.includes("from './moderation.js'"), 'Worker should use moderation module.');
 assert(worker.includes("from './firestore-list.js'"), 'Worker should use paginated Firestore list helper.');
@@ -78,6 +78,7 @@ assert(
   'deleteContentAndActions should filter notifications on relatedId.',
 );
 assert(worker.includes("processOwnedActionCollection('prays')") && worker.includes("processOwnedActionCollection('reactions')"), 'Account deletion should remove actions made on other users content.');
+assert(!worker.includes("processCollection('encouragements'"), 'Account deletion should not scan removed encouragements collection.');
 assert(worker.includes('if (userDoc.exists) addDelete(userDoc.name)'), 'Account deletion retries should tolerate an already-removed profile.');
 assert(worker.includes("String(message).includes('USER_NOT_FOUND')"), 'Account deletion retries should tolerate an already-removed Firebase Auth user.');
 assert(worker.includes('!targetUser.exists && !existingDeletionJob.exists'), 'Admin account deletion retries should continue existing cleanup jobs after profile removal.');
@@ -108,9 +109,6 @@ assert(!worker.includes('runFirestoreQuery'), 'Unused runFirestoreQuery helper s
 assert(worker.includes("status >= 500 ? 'Unexpected server error'"), 'Worker should hide raw internal errors from clients.');
 assert(worker.includes("status: 401") && worker.includes("publicMessage: 'Authentication required'"), 'Worker should classify missing authentication as 401.');
 
-assert(worker.includes('adminCreateAnnouncement'), 'Worker should implement adminCreateAnnouncement handler.');
-assert(worker.includes('adminUpdateAnnouncement'), 'Worker should implement adminUpdateAnnouncement handler.');
-assert(worker.includes('adminArchiveAnnouncement'), 'Worker should implement adminArchiveAnnouncement handler.');
 assert(worker.includes('adminCreateAnnouncement'), 'Worker should implement adminCreateAnnouncement handler.');
 assert(worker.includes('adminUpdateAnnouncement'), 'Worker should implement adminUpdateAnnouncement handler.');
 assert(worker.includes('adminArchiveAnnouncement'), 'Worker should implement adminArchiveAnnouncement handler.');
@@ -166,17 +164,8 @@ assert(!gamificationSummarySource.includes('listDocuments'), 'Gamification summa
 assert(!gamificationBackfillSource.includes('runCollectionGroupQuery'), 'Gamification backfill compatibility endpoint should not scan historical collections.');
 assert(!gamificationBackfillSource.includes('awardXpEvent'), 'Gamification backfill compatibility endpoint should not rewrite historical XP events.');
 assert(gamification.includes('recordPrayerCreated') && gamification.includes('recordPrayerAnswered'), 'Gamification should maintain prayer counters incrementally.');
-assert(gamification.includes('recordEncouragementSent'), 'Gamification should maintain encouragement counters incrementally.');
-assert(worker.includes("d.senderUid === uid || d.receiverUid === uid"), 'Account deletion should remove sent and received encouragements.');
-
-assert(encouragements.includes('getEncouragementPreset'), 'Encouragements should validate reviewed presets.');
-assert(encouragements.includes('runCollectionQuery'), 'Weekly encouragers should query the top-level encouragements collection.');
-assert(!encouragements.includes('runCollectionGroupQuery(env, \'encouragements\''), 'Weekly encouragers should not require a collection-group index.');
-assert(encouragements.includes('Anonymous'), 'Weekly board should anonymize opted-out users.');
-assert(encouragements.includes('anonymous-${rank}'), 'Weekly board should expose opaque IDs for anonymous entries.');
-assert(encouragements.includes('const { sourceUid, ...publicEntry } = entry'), 'Weekly board should remove internal user IDs from public entries.');
-assert(encouragements.includes('enforceCooldown'), 'Encouragement creation should enforce cooldowns.');
-assert(encouragementPresets.includes('praying-with-you'), 'Shared encouragement presets should include reviewed messages.');
+assert(!gamification.includes('recordEncouragementSent'), 'Gamification should not maintain removed encouragement counters.');
+assert(!gamification.includes('encouragementsSent'), 'Gamification summary should not expose removed encouragement counters.');
 
 if (failures.length) {
   console.error('Worker smoke test failed:');

@@ -102,7 +102,7 @@ export function deleteAccountPageHtml() {
     <h2>What is deleted</h2>
     <ul>
       <li>Profile, prayers, testimonies, sessions, calendar entries, notifications, and device tokens.</li>
-      <li>Blocks and following records associated with your account.</li>
+      <li>Blocks associated with your account.</li>
       <li>Your Firebase authentication record after server-side cleanup completes.</li>
     </ul>
     <h2>Retention</h2>

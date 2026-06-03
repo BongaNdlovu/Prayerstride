@@ -73,12 +73,6 @@ async function seedFixtures() {
       relatedId: null,
     });
 
-    await db.doc('users/user-a/following/following-a').set({
-      displayName: 'Followed User',
-      handle: '@followed',
-      createdAt: new Date(),
-    });
-
     await db.doc('devotions/devotion-a').set({
       title: 'Published devotion',
       reference: 'Psalm 23',
@@ -311,12 +305,6 @@ async function runTests() {
   }));
   await assertFails(bDb.doc('notificationSettings/user-a').get());
 
-  await assertSucceeds(aDb.doc('users/user-a/following/following-a').get());
-  await assertFails(bDb.doc('users/user-a/following/following-a').get());
-  await assertFails(aDb.doc('users/user-a/following/following-new').set({
-    displayName: 'Client write',
-    createdAt: new Date(),
-  }));
   await assertSucceeds(aDb.doc('devotions/devotion-a').get());
   await assertFails(aDb.doc('devotions/devotion-archived').get());
   await assertFails(aDb.doc('devotions/devotion-new').set({

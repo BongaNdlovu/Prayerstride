@@ -36,10 +36,6 @@ import {
   updateGamificationTimeZone,
 } from './gamification.js';
 import {
-  createEncouragementRecord,
-  getWeeklyEncouragers,
-} from './encouragements.js';
-import {
   dayKeyInTimeZone,
   isoWeekKeyFromDayKey,
 } from '../shared/gamificationLogic.js';
@@ -166,26 +162,6 @@ async function handleApi(request, env, url, requestId) {
     return json(result);
   }
 
-  match = url.pathname.match(/^\/api\/encouragements$/);
-  if (match && request.method === 'POST') {
-    await checkNotSuspended(env, user.uid);
-    const result = await createEncouragementRecord(gamificationFirestore, env, user, body, encouragementDeps);
-    if (result.error) return json({ error: result.error }, result.status);
-    return json(result);
-  }
-
-  match = url.pathname.match(/^\/api\/encouragers\/weekly$/);
-  if (match && request.method === 'GET') {
-    await checkNotSuspended(env, user.uid);
-    const summary = await getWeeklyEncouragers(
-      gamificationFirestore,
-      env,
-      user.uid,
-      url.searchParams.get('timeZone'),
-    );
-    return json(summary);
-  }
-
   match = url.pathname.match(/^\/api\/prayers$/);
   if (match && request.method === 'POST') {
     await checkNotSuspended(env, user.uid);
@@ -254,16 +230,6 @@ async function handleApi(request, env, url, requestId) {
   if (match && request.method === 'DELETE') {
     await checkNotSuspended(env, user.uid);
     return unblockUser(env, user, decodeURIComponent(match[1]));
-  }
-
-  match = url.pathname.match(/^\/api\/following\/([^/]+)$/);
-  if (match && request.method === 'POST') {
-    await checkNotSuspended(env, user.uid);
-    return followUser(env, user, decodeURIComponent(match[1]));
-  }
-  if (match && request.method === 'DELETE') {
-    await checkNotSuspended(env, user.uid);
-    return unfollowUser(env, user, decodeURIComponent(match[1]));
   }
 
   match = url.pathname.match(/^\/api\/prayer-bookmarks\/([^/]+)$/);
@@ -351,12 +317,9 @@ function knownApiPath(pathname) {
     /^\/api\/devices\/register$/,
     /^\/api\/gamification\/(?:summary|timezone|backfill)$/,
     /^\/api\/prayer-sessions$/,
-    /^\/api\/encouragements$/,
-    /^\/api\/encouragers\/weekly$/,
     /^\/api\/prayers(?:\/[^/]+(?:\/update|\/mark-answered|\/pray)?)?$/,
     /^\/api\/testimonies(?:\/[^/]+(?:\/update|\/react)?)?$/,
     /^\/api\/blocks(?:\/[^/]+)?$/,
-    /^\/api\/following\/[^/]+$/,
     /^\/api\/prayer-bookmarks\/[^/]+$/,
     /^\/api\/reports$/,
     /^\/api\/admin\/(?:delete-content|suspend-user|unsuspend-user|delete-account|reports\/update|spiritual-engagement|announcements\/(?:create|update|archive))$/,
@@ -944,30 +907,6 @@ async function blockUser(env, user, blockedUid) {
   }]);
 
   return json({ ok: true, blockedUid });
-}
-
-async function followUser(env, user, followedUid) {
-  if (!followedUid || followedUid === user.uid) return json({ error: 'Choose another user to follow.' }, 400);
-  const target = await getDocument(env, docName(env, 'users', followedUid));
-  if (!target.exists) return json({ error: 'User not found' }, 404);
-  const data = fromFirestoreFields(target.fields);
-  await firestoreCommit(env, [{
-    update: {
-      name: docName(env, 'users', user.uid, 'following', followedUid),
-      fields: toFirestoreFields({
-        followedUid,
-        displayName: data.displayName || 'Community member',
-        handle: data.handle || null,
-        createdAt: new Date().toISOString(),
-      }),
-    },
-  }]);
-  return json({ ok: true, followedUid });
-}
-
-async function unfollowUser(env, user, followedUid) {
-  await firestoreCommit(env, [{ delete: docName(env, 'users', user.uid, 'following', followedUid) }]);
-  return json({ ok: true, followedUid });
 }
 
 async function getPrayerBookmark(env, user, prayerId) {
@@ -1581,39 +1520,10 @@ async function collectUserDeletionWrites(env, uid) {
     }
   };
 
-  const deleteFollowingReferences = async () => {
-    const matchFollowing = (data, ownerUid) => (
-      [data.followedUid, data.uid, data.targetUid, ownerUid].includes(uid)
-    );
-
-    try {
-      const followingReferences = await runCollectionGroupQuery(env, 'following');
-      for (const d of followingReferences) {
-        const data = fromFirestoreFields(d.fields || {});
-        if ([data.followedUid, data.uid, data.targetUid].includes(uid)) addDelete(d.name);
-      }
-      return;
-    } catch (error) {
-      log(env, 'warn', { message: error.message }, 'following-delete-fallback');
-    }
-
-    const users = await listDocuments(env, docName(env, 'users'));
-    for (const userDoc of users) {
-      const ownerUid = dataId(userDoc);
-      const followingDocs = await listDocuments(env, docName(env, 'users', ownerUid, 'following'));
-      for (const d of followingDocs) {
-        const data = fromFirestoreFields(d.fields || {});
-        if (matchFollowing(data, ownerUid)) addDelete(d.name);
-      }
-    }
-  };
-
   await processCollection('prayers', (d) => d.authorUid === uid);
   await processCollection('testimonies', (d) => d.authorUid === uid);
   await processOwnedActionCollection('prays');
   await processOwnedActionCollection('reactions');
-  await deleteFollowingReferences();
-  await processCollection('encouragements', (d) => d.senderUid === uid || d.receiverUid === uid);
   await processCollection('prayerSessions', (d) => d.authorUid === uid);
   const xpDeletes = await deleteUserXpEvents(gamificationFirestore, env, uid);
   for (const write of xpDeletes) addDelete(write.delete);
@@ -1627,9 +1537,6 @@ async function collectUserDeletionWrites(env, uid) {
 
   const deviceDocs = await listDocuments(env, docName(env, 'users', uid, 'devices'));
   for (const d of deviceDocs) addDelete(d.name);
-
-  const followingDocs = await listDocuments(env, docName(env, 'users', uid, 'following'));
-  for (const d of followingDocs) addDelete(d.name);
 
   addDelete(docName(env, 'notificationSettings', uid));
   return writes;
@@ -2276,15 +2183,6 @@ const gamificationFirestore = {
   fromFirestoreFields,
   toFirestoreFields,
   getUserProfile,
-};
-
-const encouragementDeps = {
-  checkCommunityAccess,
-  recipientBlockedActor,
-  enforceCooldown,
-  getNotificationSettings,
-  sendPushToUser,
-  notificationWrite,
 };
 
 function docName(env, ...parts) {

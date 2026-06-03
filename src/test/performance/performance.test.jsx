@@ -123,7 +123,7 @@ vi.mock('../../mobile/useGamification', () => ({
       totalXP: 0,
       levelInfo: { level: 1, progress: 0, xpIntoLevel: 0 },
       badges: [],
-      impact: { prayerSessions: 0, peoplePrayedFor: 0, encouragementsSent: 0, answeredPrayers: 0 },
+      impact: { prayerSessions: 0, peoplePrayedFor: 0, answeredPrayers: 0 },
     },
     loading: false,
     error: null,

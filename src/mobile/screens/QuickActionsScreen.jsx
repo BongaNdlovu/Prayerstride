@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, View } from 'react-native';
-import { ChevronRight, Plus, Sparkles, Heart, BookOpen, Timer } from 'lucide-react-native';
+import { ChevronRight, Plus, Sparkles, Heart, Timer } from 'lucide-react-native';
 import { colors, radii, spacing } from '../theme';
 import ScreenScaffold from '../components/ScreenScaffold';
 import AppHeader from '../components/AppHeader';
@@ -10,7 +10,6 @@ const ACTIONS = [
   { label: 'Create Prayer Request', route: 'create', icon: Plus },
   { label: 'Create Testimony', route: 'createTestimony', icon: Heart },
   { label: 'My Prayers', route: 'myPrayers', icon: Sparkles },
-  { label: 'Following', route: 'following', icon: BookOpen },
   { label: 'Prayer Timer', route: 'prayerStopwatch', icon: Timer },
 ];
 

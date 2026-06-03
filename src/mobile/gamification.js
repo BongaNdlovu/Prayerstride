@@ -66,7 +66,6 @@ export function buildGamificationSummary(input) {
     sessions,
     myPrayers,
     myTestimonies,
-    encouragements: input.encouragements || 0,
     timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
     today,
   });

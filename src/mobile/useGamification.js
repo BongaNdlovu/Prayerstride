@@ -108,7 +108,6 @@ export function useGamification(userId, enabled = true) {
       impact: {
         prayerSessions: 0,
         peoplePrayedFor: 0,
-        encouragementsSent: 0,
         answeredPrayers: 0,
       },
     },

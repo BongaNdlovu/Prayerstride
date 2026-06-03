@@ -17,8 +17,10 @@ describe('data contracts', () => {
     expect(source.default).toMatch(/export function getGamificationSummary/);
     expect(source.default).toMatch(/export function createPrayerSession/);
     expect(source.default).toMatch(/export function backfillGamification/);
-    expect(source.default).toMatch(/export function createEncouragement/);
-    expect(source.default).toMatch(/export function getWeeklyEncouragers/);
+    expect(source.default).not.toMatch(/createEncouragement/);
+    expect(source.default).not.toMatch(/getWeeklyEncouragers/);
+    expect(source.default).not.toMatch(/followUser/);
+    expect(source.default).not.toMatch(/unfollowUser/);
     expect(source.default).not.toMatch(/addDoc\(collection\(db, ['"]announcements['"]\)/);
   });
 

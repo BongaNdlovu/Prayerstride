@@ -156,7 +156,6 @@ export function buildBadgeMetrics({
   sessions = [],
   myTestimonies = [],
   streak = 0,
-  encouragements = 0,
   timeZone = 'UTC',
 }) {
   const answeredPrayers = myPrayers.filter((prayer) => prayer.status === 'answered').length;
@@ -168,7 +167,6 @@ export function buildBadgeMetrics({
     earlySessions: countEarlySessions(sessions, timeZone),
     answeredPrayers,
     testimonies: myTestimonies.length,
-    encouragements,
   };
 }
 
@@ -246,7 +244,6 @@ export function buildGamificationSummaryFromData({
   sessions = [],
   myPrayers = [],
   myTestimonies = [],
-  encouragements = 0,
   peoplePrayedFor = 0,
   timeZone = 'UTC',
   today = new Date(),
@@ -263,7 +260,6 @@ export function buildGamificationSummaryFromData({
     sessions,
     myTestimonies,
     streak,
-    encouragements,
     timeZone: tz,
   });
   const badges = computeBadges(badgeMetrics);
@@ -284,7 +280,6 @@ export function buildGamificationSummaryFromData({
     impact: {
       prayerSessions: sessions.length,
       peoplePrayedFor,
-      encouragementsSent: encouragements,
       answeredPrayers: myPrayers.filter((prayer) => prayer.status === 'answered').length,
     },
     timeZone: tz,

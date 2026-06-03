@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, FlatList, StyleSheet, View } from 'react-native';
-import { alpha, spacing } from '../theme';
+import { spacing } from '../theme';
 import { useTestimonies } from '../usePrayerData';
 import { filterBlockedItems, useBlocks } from '../useBlocks';
-import { useFollowing } from '../useContentCollections';
 import { reactToTestimony } from '../api';
-import { auth } from '../firebase';
 import ScreenScaffold from '../components/ScreenScaffold';
 import AppHeader from '../components/AppHeader';
 import PillTabs from '../components/PillTabs';
@@ -13,34 +11,23 @@ import TestimonyCard from '../components/TestimonyCard';
 import AsyncState from '../components/AsyncState';
 import { getErrorMessage } from '../errors';
 
-const TABS = ['All', 'Following', 'Recent'];
+const TABS = ['All', 'Recent'];
 
 export default function PraiseScreen({ onOpenTestimony }) {
   const { testimonies, loading, error, retry } = useTestimonies(true);
   const { blockedUids, loading: blocksLoading, error: blocksError, refresh: retryBlocks } = useBlocks(true);
-  const uid = auth.currentUser?.uid;
-  const { following, loading: followingLoading, error: followingError, retry: retryFollowing } = useFollowing(uid, Boolean(uid));
   const [tab, setTab] = useState('All');
   const [pendingReactions, setPendingReactions] = useState({});
   const reactingRef = useRef(new Set());
-  const feedLoading = loading || blocksLoading || followingLoading;
-  const listError = error || blocksError || followingError;
+  const feedLoading = loading || blocksLoading;
+  const listError = error || blocksError;
   const retryAll = () => {
     retry();
     retryBlocks();
-    retryFollowing();
   };
-
-  const followingIds = useMemo(
-    () => new Set(following.map((item) => item.followedUid || item.uid || item.targetUid || item.id)),
-    [following],
-  );
 
   const visible = useMemo(() => {
     const unblocked = blocksLoading ? [] : filterBlockedItems(testimonies, blockedUids);
-    if (tab === 'Following') {
-      return unblocked.filter((item) => followingIds.has(item.authorUid));
-    }
     if (tab === 'Recent') {
       return [...unblocked].sort((a, b) => {
         const aTime = a.createdAt?.toMillis?.() ?? a.createdAt?.seconds ?? 0;
@@ -49,7 +36,7 @@ export default function PraiseScreen({ onOpenTestimony }) {
       });
     }
     return unblocked;
-  }, [testimonies, blockedUids, blocksLoading, tab, followingIds]);
+  }, [testimonies, blockedUids, blocksLoading, tab]);
 
   useEffect(() => {
     setPendingReactions((current) => {
@@ -113,7 +100,7 @@ export default function PraiseScreen({ onOpenTestimony }) {
         error={listError}
         onRetry={retryAll}
         empty={!feedLoading && !listError && visible.length === 0}
-        emptyLabel={tab === 'Following' ? 'No testimonies from people you follow yet.' : 'No testimonies yet.'}
+        emptyLabel="No testimonies yet."
       >
         <FlatList
           data={visible}

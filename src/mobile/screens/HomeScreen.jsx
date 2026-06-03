@@ -12,7 +12,6 @@ import {
   Bell,
   ChevronRight,
   Flame,
-  Heart,
   Map,
   Sparkles,
   Target,
@@ -182,24 +181,6 @@ export default function HomeScreen({ onOpenPrayer, go }) {
                 </BodyText>
               </View>
               <BodyText variant="caption" style={styles.challengeXp}>+{XP_AWARDS.dailyChallenge} XP</BodyText>
-            </View>
-          </GlassCard>
-        </Pressable>
-
-        <Pressable onPress={() => go('weeklyEncouragers')}>
-          <GlassCard style={styles.challengeCard}>
-            <View style={styles.challengeRow}>
-              <View style={styles.challengeIcon}>
-                <Heart size={20} color={colors.coral} />
-              </View>
-              <View style={styles.challengeCopy}>
-                <Heading level="eyebrow">Weekly Encouragers</Heading>
-                <Heading level="h4">Lift others with kind words</Heading>
-                <BodyText variant="small">
-                  See who shared the most encouragement this week
-                </BodyText>
-              </View>
-              <ChevronRight size={18} color={colors.textMuted} />
             </View>
           </GlassCard>
         </Pressable>

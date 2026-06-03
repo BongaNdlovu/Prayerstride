@@ -22,8 +22,6 @@ const contracts = [
   ['GET', '/api/blocks', '/api/blocks'],
   ['POST', '/api/blocks/:id', '/api/blocks'],
   ['DELETE', '/api/blocks/:id', '/api/blocks'],
-  ['POST', '/api/following/:id', '/api/following'],
-  ['DELETE', '/api/following/:id', '/api/following'],
   ['GET', '/api/prayer-bookmarks/:id', '/api/prayer-bookmarks'],
   ['POST', '/api/prayer-bookmarks/:id', '/api/prayer-bookmarks'],
   ['DELETE', '/api/prayer-bookmarks/:id', '/api/prayer-bookmarks'],
@@ -37,8 +35,6 @@ const contracts = [
   ['POST', '/api/gamification/timezone', 'gamification/timezone'],
   ['POST', '/api/gamification/backfill', 'gamification/backfill'],
   ['POST', '/api/prayer-sessions', 'prayer-sessions'],
-  ['POST', '/api/encouragements', '/api/encouragements'],
-  ['GET', '/api/encouragers/weekly', 'encouragers/weekly'],
 ];
 
 for (const [method, path, routeFragment] of contracts) {
@@ -56,6 +52,25 @@ for (const route of [
 ]) {
   if (!api.includes(`/api/admin/${route}`)) failures.push(`Mobile API helper missing /api/admin/${route}`);
   if (!worker.includes(route.replaceAll('/', '\\/'))) failures.push(`Worker route missing /api/admin/${route}`);
+}
+
+if (failures.length) {
+  console.error('Worker route contract test failed:');
+  for (const failure of failures) console.error(`- ${failure}`);
+  process.exit(1);
+}
+
+if (api.includes('/api/encouragements') || api.includes('/api/encouragers/weekly')) {
+  failures.push('Mobile API should not expose removed encouragement endpoints.');
+}
+if (worker.includes('/api/encouragements') || worker.includes('/api/encouragers/weekly')) {
+  failures.push('Worker should not route removed encouragement endpoints.');
+}
+if (api.includes('/api/following/') || api.includes('followUser') || api.includes('unfollowUser')) {
+  failures.push('Mobile API should not expose removed following endpoints.');
+}
+if (worker.includes('/api/following/') || worker.includes('async function followUser')) {
+  failures.push('Worker should not route removed following endpoints.');
 }
 
 if (failures.length) {

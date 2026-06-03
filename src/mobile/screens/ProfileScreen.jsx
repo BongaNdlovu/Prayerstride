@@ -50,10 +50,8 @@ const MORE_LINKS = [
   { label: 'Devotions', route: 'devotions', icon: BookOpen },
   { label: 'Calendar', route: 'calendar', icon: Calendar },
   { label: 'Achievements', route: 'achievements', icon: Trophy },
-  { label: 'Weekly Encouragers', route: 'weeklyEncouragers', icon: Heart },
   { label: 'Announcements', route: 'announcements', icon: Megaphone },
   { label: 'Quick Actions', route: 'quickActions', icon: Zap },
-  { label: 'Following', route: 'following', icon: Users },
 ];
 
 export default function ProfileScreen({ user, signOut, go }) {
@@ -135,7 +133,6 @@ export default function ProfileScreen({ user, signOut, go }) {
         <StatCard icon={BarChart3} value={String(impact.prayerSessions || 0)} label="Sessions" accent={colors.emerald} style={styles.statCard} />
         <StatCard icon={Users} value={String(impact.peoplePrayedFor || 0)} label="Prayers Carried" accent={colors.community} style={styles.statCard} />
         <StatCard icon={Heart} value={String(impact.answeredPrayers || 0)} label="Answered Prayers" accent={colors.violet} style={styles.statCard} />
-        <StatCard icon={Sparkles} value={String(impact.encouragementsSent || 0)} label="Encouragements" accent={colors.gold} style={styles.statCard} />
         <StatCard icon={Trophy} value={String(earnedBadges)} label="Badges" accent={colors.navy} style={styles.statCard} />
       </View>
 
