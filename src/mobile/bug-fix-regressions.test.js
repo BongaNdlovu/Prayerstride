@@ -80,8 +80,9 @@ describe('bug fix regressions — batch 1 and 2', () => {
   it('PraiseScreen reconciles optimistic reactions against server counts', async () => {
     const source = await import('./screens/PraiseScreen.jsx?raw');
     expect(source.default).toMatch(/pendingReactions/);
-    expect(source.default).toMatch(/serverCount >= baseline \+ 1/);
+    expect(source.default).toMatch(/serverCount >= pending\.baseline \+ 1/);
     expect(source.default).toMatch(/reactingRef\.current/);
+    expect(source.default).toMatch(/createdAt/);
   });
 
   it('CreateTestimonyScreen shows success alert before navigation', async () => {

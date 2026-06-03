@@ -4,14 +4,29 @@ import { getApiErrorMessage, toUserFacingError } from './errors';
 const API_URL = process.env.EXPO_PUBLIC_API_URL || '';
 const API_TIMEOUT_MS = 15000;
 
+export function createFetchAbortContext(externalSignal, timeoutMs = API_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const abortRequest = () => controller.abort();
+  const timeoutId = setTimeout(abortRequest, timeoutMs);
+  externalSignal?.addEventListener?.('abort', abortRequest, { once: true });
+  return {
+    signal: controller.signal,
+    abortRequest,
+    cleanup() {
+      clearTimeout(timeoutId);
+      externalSignal?.removeEventListener?.('abort', abortRequest);
+    },
+    timedOut() {
+      return controller.signal.aborted && !externalSignal?.aborted;
+    },
+  };
+}
+
 export async function apiFetch(path, options = {}) {
   const token = await auth.currentUser?.getIdToken();
   if (!token) throw new Error('You must be signed in.');
 
-  const controller = new AbortController();
-  const abortRequest = () => controller.abort();
-  const timeoutId = setTimeout(abortRequest, API_TIMEOUT_MS);
-  options.signal?.addEventListener?.('abort', abortRequest, { once: true });
+  const abortContext = createFetchAbortContext(options.signal, API_TIMEOUT_MS);
 
   const headers = {
     Authorization: `Bearer ${token}`,
@@ -24,7 +39,7 @@ export async function apiFetch(path, options = {}) {
   try {
     const response = await fetch(`${API_URL}${path}`, {
       ...options,
-      signal: controller.signal,
+      signal: abortContext.signal,
       headers,
     });
 
@@ -36,13 +51,13 @@ export async function apiFetch(path, options = {}) {
     }
     return data;
   } catch (error) {
-    if (controller.signal.aborted && !options.signal?.aborted) {
+    if (options.signal?.aborted) throw error;
+    if (abortContext.timedOut()) {
       throw new Error('The request timed out. Check your connection and try again.');
     }
     throw toUserFacingError(error, 'Could not reach PrayerStride. Check your connection and try again.');
   } finally {
-    clearTimeout(timeoutId);
-    options.signal?.removeEventListener?.('abort', abortRequest);
+    abortContext.cleanup();
   }
 }
 
@@ -73,15 +88,12 @@ export async function uploadMyAvatar(file, signal) {
     });
   }
 
-  const controller = new AbortController();
-  const abortRequest = () => controller.abort();
-  const timeoutId = setTimeout(abortRequest, API_TIMEOUT_MS);
-  signal?.addEventListener?.('abort', abortRequest, { once: true });
+  const abortContext = createFetchAbortContext(signal, API_TIMEOUT_MS);
 
   try {
     const response = await fetch(`${API_URL}/api/me/avatar`, {
       method: 'POST',
-      signal: controller.signal,
+      signal: abortContext.signal,
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -95,13 +107,12 @@ export async function uploadMyAvatar(file, signal) {
     }
     return data;
   } catch (error) {
-    if (controller.signal.aborted && !signal?.aborted) {
+    if (abortContext.timedOut()) {
       throw new Error('The request timed out. Check your connection and try again.');
     }
     throw toUserFacingError(error, 'Could not upload your profile photo. Please try again.');
   } finally {
-    clearTimeout(timeoutId);
-    signal?.removeEventListener?.('abort', abortRequest);
+    abortContext.cleanup();
   }
 }
 
@@ -413,8 +424,8 @@ export function deleteOwnAccount() {
   });
 }
 
-export function getSpiritualEngagementMetrics(days = 30) {
-  return apiFetch(`/api/admin/spiritual-engagement?days=${encodeURIComponent(days)}`);
+export function getSpiritualEngagementMetrics(days = 30, options = {}) {
+  return apiFetch(`/api/admin/spiritual-engagement?days=${encodeURIComponent(days)}`, options);
 }
 
 export function adminCreateAnnouncement(payload) {

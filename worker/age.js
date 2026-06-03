@@ -17,7 +17,10 @@ export function parseDateOfBirth(value) {
 }
 
 export function calculateAge(dateOfBirth, today = new Date()) {
-  const [year, month, day] = dateOfBirth.split('-').map(Number);
+  if (typeof dateOfBirth !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth.trim())) {
+    return null;
+  }
+  const [year, month, day] = dateOfBirth.trim().split('-').map(Number);
   let age = today.getUTCFullYear() - year;
   const monthDiff = today.getUTCMonth() + 1 - month;
   if (monthDiff < 0 || (monthDiff === 0 && today.getUTCDate() < day)) {

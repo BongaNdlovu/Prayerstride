@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { alpha, colors, radii, spacing } from '../theme';
 import { useNotifications, markAllNotificationsRead, markNotificationRead } from '../useNotifications';
@@ -14,17 +15,38 @@ import { getErrorMessage } from '../errors';
 
 export default function NotificationsScreen({ user, onBack }) {
   const { notifications, unread, read, loading, error, retry } = useNotifications(user?.uid, true);
-  const markAllRead = () => {
-    markAllNotificationsRead(user?.uid).then(() => retry()).catch((error) => {
+  const [markAllBusy, setMarkAllBusy] = useState(false);
+  const pendingReadIdsRef = useRef(new Set());
+
+  const markAllRead = async () => {
+    if (markAllBusy) return;
+    setMarkAllBusy(true);
+    try {
+      await markAllNotificationsRead(user?.uid);
+      retry();
+    } catch (error) {
       Alert.alert('Could not update notifications', getErrorMessage(error));
-    });
+    } finally {
+      setMarkAllBusy(false);
+    }
+  };
+
+  const markRead = async (notificationId) => {
+    if (pendingReadIdsRef.current.has(notificationId)) return;
+    pendingReadIdsRef.current.add(notificationId);
+    try {
+      await markNotificationRead(notificationId);
+      retry();
+    } catch (err) {
+      Alert.alert('Could not update notification', getErrorMessage(err));
+    } finally {
+      pendingReadIdsRef.current.delete(notificationId);
+    }
   };
 
   const renderItem = ({ item }) => (
     <Pressable
-      onPress={() => markNotificationRead(item.id).then(() => retry()).catch((err) => {
-        Alert.alert('Could not update notification', getErrorMessage(err));
-      })}
+      onPress={() => markRead(item.id)}
       style={({ pressed }) => [styles.itemWrap, pressed && styles.pressed]}
     >
       <GlassCard style={[styles.notifCard, !item.read && styles.notifUnread]}>
@@ -56,7 +78,14 @@ export default function NotificationsScreen({ user, onBack }) {
               unread.length > 0 ? (
                 <View style={styles.listHeader}>
                   <Heading level="eyebrow" style={styles.sectionLabel}>New ({unread.length})</Heading>
-                  <PrimaryButton label="Mark all read" variant="ghost" onPress={markAllRead} style={styles.markAllButton} />
+                  <PrimaryButton
+                    label="Mark all read"
+                    variant="ghost"
+                    onPress={markAllRead}
+                    disabled={markAllBusy}
+                    busy={markAllBusy}
+                    style={styles.markAllButton}
+                  />
                 </View>
               ) : null
             }

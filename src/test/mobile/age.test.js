@@ -31,6 +31,13 @@ describe('age registration helpers', () => {
     expect(calculateAge('2010-06-01', today)).toBe(15);
   });
 
+  it('returns null for invalid or non-string input', () => {
+    expect(calculateAge(null)).toBeNull();
+    expect(calculateAge('')).toBeNull();
+    expect(calculateAge('not-a-date')).toBeNull();
+    expect(calculateAge(2000)).toBeNull();
+  });
+
   it('performs basic email shape validation before Firebase validation', () => {
     expect(isValidEmail('person@example.com')).toBe(true);
     expect(isValidEmail('not-an-email')).toBe(false);

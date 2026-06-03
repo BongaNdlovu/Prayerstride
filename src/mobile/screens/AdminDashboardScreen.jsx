@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { alpha, colors, fonts, sharedStyles, spacing } from '../theme';
 import { useReports, resolveReport, dismissReport } from '../useReports';
@@ -87,16 +87,21 @@ function AnalyticsPanel({ user }) {
   const [error, setError] = useState('');
   const mountedRef = useRef(false);
   const requestIdRef = useRef(0);
+  const abortRef = useRef(null);
 
-  const loadMetrics = () => {
+  const loadMetrics = useCallback(() => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     const requestId = ++requestIdRef.current;
     setLoading(true);
     setError('');
-    getSpiritualEngagementMetrics(30)
+    getSpiritualEngagementMetrics(30, { signal: controller.signal })
       .then((result) => {
         if (mountedRef.current && requestId === requestIdRef.current) setMetrics(result);
       })
       .catch((err) => {
+        if (err?.name === 'AbortError' || controller.signal.aborted) return;
         if (mountedRef.current && requestId === requestIdRef.current) {
           setError(getErrorMessage(err, 'Failed to load analytics'));
         }
@@ -104,16 +109,18 @@ function AnalyticsPanel({ user }) {
       .finally(() => {
         if (mountedRef.current && requestId === requestIdRef.current) setLoading(false);
       });
-  };
+  }, []);
 
   useEffect(() => {
     mountedRef.current = true;
     loadMetrics();
     return () => {
       mountedRef.current = false;
-      requestIdRef.current++;
+      requestIdRef.current += 1;
+      abortRef.current?.abort();
+      abortRef.current = null;
     };
-  }, []);
+  }, [loadMetrics]);
 
   if (loading) {
     return (

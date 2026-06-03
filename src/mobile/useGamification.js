@@ -11,8 +11,55 @@ const SUMMARY_CACHE_TTL_MS = 60000;
 const summaryCache = new Map();
 const summaryRequests = new Map();
 
+const DEFAULT_SUMMARY = {
+  streak: 0,
+  dailyPrayCount: 0,
+  dailyGoalProgress: 0,
+  dailyChallengeComplete: false,
+  dailyChallengeGoal: 5,
+  dailyPrayGoal: 5,
+  todayXP: 0,
+  totalXP: 0,
+  levelInfo: { level: 1, totalXP: 0, xpIntoLevel: 0, xpToNextLevel: 500, progress: 0 },
+  journey: { id: 'first-steps', title: 'First Steps', subtitle: 'Beginning your prayer walk' },
+  weeklyStats: [],
+  activeDayIndexes: [],
+  currentDayIndex: new Date().getDay(),
+  badges: [],
+  prayedTodayIds: [],
+  impact: {
+    prayerSessions: 0,
+    peoplePrayedFor: 0,
+    answeredPrayers: 0,
+  },
+};
+
 export function gamificationBackfillKey(userId) {
   return `${BACKFILL_KEY}:${userId}`;
+}
+
+export function normalizeGamificationSummary(summary) {
+  if (!summary || typeof summary !== 'object') {
+    return { ...DEFAULT_SUMMARY, currentDayIndex: new Date().getDay() };
+  }
+  return {
+    ...DEFAULT_SUMMARY,
+    ...summary,
+    levelInfo: { ...DEFAULT_SUMMARY.levelInfo, ...(summary.levelInfo || {}) },
+    journey: { ...DEFAULT_SUMMARY.journey, ...(summary.journey || {}) },
+    impact: { ...DEFAULT_SUMMARY.impact, ...(summary.impact || {}) },
+    badges: Array.isArray(summary.badges) ? summary.badges : DEFAULT_SUMMARY.badges,
+    weeklyStats: Array.isArray(summary.weeklyStats) ? summary.weeklyStats : DEFAULT_SUMMARY.weeklyStats,
+    activeDayIndexes: Array.isArray(summary.activeDayIndexes)
+      ? summary.activeDayIndexes
+      : DEFAULT_SUMMARY.activeDayIndexes,
+    prayedTodayIds: Array.isArray(summary.prayedTodayIds)
+      ? summary.prayedTodayIds
+      : DEFAULT_SUMMARY.prayedTodayIds,
+    currentDayIndex: Number.isInteger(summary.currentDayIndex)
+      ? summary.currentDayIndex
+      : DEFAULT_SUMMARY.currentDayIndex,
+  };
 }
 
 function cacheKey(userId, timeZone) {
@@ -89,28 +136,7 @@ export function useGamification(userId, enabled = true) {
   };
 
   return {
-    summary: summary || {
-      streak: 0,
-      dailyPrayCount: 0,
-      dailyGoalProgress: 0,
-      dailyChallengeComplete: false,
-      dailyChallengeGoal: 5,
-      dailyPrayGoal: 5,
-      todayXP: 0,
-      totalXP: 0,
-      levelInfo: { level: 1, totalXP: 0, xpIntoLevel: 0, xpToNextLevel: 500, progress: 0 },
-      journey: { id: 'first-steps', title: 'First Steps', subtitle: 'Beginning your prayer walk' },
-      weeklyStats: [],
-      activeDayIndexes: [],
-      currentDayIndex: new Date().getDay(),
-      badges: [],
-      prayedTodayIds: [],
-      impact: {
-        prayerSessions: 0,
-        peoplePrayedFor: 0,
-        answeredPrayers: 0,
-      },
-    },
+    summary: normalizeGamificationSummary(summary),
     loading: summaryLoading,
     error: summaryError,
     retry,

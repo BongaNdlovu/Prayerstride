@@ -28,6 +28,7 @@ import BodyText from '../components/BodyText';
 import StatCard from '../components/StatCard';
 import ProgressRing from '../components/ProgressRing';
 import AsyncState from '../components/AsyncState';
+import PrimaryButton from '../components/PrimaryButton';
 
 const PROFILE_ROUTES = {
   myStats: 'myStats',
@@ -105,9 +106,17 @@ export default function ProfileScreen({ user, signOut, go }) {
       </GlassCard>
 
       {statsUnavailable ? (
-        <BodyText variant="caption" style={styles.statsError}>
-          Prayer stats are temporarily unavailable. Showing your profile with default stats.
-        </BodyText>
+        <View style={styles.statsErrorRow}>
+          <BodyText variant="caption" style={styles.statsError}>
+            Prayer stats are temporarily unavailable. Showing your profile with default stats.
+          </BodyText>
+          <PrimaryButton
+            label="Retry"
+            variant="ghost"
+            onPress={retryGamification}
+            style={styles.statsRetryButton}
+          />
+        </View>
       ) : null}
 
       <GlassCard style={styles.levelCard}>
@@ -216,7 +225,9 @@ const styles = StyleSheet.create({
   name: { textAlign: 'center' },
   handle: { marginTop: spacing.xs, color: colors.textMuted, textAlign: 'center' },
   bio: { marginTop: spacing.md, textAlign: 'center', maxWidth: 280 },
-  statsError: { marginBottom: spacing.md, color: colors.coral, textAlign: 'center' },
+  statsErrorRow: { marginBottom: spacing.md, alignItems: 'center', gap: spacing.sm },
+  statsError: { color: colors.coral, textAlign: 'center' },
+  statsRetryButton: { minHeight: 36, paddingHorizontal: spacing.lg },
   levelCard: { marginBottom: spacing.lg },
   levelRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
   levelCopy: { flex: 1 },

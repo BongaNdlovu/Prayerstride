@@ -34,10 +34,16 @@ export function AuthProvider({ children }) {
       setLoading(false);
       if (!nextUser) bootstrappedUidRef.current = '';
       if (nextUser && bootstrappedUidRef.current !== nextUser.uid) {
-        bootstrappedUidRef.current = nextUser.uid;
-        bootstrapOwner().catch((error) => {
-          logError('Owner bootstrap failed', error);
-        });
+        const uid = nextUser.uid;
+        bootstrapOwner()
+          .then(() => {
+            if (auth.currentUser?.uid === uid) {
+              bootstrappedUidRef.current = uid;
+            }
+          })
+          .catch((error) => {
+            logError('Owner bootstrap failed', error);
+          });
       }
     },
     (error) => {

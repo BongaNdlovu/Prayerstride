@@ -168,7 +168,7 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
     }
   };
 
-  const displayHandle = handle.startsWith('@') ? handle.slice(1) : handle;
+  const displayHandle = (handle || '').startsWith('@') ? (handle || '').slice(1) : (handle || '');
 
   return (
     <ScreenScaffold pageContent scroll>

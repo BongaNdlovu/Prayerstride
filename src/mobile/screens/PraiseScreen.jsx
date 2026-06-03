@@ -12,6 +12,7 @@ import AsyncState from '../components/AsyncState';
 import { getErrorMessage } from '../errors';
 
 const TABS = ['All', 'Recent'];
+const PENDING_REACTION_TIMEOUT_MS = 10000;
 
 export default function PraiseScreen({ onOpenTestimony }) {
   const { testimonies, loading, error, retry } = useTestimonies(true);
@@ -42,14 +43,15 @@ export default function PraiseScreen({ onOpenTestimony }) {
     setPendingReactions((current) => {
       let changed = false;
       const next = { ...current };
+      const now = Date.now();
 
-      Object.entries(current).forEach(([reactionKey, baseline]) => {
+      Object.entries(current).forEach(([reactionKey, pending]) => {
         const [id, key] = reactionKey.split(':');
         const testimony = testimonies.find((item) => item.id === id);
         if (!testimony) return;
 
         const serverCount = Number(testimony[key] || 0);
-        if (serverCount >= baseline + 1) {
+        if (serverCount >= pending.baseline + 1 || now - pending.createdAt >= PENDING_REACTION_TIMEOUT_MS) {
           delete next[reactionKey];
           changed = true;
         }
@@ -67,7 +69,10 @@ export default function PraiseScreen({ onOpenTestimony }) {
     const baseline = Number(testimony?.[key] || 0);
 
     reactingRef.current.add(reactionKey);
-    setPendingReactions((current) => ({ ...current, [reactionKey]: baseline }));
+    setPendingReactions((current) => ({
+      ...current,
+      [reactionKey]: { baseline, createdAt: Date.now() },
+    }));
     try {
       const result = await reactToTestimony(id, key);
       if (result.duplicate) {

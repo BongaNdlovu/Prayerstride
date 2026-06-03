@@ -6,6 +6,9 @@ let reconnectTimer = null;
 let pingTimer = null;
 let connectGeneration = 0;
 
+const INITIAL_RECONNECT_MS = 4000;
+const MAX_RECONNECT_MS = 300000;
+
 export function subscribeNotificationsInvalidated(listener) {
   listeners.add(listener);
   return () => listeners.delete(listener);
@@ -25,20 +28,28 @@ export function connectNotificationStream(getIdToken) {
   disconnectNotificationStream();
   const generation = connectGeneration + 1;
   connectGeneration = generation;
+  let reconnectBackoffMs = INITIAL_RECONNECT_MS;
 
   const scheduleReconnect = () => {
     if (generation !== connectGeneration) return;
     clearTimeout(reconnectTimer);
+    const delay = reconnectBackoffMs;
     reconnectTimer = setTimeout(() => {
-      openSocket().catch(() => scheduleReconnect());
-    }, 4000);
+      if (generation !== connectGeneration) return;
+      openSocket().catch(() => {
+        reconnectBackoffMs = Math.min(reconnectBackoffMs * 2, MAX_RECONNECT_MS);
+        scheduleReconnect();
+      });
+    }, delay);
   };
 
   const openSocket = async () => {
     if (generation !== connectGeneration) return;
     const token = await getIdToken();
+    if (generation !== connectGeneration) return;
     const url = buildNotificationStreamUrl(token);
     if (!url) {
+      reconnectBackoffMs = Math.min(reconnectBackoffMs * 2, MAX_RECONNECT_MS);
       scheduleReconnect();
       return;
     }
@@ -47,6 +58,7 @@ export function connectNotificationStream(getIdToken) {
     socket = ws;
 
     ws.onopen = () => {
+      reconnectBackoffMs = INITIAL_RECONNECT_MS;
       clearInterval(pingTimer);
       pingTimer = setInterval(() => {
         if (ws.readyState === WebSocket.OPEN) ws.send('ping');
@@ -75,7 +87,10 @@ export function connectNotificationStream(getIdToken) {
     };
   };
 
-  openSocket().catch(() => scheduleReconnect());
+  openSocket().catch(() => {
+    reconnectBackoffMs = Math.min(reconnectBackoffMs * 2, MAX_RECONNECT_MS);
+    scheduleReconnect();
+  });
 
   return disconnectNotificationStream;
 }
