@@ -31,8 +31,11 @@ export function resolveFirebasePurgeCredentials({ envFile = '.env.local', envPre
   const localEnv = loadEnv(envFile);
   const credentialsPath =
     process.env.GOOGLE_APPLICATION_CREDENTIALS
+    || localEnv.GOOGLE_APPLICATION_CREDENTIALS
     || process.env.FIREBASE_SERVICE_ACCOUNT_PATH
-    || process.env[`${envPrefix}_SERVICE_ACCOUNT_PATH`];
+    || localEnv.FIREBASE_SERVICE_ACCOUNT_PATH
+    || process.env[`${envPrefix}_SERVICE_ACCOUNT_PATH`]
+    || localEnv[`${envPrefix}_SERVICE_ACCOUNT_PATH`];
 
   if (credentialsPath) {
     const fromJson = loadServiceAccountJson(credentialsPath);
