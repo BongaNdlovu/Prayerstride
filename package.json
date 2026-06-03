@@ -19,7 +19,7 @@
     "test:server": "node scripts/server-smoke.mjs",
     "test:scenes": "node scripts/scene-assets-smoke.mjs",
     "audit:screens": "node scripts/screen-audit.mjs",
-    "test:rules": "firebase emulators:exec --only firestore \"node scripts/rules-smoke.mjs\"",
+    "test:rules": "node scripts/run-rules-smoke.mjs",
     "deploy:firestore": "firebase deploy --only firestore:rules,firestore:indexes",
     "deploy:storage": "firebase deploy --only storage",
     "purge:encouragements": "node scripts/purge-encouragements.mjs",

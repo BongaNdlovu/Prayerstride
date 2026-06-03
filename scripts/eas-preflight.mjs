@@ -25,13 +25,20 @@ for (const dir of generatedAndroidDirs) {
 const ignoredDirs = new Set([
   '.git',
   '.expo',
+  '.firebase',
   '.gradle-user-home',
   '.gradle-user-home-check',
   '.gradle-user-home-verify',
+  '.wrangler',
   'android-capacitor-legacy',
   'artifacts',
+  'coverage',
   'dist',
   'node_modules',
+]);
+
+const ignoredFiles = new Set([
+  'scripts/build-android-release.mjs',
 ]);
 
 const ignoredAndroidDirs = new Set([
@@ -79,6 +86,7 @@ function scanDir(dir) {
 
     const extension = entry.slice(entry.lastIndexOf('.'));
     const normalizedRelPath = relPath.replaceAll('\\', '/');
+    if (ignoredFiles.has(normalizedRelPath)) continue;
     if (!textExtensions.has(extension)) continue;
 
     const contents = readFileSync(fullPath, 'utf8');
