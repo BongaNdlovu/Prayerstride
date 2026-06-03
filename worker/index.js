@@ -39,6 +39,11 @@ import {
   dayKeyInTimeZone,
   isoWeekKeyFromDayKey,
 } from '../shared/gamificationLogic.js';
+import { uploadMyAvatar, serveAvatar } from './avatars.js';
+import { avatarUrlForUid, getMyProfile, updateMyProfile } from './profile.js';
+
+export { UserNotificationStream } from './durable-objects/UserNotificationStream.js';
+export { AdminEventStream } from './durable-objects/AdminEventStream.js';
 
 const FIREBASE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const FIREBASE_SCOPE = 'https://www.googleapis.com/auth/datastore https://www.googleapis.com/auth/firebase.messaging https://www.googleapis.com/auth/identitytoolkit https://www.googleapis.com/auth/devstorage.read_write';
@@ -76,6 +81,13 @@ export default {
         return withCors(json({ ok: true, service: 'prayerstride-api' }), env, request);
       }
 
+      const avatarMatch = url.pathname.match(/^\/avatars\/([^/]+)\/profile\.jpg$/);
+      if (avatarMatch && request.method === 'GET') {
+        const response = await serveAvatar(env, decodeURIComponent(avatarMatch[1]), firestoreApi);
+        log(env, 'info', { requestId, status: response.status, durationMs: Date.now() - startTime }, 'response');
+        return response;
+      }
+
       if (url.pathname.startsWith('/api/')) {
         await enforceGlobalRateLimit(env, request, requestId);
         const response = await handleApi(request, env, url, requestId);
@@ -109,9 +121,29 @@ export default {
 async function handleApi(request, env, url, requestId) {
   const user = await verifyFirebaseUser(request, env);
   await enforceUserRateLimit(env, user.uid, requestId);
+
+  let match = url.pathname.match(/^\/api\/me\/profile$/);
+  if (match && request.method === 'GET') {
+    const result = await getMyProfile(env, user, firestoreApi);
+    return json(result.body, result.status);
+  }
+  if (match && request.method === 'POST') {
+    await checkNotSuspended(env, user.uid);
+    const body = await parseJsonBody(request);
+    const result = await updateMyProfile(env, user, body, firestoreApi);
+    return json(result.body, result.status);
+  }
+
+  match = url.pathname.match(/^\/api\/me\/avatar$/);
+  if (match && request.method === 'POST') {
+    await checkNotSuspended(env, user.uid);
+    const result = await uploadMyAvatar(env, user, request, firestoreApi, { avatarUrlForUid });
+    return json(result.body, result.status);
+  }
+
   const body = await parseJsonBody(request);
 
-  let match = url.pathname.match(/^\/api\/account\/bootstrap-owner$/);
+  match = url.pathname.match(/^\/api\/account\/bootstrap-owner$/);
   if (match && request.method === 'POST') {
     return bootstrapOwner(env, user);
   }
@@ -313,6 +345,7 @@ async function handleApi(request, env, url, requestId) {
 
 function knownApiPath(pathname) {
   return [
+    /^\/api\/me\/(?:profile|avatar)$/,
     /^\/api\/account(?:\/bootstrap-owner|\/complete-registration|\/resend-guardian-approval)?$/,
     /^\/api\/devices\/register$/,
     /^\/api\/gamification\/(?:summary|timezone|backfill)$/,
@@ -2173,15 +2206,19 @@ async function sign(input, privateKey) {
   return base64UrlBytes(new Uint8Array(signature));
 }
 
-const gamificationFirestore = {
+const firestoreApi = {
   docName,
   getDocument,
   firestoreCommit,
+  fromFirestoreFields,
+  toFirestoreFields,
+};
+
+const gamificationFirestore = {
+  ...firestoreApi,
   listDocuments,
   runCollectionQuery,
   runCollectionGroupQuery,
-  fromFirestoreFields,
-  toFirestoreFields,
   getUserProfile,
 };
 
@@ -2242,8 +2279,10 @@ function withCors(response, env, request) {
   const next = new Response(response.body, response);
   const origin = request?.headers.get('Origin') || '';
   const allowedOrigins = [
-    env.CORS_ORIGIN || 'https://prayerstride.fanelesibonge50.workers.dev',
+    env.CORS_ORIGIN || 'https://api.prayerstride.app',
+    'https://api.prayerstride.app',
     'https://prayerstride.app',
+    'https://prayerstride.fanelesibonge50.workers.dev',
   ];
   const isDevelopment = env.ENVIRONMENT === 'development';
   const allowDevOrigins = isDevelopment && (env.ALLOW_DEV_ORIGINS === 'true' || env.ALLOW_DEV_ORIGINS === '1');

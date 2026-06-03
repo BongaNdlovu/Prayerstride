@@ -13,15 +13,19 @@ export async function apiFetch(path, options = {}) {
   const timeoutId = setTimeout(abortRequest, API_TIMEOUT_MS);
   options.signal?.addEventListener?.('abort', abortRequest, { once: true });
 
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    ...(options.headers || {}),
+  };
+  if (!headers['Content-Type'] && !headers['content-type']) {
+    headers['Content-Type'] = 'application/json';
+  }
+
   try {
     const response = await fetch(`${API_URL}${path}`, {
       ...options,
       signal: controller.signal,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-        ...(options.headers || {}),
-      },
+      headers,
     });
 
     const data = await response.json().catch(() => ({}));
@@ -39,6 +43,61 @@ export async function apiFetch(path, options = {}) {
   } finally {
     clearTimeout(timeoutId);
     options.signal?.removeEventListener?.('abort', abortRequest);
+  }
+}
+
+export function getMyProfile() {
+  return apiFetch('/api/me/profile');
+}
+
+export function updateMyProfile(payload) {
+  return apiFetch('/api/me/profile', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function uploadMyAvatar(file, signal) {
+  const token = await auth.currentUser?.getIdToken();
+  if (!token) throw new Error('You must be signed in.');
+  if (!file?.uri) throw new Error('Could not prepare the profile photo for upload.');
+
+  const formData = new FormData();
+  formData.append('avatar', {
+    uri: file.uri,
+    name: 'profile.jpg',
+    type: 'image/jpeg',
+  });
+
+  const controller = new AbortController();
+  const abortRequest = () => controller.abort();
+  const timeoutId = setTimeout(abortRequest, API_TIMEOUT_MS);
+  signal?.addEventListener?.('abort', abortRequest, { once: true });
+
+  try {
+    const response = await fetch(`${API_URL}/api/me/avatar`, {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const error = new Error(getApiErrorMessage(response.status, data.error));
+      error.status = response.status;
+      throw error;
+    }
+    return data;
+  } catch (error) {
+    if (controller.signal.aborted && !signal?.aborted) {
+      throw new Error('The request timed out. Check your connection and try again.');
+    }
+    throw toUserFacingError(error, 'Could not upload your profile photo. Please try again.');
+  } finally {
+    clearTimeout(timeoutId);
+    signal?.removeEventListener?.('abort', abortRequest);
   }
 }
 

@@ -14,13 +14,16 @@ describe('profile settings', () => {
     const source = await import('./screens/EditProfileScreen.jsx?raw');
     const avatarUpload = await import('./avatarUploadErrors.js?raw');
     expect(source.default).toMatch(/updateProfile/);
-    expect(source.default).toMatch(/updateDoc/);
+    expect(source.default).toMatch(/updateMyProfile/);
+    expect(source.default).not.toMatch(/updateDoc/);
+    expect(source.default).not.toMatch(/firebase\/storage/);
     expect(source.default).not.toMatch(/showOnEncouragementBoard/);
     expect(source.default).toMatch(/expo-image-picker/);
     expect(source.default).toMatch(/changePassword/);
     expect(source.default).toMatch(/resetPassword/);
     expect(source.default).toMatch(/handle/);
     expect(source.default).toMatch(/prepareAvatarBlob/);
+    expect(source.default).toMatch(/uploadAvatarFile/);
     expect(avatarUpload.default).toMatch(/storage\/quota-exceeded/);
     expect(source.default).toMatch(/onBack=\{onBack\}/);
   });

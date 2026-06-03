@@ -3,14 +3,15 @@ import { Alert, Image, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Te
 import { Camera } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { updateProfile } from '@firebase/auth';
-import { doc, serverTimestamp, updateDoc } from 'firebase/firestore';
-import { auth, db, storage } from '../firebase';
+import { auth } from '../firebase';
 import {
   AvatarTooLargeError,
   getUploadErrorMessage,
   prepareAvatarBlob,
-  uploadAvatarBlob,
+  uploadAvatarFile,
 } from '../avatarUpload';
+import { updateMyProfile } from '../api';
+import { clearCachedProfile } from '../profileCache';
 import { alpha, colors, fonts, sharedStyles, spacing } from '../theme';
 import { useAuth } from '../AuthProvider';
 import { useUserProfile } from '../useUsers';
@@ -53,10 +54,11 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
 
   useEffect(() => {
     if (!profile) return;
+    setName(profile.displayName || user?.displayName || '');
     setBio(profile.bio || '');
     setHandle(profile.handle || '');
     setPhotoURL(profile.photoURL || user?.photoURL || '');
-  }, [profile, user?.photoURL]);
+  }, [profile, user?.displayName, user?.photoURL]);
 
   const pickPhoto = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -78,8 +80,9 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
       uploadControllerRef.current?.abort();
       const controller = new AbortController();
       uploadControllerRef.current = controller;
-      const blob = await prepareAvatarBlob(asset.uri);
-      const downloadUrl = await uploadAvatarBlob(storage, user.uid, blob, controller.signal);
+      const prepared = await prepareAvatarBlob(asset.uri);
+      const downloadUrl = await uploadAvatarFile(prepared, controller.signal);
+      if (user?.uid) clearCachedProfile(user.uid);
       if (mountedRef.current) setPhotoURL(downloadUrl);
     } catch (error) {
       if (error?.name === 'AbortError') return;
@@ -107,23 +110,23 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
       photoURL: profile?.photoURL || user?.photoURL || null,
     };
     try {
-      await updateDoc(doc(db, 'users', user.uid), {
+      const result = await updateMyProfile({
         displayName: name.trim(),
         handle: normalizeHandle(handle),
         bio: bio.trim() || null,
         photoURL: photoURL || null,
-        updatedAt: serverTimestamp(),
       });
+      const savedProfile = result.profile;
+      if (user?.uid) {
+        clearCachedProfile(user.uid);
+      }
       try {
         await updateProfile(auth.currentUser, {
-          displayName: name.trim(),
-          photoURL: photoURL || null,
+          displayName: savedProfile?.displayName || name.trim(),
+          photoURL: savedProfile?.photoURL || photoURL || null,
         });
       } catch (error) {
-        await updateDoc(doc(db, 'users', user.uid), {
-          ...previousProfile,
-          updatedAt: serverTimestamp(),
-        }).catch((rollbackError) => {
+        await updateMyProfile(previousProfile).catch((rollbackError) => {
           logError('Profile rollback failed', rollbackError);
         });
         throw error;

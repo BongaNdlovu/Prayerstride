@@ -1,5 +1,5 @@
 import * as ImageManipulator from 'expo-image-manipulator';
-import { getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage';
+import { uploadMyAvatar } from './api';
 import { AvatarTooLargeError } from './avatarUploadErrors';
 
 export { AvatarTooLargeError, getUploadErrorMessage } from './avatarUploadErrors';
@@ -18,38 +18,10 @@ export async function prepareAvatarBlob(assetUri) {
   if (blob.size >= MAX_AVATAR_BYTES) {
     throw new AvatarTooLargeError();
   }
-  return blob;
+  return { uri: manipulated.uri, blob };
 }
 
-export function uploadAvatarBlob(storage, uid, blob, signal) {
-  const fileRef = ref(storage, `avatars/${uid}/profile.jpg`);
-  const task = uploadBytesResumable(fileRef, blob, { contentType: AVATAR_CONTENT_TYPE });
-
-  return new Promise((resolve, reject) => {
-    const onAbort = () => {
-      task.cancel();
-      reject(new DOMException('Aborted', 'AbortError'));
-    };
-
-    if (signal) {
-      if (signal.aborted) {
-        onAbort();
-        return;
-      }
-      signal.addEventListener('abort', onAbort, { once: true });
-    }
-
-    task.on(
-      'state_changed',
-      null,
-      (error) => {
-        if (signal) signal.removeEventListener('abort', onAbort);
-        reject(error);
-      },
-      async () => {
-        if (signal) signal.removeEventListener('abort', onAbort);
-        resolve(getDownloadURL(fileRef));
-      },
-    );
-  });
+export async function uploadAvatarFile(file, signal) {
+  const result = await uploadMyAvatar(file, signal);
+  return result.photoURL || result.profile?.photoURL;
 }

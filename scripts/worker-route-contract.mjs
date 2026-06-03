@@ -6,6 +6,9 @@ const worker = readFileSync(join(process.cwd(), 'worker', 'index.js'), 'utf8');
 const failures = [];
 
 const contracts = [
+  ['GET', '/api/me/profile', '/api/me/profile'],
+  ['POST', '/api/me/profile', '/api/me/profile'],
+  ['POST', '/api/me/avatar', '/api/me/avatar'],
   ['POST', '/api/account/bootstrap-owner', 'account/bootstrap-owner'],
   ['POST', '/api/account/complete-registration', 'account/complete-registration'],
   ['POST', '/api/account/resend-guardian-approval', 'account/resend-guardian-approval'],
