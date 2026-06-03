@@ -126,9 +126,11 @@ export function useGamification(userId, enabled = true) {
     };
   }, [refreshSummary, retryVersion]);
 
-  useEffect(() => subscribeGamificationRefresh(() => {
-    setRetryVersion((version) => version + 1);
-  }), []);
+  useEffect(() => {
+    return subscribeGamificationRefresh(() => {
+      setRetryVersion((version) => version + 1);
+    });
+  }, []);
 
   const retry = () => {
     if (userId) summaryCache.delete(cacheKey(userId, getDeviceTimeZone()));
