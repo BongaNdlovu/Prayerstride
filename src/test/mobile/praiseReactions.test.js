@@ -5,7 +5,7 @@ describe('PraiseScreen pending reactions', () => {
     const source = await import('../../mobile/screens/PraiseScreen.jsx?raw');
     expect(source.default).toMatch(/\{ baseline, createdAt: Date\.now\(\) \}/);
     expect(source.default).toMatch(/PENDING_REACTION_TIMEOUT_MS/);
-    expect(source.default).toMatch(/pending\.createdAt >= PENDING_REACTION_TIMEOUT_MS/);
+    expect(source.default).toMatch(/now - pending\.createdAt >= PENDING_REACTION_TIMEOUT_MS/);
     expect(source.default).toMatch(/serverCount >= pending\.baseline \+ 1/);
   });
 });
