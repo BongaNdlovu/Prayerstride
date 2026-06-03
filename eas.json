@@ -7,20 +7,60 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "channel": "development"
+      "channel": "development",
+      "env": {
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyArjsoQnRxcLbQogLpp8dk0DeXzRUImkn4",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "end-of-time-94cd3.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "end-of-time-94cd3",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "end-of-time-94cd3.firebasestorage.app",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "628602476853",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:628602476853:android:b9fece013c8caa7b11147c",
+        "EXPO_PUBLIC_API_URL": "https://prayerstride.fanelesibonge50.workers.dev",
+        "EXPO_PUBLIC_LEGAL_URL": "https://prayerstride.fanelesibonge50.workers.dev"
+      }
     },
     "preview": {
       "distribution": "internal",
-      "channel": "preview"
+      "channel": "preview",
+      "env": {
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyArjsoQnRxcLbQogLpp8dk0DeXzRUImkn4",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "end-of-time-94cd3.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "end-of-time-94cd3",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "end-of-time-94cd3.firebasestorage.app",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "628602476853",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:628602476853:android:b9fece013c8caa7b11147c",
+        "EXPO_PUBLIC_API_URL": "https://prayerstride.fanelesibonge50.workers.dev",
+        "EXPO_PUBLIC_LEGAL_URL": "https://prayerstride.fanelesibonge50.workers.dev"
+      }
     },
     "production": {
       "autoIncrement": true,
-      "channel": "production"
+      "channel": "production",
+      "env": {
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyArjsoQnRxcLbQogLpp8dk0DeXzRUImkn4",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "end-of-time-94cd3.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "end-of-time-94cd3",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "end-of-time-94cd3.firebasestorage.app",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "628602476853",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:628602476853:android:b9fece013c8caa7b11147c",
+        "EXPO_PUBLIC_API_URL": "https://prayerstride.fanelesibonge50.workers.dev",
+        "EXPO_PUBLIC_LEGAL_URL": "https://prayerstride.fanelesibonge50.workers.dev"
+      }
     },
     "production-apk": {
       "distribution": "internal",
       "autoIncrement": true,
       "channel": "production",
+      "env": {
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyArjsoQnRxcLbQogLpp8dk0DeXzRUImkn4",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "end-of-time-94cd3.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "end-of-time-94cd3",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "end-of-time-94cd3.firebasestorage.app",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "628602476853",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:628602476853:android:b9fece013c8caa7b11147c",
+        "EXPO_PUBLIC_API_URL": "https://prayerstride.fanelesibonge50.workers.dev",
+        "EXPO_PUBLIC_LEGAL_URL": "https://prayerstride.fanelesibonge50.workers.dev"
+      },
       "android": {
         "buildType": "apk"
       }
@@ -29,7 +69,15 @@
       "distribution": "internal",
       "channel": "preview",
       "env": {
-        "ORG_GRADLE_PROJECT_reactNativeArchitectures": "arm64-v8a"
+        "ORG_GRADLE_PROJECT_reactNativeArchitectures": "arm64-v8a",
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyArjsoQnRxcLbQogLpp8dk0DeXzRUImkn4",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "end-of-time-94cd3.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "end-of-time-94cd3",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "end-of-time-94cd3.firebasestorage.app",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "628602476853",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:628602476853:android:b9fece013c8caa7b11147c",
+        "EXPO_PUBLIC_API_URL": "https://prayerstride.fanelesibonge50.workers.dev",
+        "EXPO_PUBLIC_LEGAL_URL": "https://prayerstride.fanelesibonge50.workers.dev"
       },
       "android": {
         "buildType": "apk"
@@ -38,6 +86,16 @@
     "apkUniversal": {
       "distribution": "internal",
       "channel": "preview",
+      "env": {
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyArjsoQnRxcLbQogLpp8dk0DeXzRUImkn4",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "end-of-time-94cd3.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "end-of-time-94cd3",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "end-of-time-94cd3.firebasestorage.app",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "628602476853",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:628602476853:android:b9fece013c8caa7b11147c",
+        "EXPO_PUBLIC_API_URL": "https://prayerstride.fanelesibonge50.workers.dev",
+        "EXPO_PUBLIC_LEGAL_URL": "https://prayerstride.fanelesibonge50.workers.dev"
+      },
       "android": {
         "buildType": "apk"
       }
