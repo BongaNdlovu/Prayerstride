@@ -60,14 +60,18 @@ export function updateMyProfile(payload) {
 export async function uploadMyAvatar(file, signal) {
   const token = await auth.currentUser?.getIdToken();
   if (!token) throw new Error('You must be signed in.');
-  if (!file?.uri) throw new Error('Could not prepare the profile photo for upload.');
+  if (!file?.blob && !file?.uri) throw new Error('Could not prepare the profile photo for upload.');
 
   const formData = new FormData();
-  formData.append('avatar', {
-    uri: file.uri,
-    name: 'profile.jpg',
-    type: 'image/jpeg',
-  });
+  if (file.blob) {
+    formData.append('avatar', file.blob, 'profile.jpg');
+  } else {
+    formData.append('avatar', {
+      uri: file.uri,
+      name: 'profile.jpg',
+      type: 'image/jpeg',
+    });
+  }
 
   const controller = new AbortController();
   const abortRequest = () => controller.abort();
@@ -99,6 +103,60 @@ export async function uploadMyAvatar(file, signal) {
     clearTimeout(timeoutId);
     signal?.removeEventListener?.('abort', abortRequest);
   }
+}
+
+export function createCalendarEvent(payload) {
+  return apiFetch('/api/calendar-events', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateCalendarEvent(eventId, payload) {
+  return apiFetch(`/api/calendar-events/${encodeURIComponent(eventId)}/update`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteCalendarEvent(eventId) {
+  return apiFetch(`/api/calendar-events/${encodeURIComponent(eventId)}`, {
+    method: 'DELETE',
+  });
+}
+
+export function bookmarkCalendarDate(dateKey) {
+  return apiFetch(`/api/calendar-bookmarks/${encodeURIComponent(dateKey)}`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
+
+export function unbookmarkCalendarDate(dateKey) {
+  return apiFetch(`/api/calendar-bookmarks/${encodeURIComponent(dateKey)}`, {
+    method: 'DELETE',
+  });
+}
+
+export function markNotificationRead(notificationId) {
+  return apiFetch(`/api/notifications/${encodeURIComponent(notificationId)}/read`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
+
+export function markAllNotificationsRead() {
+  return apiFetch('/api/notifications/read-all', {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
+
+export function updateNotificationSettings(patch) {
+  return apiFetch('/api/notification-settings', {
+    method: 'POST',
+    body: JSON.stringify(patch),
+  });
 }
 
 export function bootstrapOwner() {

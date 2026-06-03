@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { updateNotificationSettings as updateNotificationSettingsApi } from './api';
 import { db } from './firebase';
 
 export function useNotificationSettings(userId, enabled = true) {
@@ -36,8 +37,5 @@ export function useNotificationSettings(userId, enabled = true) {
 }
 
 export async function updateNotificationSettings(userId, patch) {
-  return setDoc(doc(db, 'notificationSettings', userId), {
-    ...patch,
-    updatedAt: serverTimestamp(),
-  }, { merge: true });
+  return updateNotificationSettingsApi(patch);
 }

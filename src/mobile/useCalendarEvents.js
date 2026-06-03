@@ -1,18 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  addDoc,
   collection,
-  deleteDoc,
-  doc,
   onSnapshot,
   orderBy,
   query,
-  serverTimestamp,
-  setDoc,
-  updateDoc,
   where,
 } from 'firebase/firestore';
-import { auth, db } from './firebase';
+import {
+  bookmarkCalendarDate as bookmarkCalendarDateApi,
+  createCalendarEvent as createCalendarEventApi,
+  deleteCalendarEvent as deleteCalendarEventApi,
+  unbookmarkCalendarDate as unbookmarkCalendarDateApi,
+  updateCalendarEvent as updateCalendarEventApi,
+} from './api';
+import { db } from './firebase';
 
 export function toDateKey(date = new Date()) {
   const year = date.getFullYear();
@@ -164,52 +165,42 @@ export async function createCalendarEvent({ title, notes, dateKey, startsAt, end
   if (!user?.uid) throw new Error('Please sign in to add calendar events.');
   if (!title?.trim()) throw new Error('Enter an event title.');
   assertValidCalendarDateKey(dateKey);
-
-  return addDoc(collection(db, 'calendarEvents'), {
-    ownerUid: user.uid,
-    title: title.trim(),
-    notes: notes?.trim() || null,
+  const result = await createCalendarEventApi({
+    title,
+    notes,
     dateKey,
     startsAt: startsAt || null,
     endsAt: endsAt || null,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
   });
+  return result.eventId;
 }
 
 export async function updateCalendarEvent(eventId, { title, notes, dateKey, startsAt, endsAt }) {
   if (!eventId) throw new Error('Missing event id.');
   if (!title?.trim()) throw new Error('Enter an event title.');
   assertValidCalendarDateKey(dateKey);
-  return updateDoc(doc(db, 'calendarEvents', eventId), {
-    title: title.trim(),
-    notes: notes?.trim() || null,
+  return updateCalendarEventApi(eventId, {
+    title,
+    notes,
     dateKey,
     startsAt: startsAt || null,
     endsAt: endsAt || null,
-    updatedAt: serverTimestamp(),
   });
 }
 
 export async function deleteCalendarEvent(eventId) {
   if (!eventId) throw new Error('Missing event id.');
-  return deleteDoc(doc(db, 'calendarEvents', eventId));
+  return deleteCalendarEventApi(eventId);
 }
 
 export async function bookmarkDate(dateKey, user) {
   if (!user?.uid) throw new Error('Please sign in to bookmark dates.');
   assertValidCalendarDateKey(dateKey);
-  const bookmarkId = `${user.uid}_${dateKey}`;
-  return setDoc(doc(db, 'calendarBookmarks', bookmarkId), {
-    ownerUid: user.uid,
-    dateKey,
-    createdAt: serverTimestamp(),
-  });
+  return bookmarkCalendarDateApi(dateKey);
 }
 
 export async function unbookmarkDate(dateKey, user) {
   if (!user?.uid) throw new Error('Please sign in to remove bookmarks.');
   assertValidCalendarDateKey(dateKey);
-  const bookmarkId = `${user.uid}_${dateKey}`;
-  return deleteDoc(doc(db, 'calendarBookmarks', bookmarkId));
+  return unbookmarkCalendarDateApi(dateKey);
 }

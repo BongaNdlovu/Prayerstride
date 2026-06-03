@@ -9,6 +9,14 @@ const contracts = [
   ['GET', '/api/me/profile', '/api/me/profile'],
   ['POST', '/api/me/profile', '/api/me/profile'],
   ['POST', '/api/me/avatar', '/api/me/avatar'],
+  ['POST', '/api/calendar-events', '/api/calendar-events'],
+  ['POST', '/api/calendar-events/:id/update', '/calendar-events'],
+  ['DELETE', '/api/calendar-events/:id', '/calendar-events'],
+  ['POST', '/api/calendar-bookmarks/:date', 'bookmarkCalendarDate'],
+  ['DELETE', '/api/calendar-bookmarks/:date', 'unbookmarkCalendarDate'],
+  ['POST', '/api/notifications/read-all', '/notifications/read-all'],
+  ['POST', '/api/notifications/:id/read', '/notifications'],
+  ['POST', '/api/notification-settings', '/notification-settings'],
   ['POST', '/api/account/bootstrap-owner', 'account/bootstrap-owner'],
   ['POST', '/api/account/complete-registration', 'account/complete-registration'],
   ['POST', '/api/account/resend-guardian-approval', 'account/resend-guardian-approval'],
@@ -41,7 +49,7 @@ const contracts = [
 ];
 
 for (const [method, path, routeFragment] of contracts) {
-  const apiFragments = path.split(':id').filter(Boolean);
+  const apiFragments = path.split(/:[^/]+/).filter(Boolean);
   if (!apiFragments.every((fragment) => api.includes(fragment))) failures.push(`Mobile API helper missing ${method} ${path}`);
   if (!worker.includes(routeFragment.replaceAll('/', '\\/'))) failures.push(`Worker route missing ${method} ${path}`);
 }

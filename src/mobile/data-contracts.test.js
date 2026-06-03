@@ -113,11 +113,11 @@ describe('data contracts', () => {
     expect(source.default).toMatch(/deleteUser/);
   });
 
-  it('notification helpers batch mark-all updates instead of returning a stub', async () => {
+  it('notification helpers route mark-all through the Worker API', async () => {
     const source = await import('./useNotifications.js?raw');
-    expect(source.default).toMatch(/writeBatch/);
-    expect(source.default).toMatch(/where\('read', '==', false\)/);
-    expect(source.default).not.toMatch(/markAllNotificationsRead[\s\S]*return true/);
+    expect(source.default).toMatch(/markAllNotificationsReadApi/);
+    expect(source.default).not.toMatch(/writeBatch/);
+    expect(source.default).not.toMatch(/updateDoc\(doc\(db, 'notifications'/);
   });
 
   it('useIsAdmin has separate admin and suspended hooks', async () => {

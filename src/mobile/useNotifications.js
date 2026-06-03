@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   collection,
-  doc,
-  getDocs,
   onSnapshot,
   orderBy,
   query,
-  updateDoc,
-  writeBatch,
   where,
 } from 'firebase/firestore';
+import {
+  markAllNotificationsRead as markAllNotificationsReadApi,
+  markNotificationRead as markNotificationReadApi,
+} from './api';
 import { db } from './firebase';
 
 export function useNotifications(userId, enabled = true) {
@@ -54,25 +54,11 @@ export function useNotifications(userId, enabled = true) {
 }
 
 export async function markNotificationRead(notificationId) {
-  return updateDoc(doc(db, 'notifications', notificationId), {
-    read: true,
-  });
+  return markNotificationReadApi(notificationId);
 }
 
 export async function markAllNotificationsRead(userId) {
   if (!userId) throw new Error('Missing user id.');
-  const snapshot = await getDocs(query(
-    collection(db, 'notifications'),
-    where('recipientUid', '==', userId),
-    where('read', '==', false),
-  ));
-  if (snapshot.empty) return 0;
-  for (let index = 0; index < snapshot.docs.length; index += 500) {
-    const batch = writeBatch(db);
-    snapshot.docs.slice(index, index + 500).forEach((item) => {
-      batch.update(doc(db, 'notifications', item.id), { read: true });
-    });
-    await batch.commit();
-  }
-  return snapshot.size;
+  const result = await markAllNotificationsReadApi();
+  return result.count ?? 0;
 }

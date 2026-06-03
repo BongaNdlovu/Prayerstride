@@ -40,6 +40,27 @@ import {
   isoWeekKeyFromDayKey,
 } from '../shared/gamificationLogic.js';
 import { uploadMyAvatar, serveAvatar } from './avatars.js';
+import {
+  bookmarkCalendarDate,
+  createCalendarEvent as createCalendarEventApi,
+  deleteCalendarEventApi,
+  unbookmarkCalendarDate,
+  updateCalendarEvent as updateCalendarEventApi,
+} from './calendar-api.js';
+import { commitFirestoreWithD1 } from './db/commit.js';
+import { logDualWriteFailure } from './db/dual-write.js';
+import {
+  deletePrayerById,
+  incrementPrayerPrayedCount,
+  insertPrayerPray,
+  prayerRowFromFirestore,
+  upsertPrayer,
+} from './db/prayers-repository.js';
+import {
+  markAllNotificationsRead as markAllNotificationsReadApi,
+  markNotificationRead as markNotificationReadApi,
+  updateNotificationSettings as updateNotificationSettingsApi,
+} from './notifications-api.js';
 import { avatarUrlForUid, getMyProfile, updateMyProfile } from './profile.js';
 
 export { UserNotificationStream } from './durable-objects/UserNotificationStream.js';
@@ -138,6 +159,61 @@ async function handleApi(request, env, url, requestId) {
   if (match && request.method === 'POST') {
     await checkNotSuspended(env, user.uid);
     const result = await uploadMyAvatar(env, user, request, firestoreApi, { avatarUrlForUid });
+    return json(result.body, result.status);
+  }
+
+  match = url.pathname.match(/^\/api\/calendar-events$/);
+  if (match && request.method === 'POST') {
+    await checkNotSuspended(env, user.uid);
+    const body = await parseJsonBody(request);
+    const result = await createCalendarEventApi(env, user, body, firestoreApi);
+    return json(result.body, result.status);
+  }
+
+  match = url.pathname.match(/^\/api\/calendar-events\/([^/]+)$/);
+  if (match && request.method === 'DELETE') {
+    await checkNotSuspended(env, user.uid);
+    const result = await deleteCalendarEventApi(env, user, decodeURIComponent(match[1]), firestoreApi);
+    return json(result.body, result.status);
+  }
+
+  match = url.pathname.match(/^\/api\/calendar-events\/([^/]+)\/update$/);
+  if (match && request.method === 'POST') {
+    await checkNotSuspended(env, user.uid);
+    const body = await parseJsonBody(request);
+    const result = await updateCalendarEventApi(env, user, decodeURIComponent(match[1]), body, firestoreApi);
+    return json(result.body, result.status);
+  }
+
+  match = url.pathname.match(/^\/api\/calendar-bookmarks\/([^/]+)$/);
+  if (match && request.method === 'POST') {
+    await checkNotSuspended(env, user.uid);
+    const result = await bookmarkCalendarDate(env, user, decodeURIComponent(match[1]), firestoreApi);
+    return json(result.body, result.status);
+  }
+  if (match && request.method === 'DELETE') {
+    await checkNotSuspended(env, user.uid);
+    const result = await unbookmarkCalendarDate(env, user, decodeURIComponent(match[1]), firestoreApi);
+    return json(result.body, result.status);
+  }
+
+  match = url.pathname.match(/^\/api\/notifications\/read-all$/);
+  if (match && request.method === 'POST') {
+    const result = await markAllNotificationsReadApi(env, user, firestoreApi);
+    return json(result.body, result.status);
+  }
+
+  match = url.pathname.match(/^\/api\/notifications\/([^/]+)\/read$/);
+  if (match && request.method === 'POST') {
+    const result = await markNotificationReadApi(env, user, decodeURIComponent(match[1]), firestoreApi);
+    return json(result.body, result.status);
+  }
+
+  match = url.pathname.match(/^\/api\/notification-settings$/);
+  if (match && request.method === 'POST') {
+    await checkNotSuspended(env, user.uid);
+    const body = await parseJsonBody(request);
+    const result = await updateNotificationSettingsApi(env, user, body, firestoreApi);
     return json(result.body, result.status);
   }
 
@@ -346,6 +422,10 @@ async function handleApi(request, env, url, requestId) {
 function knownApiPath(pathname) {
   return [
     /^\/api\/me\/(?:profile|avatar)$/,
+    /^\/api\/calendar-events(?:\/[^/]+(?:\/update)?)?$/,
+    /^\/api\/calendar-bookmarks\/[^/]+$/,
+    /^\/api\/notifications(?:\/read-all|\/[^/]+\/read)?$/,
+    /^\/api\/notification-settings$/,
     /^\/api\/account(?:\/bootstrap-owner|\/complete-registration|\/resend-guardian-approval)?$/,
     /^\/api\/devices\/register$/,
     /^\/api\/gamification\/(?:summary|timezone|backfill)$/,
@@ -683,26 +763,36 @@ async function createPrayer(env, user, body) {
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
 
-  await firestoreCommit(env, [{
-    update: {
-      name: docName(env, 'prayers', id),
-      fields: toFirestoreFields({
-        title: title.slice(0, 120),
-        body: prayerBody.slice(0, 2000),
-        authorUid: user.uid,
-        authorName: resolveAuthorName(profile, user, isAnonymous),
-        isAnonymous,
-        createdAt: now,
-        updatedAt: now,
-        prayedCount: 0,
-        status: 'active',
-        privacy: body.privacy === 'private' ? 'private' : 'community',
-        prayerLimit,
-        urgent: Boolean(body.urgent ?? body.urgency),
-        allowShare: body.allowShare !== false,
-      }),
-    },
-  }]);
+  const prayerFields = {
+    title: title.slice(0, 120),
+    body: prayerBody.slice(0, 2000),
+    authorUid: user.uid,
+    authorName: resolveAuthorName(profile, user, isAnonymous),
+    isAnonymous,
+    createdAt: now,
+    updatedAt: now,
+    prayedCount: 0,
+    status: 'active',
+    privacy: body.privacy === 'private' ? 'private' : 'community',
+    prayerLimit,
+    urgent: Boolean(body.urgent ?? body.urgency),
+    allowShare: body.allowShare !== false,
+  };
+
+  await commitFirestoreWithD1(env, firestoreApi, {
+    feature: 'prayers',
+    entityType: 'prayers',
+    entityId: id,
+    operation: 'create',
+    writes: [{
+      update: {
+        name: docName(env, 'prayers', id),
+        fields: toFirestoreFields(prayerFields),
+      },
+      currentDocument: { exists: false },
+    }],
+    syncD1: () => upsertPrayer(env, prayerRowFromFirestore(id, prayerFields)),
+  });
 
   await recordPrayerCreated(gamificationFirestore, env, user.uid, body.timeZone);
 
@@ -723,23 +813,32 @@ async function updatePrayer(env, user, prayerId, body) {
     : (data.prayerLimit || 'daily');
   const now = new Date().toISOString();
 
-  await firestoreCommit(env, [{
-    update: {
-      name: contentDoc.name,
-      fields: toFirestoreFields({
-        ...data,
-        title: title.slice(0, 120),
-        body: prayerBody.slice(0, 2000),
-        authorName: resolveAuthorName(profile, user, isAnonymous),
-        isAnonymous,
-        privacy: body.privacy != null ? (body.privacy === 'private' ? 'private' : 'community') : (data.privacy || 'community'),
-        prayerLimit,
-        urgent: body.urgent != null ? Boolean(body.urgent ?? body.urgency) : Boolean(data.urgent),
-        allowShare: body.allowShare != null ? body.allowShare !== false : data.allowShare !== false,
-        updatedAt: now,
-      }),
-    },
-  }]);
+  const nextFields = {
+    ...data,
+    title: title.slice(0, 120),
+    body: prayerBody.slice(0, 2000),
+    authorName: resolveAuthorName(profile, user, isAnonymous),
+    isAnonymous,
+    privacy: body.privacy != null ? (body.privacy === 'private' ? 'private' : 'community') : (data.privacy || 'community'),
+    prayerLimit,
+    urgent: body.urgent != null ? Boolean(body.urgent ?? body.urgency) : Boolean(data.urgent),
+    allowShare: body.allowShare != null ? body.allowShare !== false : data.allowShare !== false,
+    updatedAt: now,
+  };
+
+  await commitFirestoreWithD1(env, firestoreApi, {
+    feature: 'prayers',
+    entityType: 'prayers',
+    entityId: prayerId,
+    operation: 'update',
+    writes: [{
+      update: {
+        name: contentDoc.name,
+        fields: toFirestoreFields(nextFields),
+      },
+    }],
+    syncD1: () => upsertPrayer(env, prayerRowFromFirestore(prayerId, nextFields)),
+  });
 
   return json({ ok: true, prayerId });
 }
@@ -747,16 +846,24 @@ async function updatePrayer(env, user, prayerId, body) {
 async function markPrayerAnswered(env, user, prayerId) {
   const { contentDoc, data } = await loadAuthorContent(env, 'prayers', prayerId, user);
   const alreadyAnswered = data.status === 'answered';
-  await firestoreCommit(env, [{
-    update: {
-      name: contentDoc.name,
-      fields: toFirestoreFields({
-        ...data,
-        status: 'answered',
-        updatedAt: new Date().toISOString(),
-      }),
-    },
-  }]);
+  const answeredFields = {
+    ...data,
+    status: 'answered',
+    updatedAt: new Date().toISOString(),
+  };
+  await commitFirestoreWithD1(env, firestoreApi, {
+    feature: 'prayers',
+    entityType: 'prayers',
+    entityId: prayerId,
+    operation: 'mark-answered',
+    writes: [{
+      update: {
+        name: contentDoc.name,
+        fields: toFirestoreFields(answeredFields),
+      },
+    }],
+    syncD1: () => upsertPrayer(env, prayerRowFromFirestore(prayerId, answeredFields)),
+  });
   if (!alreadyAnswered) {
     await recordPrayerAnswered(gamificationFirestore, env, user.uid, null);
   }
@@ -766,6 +873,17 @@ async function markPrayerAnswered(env, user, prayerId) {
 async function deletePrayer(env, user, prayerId) {
   const { contentDoc } = await loadAuthorContent(env, 'prayers', prayerId, user);
   await deleteContentAndActions(env, 'prayers', contentDoc);
+  try {
+    await deletePrayerById(env, prayerId);
+  } catch (error) {
+    await logDualWriteFailure(env, {
+      feature: 'prayers',
+      entityType: 'prayers',
+      entityId: prayerId,
+      operation: 'delete',
+      error,
+    });
+  }
   return json({ ok: true, prayerId });
 }
 
@@ -1087,7 +1205,27 @@ async function prayForRequest(env, user, prayerId) {
     }));
   }
 
-  const result = await firestoreCommit(env, writes, { allowAlreadyExists: true });
+  const result = await commitFirestoreWithD1(env, firestoreApi, {
+    feature: 'prayers',
+    entityType: 'prayer_prays',
+    entityId: `${prayerId}:${prayDocId}`,
+    operation: 'pray',
+    writes,
+    commitOptions: { allowAlreadyExists: true },
+    syncD1: async () => {
+      await insertPrayerPray(env, {
+        id: prayDocId,
+        prayer_id: prayerId,
+        uid: user.uid,
+        day_key: dayKey,
+        week_key: weekKey,
+        prayer_limit: prayerLimit,
+        author_uid: data.authorUid || null,
+        created_at: now,
+      });
+      await incrementPrayerPrayedCount(env, prayerId, now);
+    },
+  });
   if (result.alreadyExists) return json({ ok: true, duplicate: true, dayKey, weekKey, prayerLimit });
 
   if (notifyAllowed && prefs.pushEnabled !== false) {
@@ -2212,6 +2350,7 @@ const firestoreApi = {
   firestoreCommit,
   fromFirestoreFields,
   toFirestoreFields,
+  runCollectionQuery,
 };
 
 const gamificationFirestore = {
