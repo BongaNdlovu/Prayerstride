@@ -1,19 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  collection,
-  onSnapshot,
-  orderBy,
-  query,
-  where,
-} from 'firebase/firestore';
-import {
   bookmarkCalendarDate as bookmarkCalendarDateApi,
   createCalendarEvent as createCalendarEventApi,
   deleteCalendarEvent as deleteCalendarEventApi,
+  getCalendarBookmarks,
+  getCalendarEvents,
   unbookmarkCalendarDate as unbookmarkCalendarDateApi,
   updateCalendarEvent as updateCalendarEventApi,
 } from './api';
-import { db } from './firebase';
 
 export function toDateKey(date = new Date()) {
   const year = date.getFullYear();
@@ -42,31 +36,6 @@ function assertValidCalendarDateKey(dateKey) {
   if (!isValidCalendarDateKey(dateKey)) {
     throw new Error('Enter a valid date as YYYY-MM-DD.');
   }
-}
-
-export function mapCalendarEvent(docSnap) {
-  const data = docSnap.data();
-  return {
-    id: docSnap.id,
-    ownerUid: data.ownerUid,
-    title: data.title || '',
-    notes: data.notes || '',
-    dateKey: data.dateKey,
-    startsAt: data.startsAt ?? null,
-    endsAt: data.endsAt ?? null,
-    createdAt: data.createdAt,
-    updatedAt: data.updatedAt,
-  };
-}
-
-export function mapCalendarBookmark(docSnap) {
-  const data = docSnap.data();
-  return {
-    id: docSnap.id,
-    ownerUid: data.ownerUid,
-    dateKey: data.dateKey,
-    createdAt: data.createdAt,
-  };
 }
 
 export function formatEventTime(startsAt) {
@@ -100,56 +69,32 @@ export function useCalendarEvents(userId, enabled = true) {
       return undefined;
     }
 
+    let cancelled = false;
     setLoading(true);
     setError(null);
 
-    let eventsResolved = false;
-    let bookmarksResolved = false;
-
-    const resolveLoading = () => {
-      if (eventsResolved && bookmarksResolved) {
-        setLoading(false);
+    (async () => {
+      try {
+        const [eventsResult, bookmarksResult] = await Promise.all([
+          getCalendarEvents(),
+          getCalendarBookmarks(),
+        ]);
+        if (cancelled) return;
+        setEvents(eventsResult.events || []);
+        setBookmarks(bookmarksResult.bookmarks || []);
+        setError(null);
+      } catch (err) {
+        if (cancelled) return;
+        setError(err);
+        setEvents([]);
+        setBookmarks([]);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    };
-
-    const unsubEvents = onSnapshot(
-      query(
-        collection(db, 'calendarEvents'),
-        where('ownerUid', '==', userId),
-        orderBy('dateKey', 'asc'),
-      ),
-      (snapshot) => {
-        setEvents(snapshot.docs.map(mapCalendarEvent));
-        eventsResolved = true;
-        resolveLoading();
-      },
-      (err) => {
-        setError(err);
-        eventsResolved = true;
-        resolveLoading();
-      },
-    );
-
-    const unsubBookmarks = onSnapshot(
-      query(
-        collection(db, 'calendarBookmarks'),
-        where('ownerUid', '==', userId),
-      ),
-      (snapshot) => {
-        setBookmarks(snapshot.docs.map(mapCalendarBookmark));
-        bookmarksResolved = true;
-        resolveLoading();
-      },
-      (err) => {
-        setError(err);
-        bookmarksResolved = true;
-        resolveLoading();
-      },
-    );
+    })();
 
     return () => {
-      unsubEvents();
-      unsubBookmarks();
+      cancelled = true;
     };
   }, [userId, enabled, retryVersion]);
 

@@ -54,6 +54,7 @@ export default function CalendarScreen({ user, onBack }) {
         await updateCalendarEvent(editingId, { title, notes, dateKey, ...editingTimes });
       } else {
         await createCalendarEvent({ title, notes, dateKey, startsAt: null, endsAt: null }, user);
+        retry();
       }
       resetForm();
     } catch (err) {
@@ -84,6 +85,7 @@ export default function CalendarScreen({ user, onBack }) {
       } else {
         await bookmarkDate(dateKey, user);
       }
+      retry();
     } catch (err) {
       Alert.alert('Bookmark failed', getErrorMessage(err));
     }

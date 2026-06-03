@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore';
-import { db } from './firebase';
+import { getAnnouncements } from './api';
 import { useIsAdmin } from './useIsAdmin';
 
 const CATEGORY_LABELS = {
@@ -9,28 +8,22 @@ const CATEGORY_LABELS = {
   updates: 'Updates',
 };
 
-export function mapAnnouncement(docSnap) {
-  const data = docSnap.data();
-  const startsAt = data.startsAt?.toDate?.() || (data.startsAt ? new Date(data.startsAt) : null);
-  const endsAt = data.endsAt?.toDate?.() || (data.endsAt ? new Date(data.endsAt) : null);
+export function mapAnnouncement(item) {
+  const startsAt = item.startsAt ? new Date(item.startsAt) : null;
+  const endsAt = item.endsAt ? new Date(item.endsAt) : null;
+  const category = item.category || 'updates';
   return {
-    id: docSnap.id,
-    title: data.title || '',
-    body: data.body || '',
-    category: data.category || 'updates',
-    categoryLabel: CATEGORY_LABELS[data.category] || 'Updates',
+    ...item,
+    category,
+    categoryLabel: CATEGORY_LABELS[category] || 'Updates',
     startsAt,
     endsAt,
-    status: data.status || 'active',
-    createdByUid: data.createdByUid,
-    createdAt: data.createdAt,
-    updatedAt: data.updatedAt,
     displayDate: startsAt && !Number.isNaN(startsAt.getTime())
       ? startsAt.toLocaleDateString([], { month: 'short', day: 'numeric' })
-      : '',
+      : item.displayDate || '',
     displayTime: startsAt && !Number.isNaN(startsAt.getTime())
       ? startsAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
-      : '',
+      : item.displayTime || '',
   };
 }
 
@@ -51,30 +44,28 @@ export function useAnnouncements(enabled = true, options = {}) {
       return undefined;
     }
 
+    let cancelled = false;
     setLoading(true);
     setError(null);
 
-    const announcementsRef = collection(db, 'announcements');
-    const announcementsQuery = includeArchived
-      ? query(announcementsRef, orderBy('startsAt', 'desc'))
-      : query(
-          announcementsRef,
-          where('status', '==', 'active'),
-          orderBy('startsAt', 'desc'),
-        );
-
-    return onSnapshot(
-      announcementsQuery,
-      (snapshot) => {
-        setItems(snapshot.docs.map(mapAnnouncement));
+    (async () => {
+      try {
+        const result = await getAnnouncements({ includeArchived });
+        if (cancelled) return;
+        setItems((result.announcements || []).map(mapAnnouncement));
         setError(null);
-        setLoading(false);
-      },
-      (err) => {
+      } catch (err) {
+        if (cancelled) return;
         setError(err);
-        setLoading(false);
-      },
-    );
+        setItems([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [enabled, includeArchived, retryVersion]);
 
   const activeAnnouncements = useMemo(

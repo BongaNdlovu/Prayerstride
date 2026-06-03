@@ -49,10 +49,10 @@ describe('bug fix regressions — batch 1 and 2', () => {
     expect(source.default).toMatch(/reactingRef\.current\.has\(key\)/);
   });
 
-  it('mapTestimony masks anonymous authors', async () => {
-    const source = await import('./usePrayerData.js?raw');
-    expect(source.default).toMatch(/authorName: data\.isAnonymous \? 'Anonymous' : data\.authorName/);
-    expect(source.default).toMatch(/isAnonymous: Boolean\(data\.isAnonymous\)/);
+  it('testimony feed masks anonymous authors in the Worker serializer', async () => {
+    const source = await import('../../worker/testimonies-read.js?raw');
+    expect(source.default).toMatch(/authorName: isAnonymous \? 'Anonymous'/);
+    expect(source.default).toMatch(/const isAnonymous = Boolean\(data\.isAnonymous\)/);
   });
 
   it('formatRelativeFirestoreDate returns conversational elapsed labels', () => {
@@ -106,6 +106,12 @@ describe('bug fix regressions — batch 1 and 2', () => {
 });
 
 describe('bug fix regressions — batch 3', () => {
+  it('useReports loads admin reports through the Worker API', async () => {
+    const source = await import('./useReports.js?raw');
+    expect(source.default).toMatch(/getAdminReports/);
+    expect(source.default).not.toMatch(/onSnapshot/);
+  });
+
   it('useReports resets loading and error when an authorized subscription starts', async () => {
     const source = await import('./useReports.js?raw');
     expect(source.default).toMatch(/loading: adminLoading/);
@@ -121,11 +127,19 @@ describe('bug fix regressions — batch 3', () => {
     expect(source.default).not.toMatch(/useState\(isAdmin && enabled\)/);
   });
 
-  it('useCalendarEvents waits for both events and bookmarks before loading=false', async () => {
+  it('Worker invalidates notification stream after writes', async () => {
+    const helper = await import('../../worker/notification-stream.js?raw');
+    const doSource = await import('../../worker/durable-objects/UserNotificationStream.js?raw');
+    expect(helper.default).toMatch(/invalidateUserNotificationStream/);
+    expect(doSource.default).toMatch(/internal\/invalidate/);
+    expect(doSource.default).toMatch(/getWebSockets/);
+  });
+
+  it('useCalendarEvents loads events and bookmarks together from the API', async () => {
     const source = await import('./useCalendarEvents.js?raw');
-    expect(source.default).toMatch(/eventsResolved/);
-    expect(source.default).toMatch(/bookmarksResolved/);
-    expect(source.default).toMatch(/eventsResolved && bookmarksResolved/);
+    expect(source.default).toMatch(/Promise\.all/);
+    expect(source.default).toMatch(/getCalendarEvents/);
+    expect(source.default).toMatch(/getCalendarBookmarks/);
   });
 
   it('isValidCalendarDateKey rejects malformed and impossible dates', async () => {

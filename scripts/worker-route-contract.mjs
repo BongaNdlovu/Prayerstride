@@ -9,6 +9,17 @@ const contracts = [
   ['GET', '/api/me/profile', '/api/me/profile'],
   ['POST', '/api/me/profile', '/api/me/profile'],
   ['POST', '/api/me/avatar', '/api/me/avatar'],
+  ['GET', '/api/prayers', '/api/prayers'],
+  ['GET', '/api/testimonies', '/api/testimonies'],
+  ['GET', '/api/announcements', '/api/announcements'],
+  ['GET', '/api/devotions', '/api/devotions'],
+  ['GET', '/api/study-guides/:id', '/api/study-guides'],
+  ['GET', '/api/prayer-sessions', '/api/prayer-sessions'],
+  ['GET', '/api/calendar-events', '/api/calendar-events'],
+  ['GET', '/api/calendar-bookmarks', '/api/calendar-bookmarks'],
+  ['GET', '/api/notifications', 'getMyNotifications'],
+  ['GET', '/api/notification-settings', 'getMyNotificationSettings'],
+  ['GET', '/api/me/notifications/stream', 'me/notifications/stream'],
   ['POST', '/api/calendar-events', '/api/calendar-events'],
   ['POST', '/api/calendar-events/:id/update', '/calendar-events'],
   ['DELETE', '/api/calendar-events/:id', '/calendar-events'],
@@ -55,6 +66,8 @@ for (const [method, path, routeFragment] of contracts) {
 }
 
 for (const route of [
+  'reports',
+  'users',
   'delete-content',
   'suspend-user',
   'unsuspend-user',

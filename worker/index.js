@@ -47,6 +47,7 @@ import {
   unbookmarkCalendarDate,
   updateCalendarEvent as updateCalendarEventApi,
 } from './calendar-api.js';
+import { getMyCalendarBookmarks, getMyCalendarEvents } from './calendar-read.js';
 import { commitFirestoreWithD1 } from './db/commit.js';
 import { logDualWriteFailure } from './db/dual-write.js';
 import {
@@ -57,10 +58,20 @@ import {
   upsertPrayer,
 } from './db/prayers-repository.js';
 import {
+  getMyNotificationSettings,
+  getMyNotifications,
   markAllNotificationsRead as markAllNotificationsReadApi,
   markNotificationRead as markNotificationReadApi,
   updateNotificationSettings as updateNotificationSettingsApi,
 } from './notifications-api.js';
+import { getAdminReports, getAdminUsers } from './admin-read.js';
+import { getAnnouncementsFeed } from './announcements-read.js';
+import { getDevotions, getStudyGuide, getStudyGuideLesson } from './content-read.js';
+import { getMyPrayerSessions } from './prayer-sessions-read.js';
+import { getPrayersFeed } from './prayers-read.js';
+import { deletePushTokenById, listPushTokensForUid, upsertPushToken } from './db/push-tokens-repository.js';
+import { getTestimoniesFeed } from './testimonies-read.js';
+import { invalidateUserNotificationStream } from './notification-stream.js';
 import { avatarUrlForUid, getMyProfile, updateMyProfile } from './profile.js';
 
 export { UserNotificationStream } from './durable-objects/UserNotificationStream.js';
@@ -162,7 +173,17 @@ async function handleApi(request, env, url, requestId) {
     return json(result.body, result.status);
   }
 
+  match = url.pathname.match(/^\/api\/prayers$/);
+  if (match && request.method === 'GET') {
+    const result = await getPrayersFeed(env, user, url, firestoreApi, requireAdmin);
+    return json(result.body, result.status);
+  }
+
   match = url.pathname.match(/^\/api\/calendar-events$/);
+  if (match && request.method === 'GET') {
+    const result = await getMyCalendarEvents(env, user, firestoreApi);
+    return json(result.body, result.status);
+  }
   if (match && request.method === 'POST') {
     await checkNotSuspended(env, user.uid);
     const body = await parseJsonBody(request);
@@ -185,6 +206,12 @@ async function handleApi(request, env, url, requestId) {
     return json(result.body, result.status);
   }
 
+  match = url.pathname.match(/^\/api\/calendar-bookmarks$/);
+  if (match && request.method === 'GET') {
+    const result = await getMyCalendarBookmarks(env, user, firestoreApi);
+    return json(result.body, result.status);
+  }
+
   match = url.pathname.match(/^\/api\/calendar-bookmarks\/([^/]+)$/);
   if (match && request.method === 'POST') {
     await checkNotSuspended(env, user.uid);
@@ -194,6 +221,12 @@ async function handleApi(request, env, url, requestId) {
   if (match && request.method === 'DELETE') {
     await checkNotSuspended(env, user.uid);
     const result = await unbookmarkCalendarDate(env, user, decodeURIComponent(match[1]), firestoreApi);
+    return json(result.body, result.status);
+  }
+
+  match = url.pathname.match(/^\/api\/notifications$/);
+  if (match && request.method === 'GET') {
+    const result = await getMyNotifications(env, user, firestoreApi);
     return json(result.body, result.status);
   }
 
@@ -210,10 +243,68 @@ async function handleApi(request, env, url, requestId) {
   }
 
   match = url.pathname.match(/^\/api\/notification-settings$/);
+  if (match && request.method === 'GET') {
+    const result = await getMyNotificationSettings(env, user, firestoreApi);
+    return json(result.body, result.status);
+  }
   if (match && request.method === 'POST') {
     await checkNotSuspended(env, user.uid);
     const body = await parseJsonBody(request);
     const result = await updateNotificationSettingsApi(env, user, body, firestoreApi);
+    return json(result.body, result.status);
+  }
+
+  match = url.pathname.match(/^\/api\/me\/notifications\/stream$/);
+  if (match && env.USER_NOTIFICATION_STREAM) {
+    const id = env.USER_NOTIFICATION_STREAM.idFromName(user.uid);
+    return env.USER_NOTIFICATION_STREAM.get(id).fetch(request);
+  }
+
+  match = url.pathname.match(/^\/api\/testimonies$/);
+  if (match && request.method === 'GET') {
+    const result = await getTestimoniesFeed(env, url, firestoreApi);
+    return json(result.body, result.status);
+  }
+
+  match = url.pathname.match(/^\/api\/announcements$/);
+  if (match && request.method === 'GET') {
+    const isAdmin = await userIsAdmin(env, user);
+    const result = await getAnnouncementsFeed(env, url, firestoreApi, isAdmin);
+    return json(result.body, result.status);
+  }
+
+  match = url.pathname.match(/^\/api\/devotions$/);
+  if (match && request.method === 'GET') {
+    const result = await getDevotions(env, firestoreApi);
+    return json(result.body, result.status);
+  }
+
+  match = url.pathname.match(/^\/api\/study-guides\/([^/]+)\/lessons\/([^/]+)$/);
+  if (match && request.method === 'GET') {
+    const result = await getStudyGuideLesson(
+      env,
+      decodeURIComponent(match[1]),
+      decodeURIComponent(match[2]),
+      firestoreApi,
+    );
+    return json(result.body, result.status);
+  }
+
+  match = url.pathname.match(/^\/api\/study-guides\/([^/]+)\/lessons$/);
+  if (match && request.method === 'GET') {
+    const result = await getStudyGuideLesson(env, decodeURIComponent(match[1]), null, firestoreApi);
+    return json(result.body, result.status);
+  }
+
+  match = url.pathname.match(/^\/api\/study-guides\/([^/]+)$/);
+  if (match && request.method === 'GET') {
+    const result = await getStudyGuide(env, decodeURIComponent(match[1]), firestoreApi);
+    return json(result.body, result.status);
+  }
+
+  match = url.pathname.match(/^\/api\/prayer-sessions$/);
+  if (match && request.method === 'GET') {
+    const result = await getMyPrayerSessions(env, user, firestoreApi);
     return json(result.body, result.status);
   }
 
@@ -400,6 +491,20 @@ async function handleApi(request, env, url, requestId) {
     return adminArchiveAnnouncement(env, user, body);
   }
 
+  match = url.pathname.match(/^\/api\/admin\/reports$/);
+  if (match && request.method === 'GET') {
+    await requireAdmin(env, user);
+    const result = await getAdminReports(env, firestoreApi);
+    return json(result.body, result.status);
+  }
+
+  match = url.pathname.match(/^\/api\/admin\/users$/);
+  if (match && request.method === 'GET') {
+    await requireAdmin(env, user);
+    const result = await getAdminUsers(env, firestoreApi);
+    return json(result.body, result.status);
+  }
+
   match = url.pathname.match(/^\/api\/admin\/spiritual-engagement$/);
   if (match && request.method === 'GET') {
     await requireAdmin(env, user);
@@ -423,7 +528,7 @@ function knownApiPath(pathname) {
   return [
     /^\/api\/me\/(?:profile|avatar)$/,
     /^\/api\/calendar-events(?:\/[^/]+(?:\/update)?)?$/,
-    /^\/api\/calendar-bookmarks\/[^/]+$/,
+    /^\/api\/calendar-bookmarks(?:\/[^/]+)?$/,
     /^\/api\/notifications(?:\/read-all|\/[^/]+\/read)?$/,
     /^\/api\/notification-settings$/,
     /^\/api\/account(?:\/bootstrap-owner|\/complete-registration|\/resend-guardian-approval)?$/,
@@ -432,6 +537,12 @@ function knownApiPath(pathname) {
     /^\/api\/prayer-sessions$/,
     /^\/api\/prayers(?:\/[^/]+(?:\/update|\/mark-answered|\/pray)?)?$/,
     /^\/api\/testimonies(?:\/[^/]+(?:\/update|\/react)?)?$/,
+    /^\/api\/announcements$/,
+    /^\/api\/devotions$/,
+    /^\/api\/study-guides\/[^/]+(?:\/lessons(?:\/[^/]+)?)?$/,
+    /^\/api\/prayer-sessions$/,
+    /^\/api\/me\/notifications\/stream$/,
+    /^\/api\/admin\/(?:reports|users)$/,
     /^\/api\/blocks(?:\/[^/]+)?$/,
     /^\/api\/prayer-bookmarks\/[^/]+$/,
     /^\/api\/reports$/,
@@ -1121,6 +1232,8 @@ async function unblockUser(env, user, blockedUid) {
 async function registerDevice(env, user, body) {
   if (!body.token) return json({ error: 'Missing device token' }, 400);
   const deviceId = await hashToken(body.token);
+  const now = new Date().toISOString();
+  const platform = body.platform || 'android';
 
   await firestoreCommit(env, [
     {
@@ -1128,12 +1241,29 @@ async function registerDevice(env, user, body) {
         name: docName(env, 'users', user.uid, 'devices', deviceId),
         fields: toFirestoreFields({
           token: body.token,
-          platform: body.platform || 'android',
-          updatedAt: new Date().toISOString(),
+          platform,
+          updatedAt: now,
         }),
       },
     },
   ]);
+
+  try {
+    await upsertPushToken(env, {
+      id: deviceId,
+      uid: user.uid,
+      token: body.token,
+      platform,
+    });
+  } catch (error) {
+    await logDualWriteFailure(env, {
+      feature: 'push',
+      entityType: 'push_tokens',
+      entityId: deviceId,
+      operation: 'register',
+      error,
+    });
+  }
 
   return json({ ok: true });
 }
@@ -1228,12 +1358,15 @@ async function prayForRequest(env, user, prayerId) {
   });
   if (result.alreadyExists) return json({ ok: true, duplicate: true, dayKey, weekKey, prayerLimit });
 
-  if (notifyAllowed && prefs.pushEnabled !== false) {
-    await sendPushToUser(env, data.authorUid, {
-      title: 'PrayerStride',
-      body: 'Someone prayed for your request.',
-      data: { type: 'prayer_prayed', relatedId: prayerId },
-    });
+  if (notifyAllowed) {
+    await invalidateUserNotificationStream(env, data.authorUid);
+    if (prefs.pushEnabled !== false) {
+      await sendPushToUser(env, data.authorUid, {
+        title: 'PrayerStride',
+        body: 'Someone prayed for your request.',
+        data: { type: 'prayer_prayed', relatedId: prayerId },
+      });
+    }
   }
 
   const xp = await awardPrayActionXp(gamificationFirestore, env, {
@@ -1312,12 +1445,15 @@ async function reactToTestimony(env, user, testimonyId, reaction) {
   const result = await firestoreCommit(env, writes, { allowAlreadyExists: true });
   if (result.alreadyExists) return json({ ok: true, duplicate: true });
 
-  if (notifyAllowed && prefs.pushEnabled !== false) {
-    await sendPushToUser(env, data.authorUid, {
-      title: 'PrayerStride',
-      body: message,
-      data: { type: 'testimony_reaction', relatedId: testimonyId, reaction },
-    });
+  if (notifyAllowed) {
+    await invalidateUserNotificationStream(env, data.authorUid);
+    if (prefs.pushEnabled !== false) {
+      await sendPushToUser(env, data.authorUid, {
+        title: 'PrayerStride',
+        body: message,
+        data: { type: 'testimony_reaction', relatedId: testimonyId, reaction },
+      });
+    }
   }
 
   return json({ ok: true });
@@ -1373,6 +1509,7 @@ async function adminSuspendUser(env, user, body) {
   ];
 
   await firestoreCommit(env, writes);
+  await invalidateUserNotificationStream(env, body.targetUid);
   await sendPushToUser(env, body.targetUid, {
     title: 'PrayerStride',
     body: `Your account has been suspended: ${reason}`,
@@ -1869,17 +2006,32 @@ function notificationWrite(env, recipientUid, notification) {
 
 async function sendPushToUser(env, uid, payload) {
   if (!payload.bypassQuietHours && await pushPausedForQuietHours(env, uid)) return;
-  const devices = await listDocuments(env, docName(env, 'users', uid, 'devices'));
   const staleCutoff = Date.now() - 90 * 86400000;
-  const mappedDevices = devices
-    .map((document) => ({ ...fromFirestoreFields(document.fields), name: document.name }))
-    .filter((device) => device.token);
+  let mappedDevices = [];
+
+  const d1Tokens = await listPushTokensForUid(env, uid);
+  if (d1Tokens?.length) {
+    mappedDevices = d1Tokens.map((row) => ({
+      token: row.token,
+      updatedAt: row.updatedAt,
+      name: docName(env, 'users', uid, 'devices', row.id),
+      id: row.id,
+    }));
+  } else {
+    const devices = await listDocuments(env, docName(env, 'users', uid, 'devices'));
+    mappedDevices = devices
+      .map((document) => ({ ...fromFirestoreFields(document.fields), name: document.name }))
+      .filter((device) => device.token);
+  }
+
   const staleDevices = mappedDevices
     .filter((device) => device.updatedAt && new Date(device.updatedAt).getTime() < staleCutoff);
   if (staleDevices.length) {
     await commitInChunks(env, staleDevices.map((device) => ({ delete: device.name })));
+    await Promise.all(staleDevices.map((device) => deletePushTokenById(env, device.id || device.name.split('/').pop())));
   }
   const tokens = mappedDevices
+    .filter((device) => device.token)
     .filter((device) => !device.updatedAt || new Date(device.updatedAt).getTime() >= staleCutoff);
 
   await Promise.all(tokens.map(async (device) => {
@@ -1896,7 +2048,8 @@ async function sendPushToUser(env, uid, payload) {
     }
     log(env, 'error', { uid, tokenPrefix: device.token.slice(0, 10), error: lastError?.message, attempts: lastError?.invalidToken ? 1 : 3 }, 'fcm-send-failed');
     if (lastError?.invalidToken) {
-      await firestoreCommit(env, [{ delete: device.name }]);
+      await firestoreCommit(env, [{ delete: device.name }]).catch(() => {});
+      await deletePushTokenById(env, device.id || device.name.split('/').pop());
       log(env, 'info', { uid, deviceName: device.name }, 'invalid-token-cleaned');
     }
   }));
@@ -1952,7 +2105,10 @@ async function sendFcm(env, token, payload) {
 
 async function verifyFirebaseUser(request, env) {
   const authHeader = request.headers.get('Authorization') || '';
-  const idToken = authHeader.replace(/^Bearer\s+/i, '');
+  let idToken = authHeader.replace(/^Bearer\s+/i, '');
+  if (!idToken) {
+    idToken = new URL(request.url).searchParams.get('access_token') || '';
+  }
   if (!idToken) {
     throw Object.assign(new Error('Missing Firebase ID token'), {
       status: 401,
@@ -2351,6 +2507,7 @@ const firestoreApi = {
   fromFirestoreFields,
   toFirestoreFields,
   runCollectionQuery,
+  listDocuments,
 };
 
 const gamificationFirestore = {

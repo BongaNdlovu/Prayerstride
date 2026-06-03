@@ -5,6 +5,7 @@ describe('data contracts', () => {
     const source = await import('./api.js?raw');
     expect(source.default).toMatch(/export async function apiFetch/);
     expect(source.default).toMatch(/export function registerDevice/);
+    expect(source.default).toMatch(/export function buildNotificationStreamUrl/);
     expect(source.default).toMatch(/export function prayForRequest/);
     expect(source.default).toMatch(/export function reactToTestimony/);
     expect(source.default).toMatch(/export function adminDeleteContent/);
@@ -14,6 +15,15 @@ describe('data contracts', () => {
     expect(source.default).toMatch(/export function adminUpdateAnnouncement/);
     expect(source.default).toMatch(/export function adminArchiveAnnouncement/);
     expect(source.default).toMatch(/export function deleteOwnAccount/);
+    expect(source.default).toMatch(/export function getPrayers/);
+    expect(source.default).toMatch(/export function getCalendarEvents/);
+    expect(source.default).toMatch(/export function getNotifications/);
+    expect(source.default).toMatch(/export function getTestimonies/);
+    expect(source.default).toMatch(/export function getAnnouncements/);
+    expect(source.default).toMatch(/export function getDevotions/);
+    expect(source.default).toMatch(/export function getPrayerSessions/);
+    expect(source.default).toMatch(/export function getAdminReports/);
+    expect(source.default).toMatch(/export function getAdminUsers/);
     expect(source.default).toMatch(/export function getGamificationSummary/);
     expect(source.default).toMatch(/export function createPrayerSession/);
     expect(source.default).toMatch(/export function backfillGamification/);
@@ -84,10 +94,10 @@ describe('data contracts', () => {
     expect(source.default).toMatch(/export async function deleteCalendarEvent/);
     expect(source.default).toMatch(/export async function bookmarkDate/);
     expect(source.default).toMatch(/export async function unbookmarkDate/);
-    expect(source.default).toMatch(/ownerUid/);
     expect(source.default).toMatch(/dateKey/);
-    expect(source.default).toMatch(/calendarEvents/);
-    expect(source.default).toMatch(/calendarBookmarks/);
+    expect(source.default).toMatch(/getCalendarEvents/);
+    expect(source.default).toMatch(/getCalendarBookmarks/);
+    expect(source.default).not.toMatch(/onSnapshot/);
   });
 
   it('useAnnouncements exports read-only announcement hook', async () => {
@@ -116,8 +126,56 @@ describe('data contracts', () => {
   it('notification helpers route mark-all through the Worker API', async () => {
     const source = await import('./useNotifications.js?raw');
     expect(source.default).toMatch(/markAllNotificationsReadApi/);
+    expect(source.default).toMatch(/getNotifications/);
+    expect(source.default).toMatch(/subscribeNotificationsInvalidated/);
     expect(source.default).not.toMatch(/writeBatch/);
+    expect(source.default).not.toMatch(/onSnapshot/);
     expect(source.default).not.toMatch(/updateDoc\(doc\(db, 'notifications'/);
+  });
+
+  it('notification stream connects after auth', async () => {
+    const api = await import('./api.js?raw');
+    const gate = await import('./NotificationStreamGate.jsx?raw');
+    const stream = await import('./notificationStream.js?raw');
+    expect(api.default).toMatch(/access_token/);
+    expect(gate.default).toMatch(/connectNotificationStream/);
+    expect(stream.default).toMatch(/buildNotificationStreamUrl/);
+    expect(stream.default).toMatch(/type === 'invalidate'/);
+  });
+
+  it('usePrayerData loads prayers from the Worker API', async () => {
+    const source = await import('./usePrayerData.js?raw');
+    expect(source.default).toMatch(/getPrayers/);
+    expect(source.default).toMatch(/getTestimonies/);
+    expect(source.default).not.toMatch(/collection\(db, 'prayers'\)/);
+    expect(source.default).not.toMatch(/collection\(db, 'testimonies'\)/);
+  });
+
+  it('useAnnouncements loads from the Worker API', async () => {
+    const source = await import('./useAnnouncements.js?raw');
+    expect(source.default).toMatch(/getAnnouncements/);
+    expect(source.default).not.toMatch(/onSnapshot/);
+  });
+
+  it('useContentCollections loads devotions from the Worker API', async () => {
+    const source = await import('./useContentCollections.js?raw');
+    expect(source.default).toMatch(/getDevotions/);
+    expect(source.default).not.toMatch(/onSnapshot/);
+  });
+
+  it('useReports and useUsers load admin lists from the Worker API', async () => {
+    const reports = await import('./useReports.js?raw');
+    const users = await import('./useUsers.js?raw');
+    expect(reports.default).toMatch(/getAdminReports/);
+    expect(users.default).toMatch(/getAdminUsers/);
+    expect(reports.default).not.toMatch(/onSnapshot/);
+    expect(users.default).not.toMatch(/onSnapshot/);
+  });
+
+  it('usePrayerSessions loads from the Worker API', async () => {
+    const source = await import('./usePrayerSessions.js?raw');
+    expect(source.default).toMatch(/getPrayerSessions/);
+    expect(source.default).not.toMatch(/onSnapshot/);
   });
 
   it('useIsAdmin has separate admin and suspended hooks', async () => {

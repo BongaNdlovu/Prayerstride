@@ -1,13 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  collection,
-  onSnapshot,
-  orderBy,
-  query,
-  where,
-} from 'firebase/firestore';
-import { createPrayerSession as createPrayerSessionApi, getDeviceTimeZone } from './api';
-import { db } from './firebase';
+import { createPrayerSession as createPrayerSessionApi, getDeviceTimeZone, getPrayerSessions } from './api';
 
 export function usePrayerSessions(userId, enabled = true) {
   const [sessions, setSessions] = useState([]);
@@ -24,25 +16,28 @@ export function usePrayerSessions(userId, enabled = true) {
       return undefined;
     }
 
+    let cancelled = false;
     setLoading(true);
     setError(null);
 
-    return onSnapshot(
-      query(
-        collection(db, 'prayerSessions'),
-        where('authorUid', '==', userId),
-        orderBy('createdAt', 'desc'),
-      ),
-      (snapshot) => {
-        setSessions(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })));
+    (async () => {
+      try {
+        const result = await getPrayerSessions();
+        if (cancelled) return;
+        setSessions(result.sessions || []);
         setError(null);
-        setLoading(false);
-      },
-      (err) => {
+      } catch (err) {
+        if (cancelled) return;
         setError(err);
-        setLoading(false);
-      },
-    );
+        setSessions([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [userId, enabled, retryVersion]);
 
   const totalSeconds = useMemo(
@@ -58,10 +53,11 @@ export async function addPrayerSession({ prayerId, title, seconds, timeZone }, u
   if (!seconds) throw new Error('Start the timer before completing a session.');
   if (!prayerId) throw new Error('Open a real prayer request before saving prayer time.');
 
-  return createPrayerSessionApi({
+  const result = await createPrayerSessionApi({
     prayerId,
     title: title || 'Prayer session',
     seconds,
     timeZone: timeZone || getDeviceTimeZone(),
   });
+  return result;
 }

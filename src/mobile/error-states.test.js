@@ -72,7 +72,7 @@ describe('error states', () => {
     const settings = await import('./screens/NotificationSettingsScreen.jsx?raw');
     const reminders = await import('./screens/RemindersScreen.jsx?raw');
 
-    expect(notifications.default).toMatch(/markNotificationRead\(item\.id\)\.catch/);
+    expect(notifications.default).toMatch(/markNotificationRead\(item\.id\)\.then\(\(\) => retry\(\)\)\.catch/);
     expect(notifications.default).toMatch(/Could not update notification/);
     expect(settings.default).toMatch(/Could not save preference/);
     expect(reminders.default).toMatch(/Could not save reminder/);

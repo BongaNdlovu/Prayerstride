@@ -159,6 +159,78 @@ export function updateNotificationSettings(patch) {
   });
 }
 
+export function getPrayers({
+  scope = 'feed',
+  status,
+  category,
+  urgent,
+  cursor,
+  limit = 100,
+} = {}) {
+  const params = new URLSearchParams();
+  params.set('scope', scope);
+  if (status) params.set('status', status);
+  if (category) params.set('category', category);
+  if (urgent) params.set('urgent', '1');
+  if (cursor) params.set('cursor', cursor);
+  if (limit) params.set('limit', String(limit));
+  return apiFetch(`/api/prayers?${params.toString()}`);
+}
+
+export function getCalendarEvents() {
+  return apiFetch('/api/calendar-events');
+}
+
+export function getCalendarBookmarks() {
+  return apiFetch('/api/calendar-bookmarks');
+}
+
+export function getNotifications() {
+  return apiFetch('/api/notifications');
+}
+
+export function getNotificationSettings() {
+  return apiFetch('/api/notification-settings');
+}
+
+export function getTestimonies({ limit = 100 } = {}) {
+  const params = new URLSearchParams();
+  if (limit) params.set('limit', String(limit));
+  return apiFetch(`/api/testimonies?${params.toString()}`);
+}
+
+export function getAnnouncements({ includeArchived = false } = {}) {
+  const params = new URLSearchParams();
+  if (includeArchived) params.set('includeArchived', '1');
+  return apiFetch(`/api/announcements?${params.toString()}`);
+}
+
+export function getDevotions() {
+  return apiFetch('/api/devotions');
+}
+
+export function getStudyGuide(guideId) {
+  return apiFetch(`/api/study-guides/${encodeURIComponent(guideId)}`);
+}
+
+export function getStudyGuideLesson(guideId, lessonId) {
+  const base = `/api/study-guides/${encodeURIComponent(guideId)}/lessons`;
+  const path = lessonId ? `${base}/${encodeURIComponent(lessonId)}` : base;
+  return apiFetch(path);
+}
+
+export function getPrayerSessions() {
+  return apiFetch('/api/prayer-sessions');
+}
+
+export function getAdminReports() {
+  return apiFetch('/api/admin/reports');
+}
+
+export function getAdminUsers() {
+  return apiFetch('/api/admin/users');
+}
+
 export function bootstrapOwner() {
   return apiFetch('/api/account/bootstrap-owner', {
     method: 'POST',
@@ -185,6 +257,17 @@ export function registerDevice(payload) {
     method: 'POST',
     body: JSON.stringify(payload),
   });
+}
+
+export function buildNotificationStreamUrl(idToken) {
+  const base = API_URL.replace(/\/$/, '');
+  if (!base || !idToken) return null;
+  const wsBase = base.replace(/^http/i, (scheme) => (
+    scheme.toLowerCase() === 'https' ? 'wss' : 'ws'
+  ));
+  const url = new URL(`${wsBase}/api/me/notifications/stream`);
+  url.searchParams.set('access_token', idToken);
+  return url.toString();
 }
 
 export function createPrayer(payload) {

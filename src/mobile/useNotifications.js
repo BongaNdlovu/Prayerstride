@@ -1,16 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  collection,
-  onSnapshot,
-  orderBy,
-  query,
-  where,
-} from 'firebase/firestore';
-import {
+  getNotifications,
   markAllNotificationsRead as markAllNotificationsReadApi,
   markNotificationRead as markNotificationReadApi,
 } from './api';
-import { db } from './firebase';
+import { subscribeNotificationsInvalidated } from './notificationStream';
 
 export function useNotifications(userId, enabled = true) {
   const [notifications, setNotifications] = useState([]);
@@ -20,31 +14,40 @@ export function useNotifications(userId, enabled = true) {
   const retry = useCallback(() => setRetryVersion((version) => version + 1), []);
 
   useEffect(() => {
+    if (!userId || !enabled) return undefined;
+    return subscribeNotificationsInvalidated(retry);
+  }, [userId, enabled, retry]);
+
+  useEffect(() => {
     if (!userId || !enabled) {
       setNotifications([]);
       setLoading(false);
       setError(null);
       return undefined;
     }
+
+    let cancelled = false;
     setLoading(true);
     setError(null);
 
-    return onSnapshot(
-      query(
-        collection(db, 'notifications'),
-        where('recipientUid', '==', userId),
-        orderBy('createdAt', 'desc'),
-      ),
-      (snapshot) => {
-        setNotifications(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })));
+    (async () => {
+      try {
+        const result = await getNotifications();
+        if (cancelled) return;
+        setNotifications(result.notifications || []);
         setError(null);
-        setLoading(false);
-      },
-      (err) => {
+      } catch (err) {
+        if (cancelled) return;
         setError(err);
-        setLoading(false);
-      },
-    );
+        setNotifications([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [userId, enabled, retryVersion]);
 
   const unread = notifications.filter((item) => !item.read);

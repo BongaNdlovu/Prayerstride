@@ -1,8 +1,6 @@
-import { useEffect, useState } from 'react';
-import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
-import { db } from './firebase';
+import { useCallback, useEffect, useState } from 'react';
 import { useIsAdmin } from './useIsAdmin';
-import { adminUpdateReport, submitContentReport } from './api';
+import { adminUpdateReport, getAdminReports, submitContentReport } from './api';
 
 export async function submitReport(targetId, targetType, reason, user) {
   if (!user) throw new Error('You must be signed in to report content.');
@@ -20,6 +18,8 @@ export function useReports(user, enabled = true) {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(Boolean(user && enabled));
   const [error, setError] = useState(null);
+  const [retryVersion, setRetryVersion] = useState(0);
+  const retry = useCallback(() => setRetryVersion((version) => version + 1), []);
 
   useEffect(() => {
     if (!enabled || !user) {
@@ -41,24 +41,31 @@ export function useReports(user, enabled = true) {
       return undefined;
     }
 
+    let cancelled = false;
     setLoading(true);
     setError(null);
 
-    return onSnapshot(
-      query(collection(db, 'reports'), orderBy('createdAt', 'desc')),
-      (snapshot) => {
-        setReports(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })));
+    (async () => {
+      try {
+        const result = await getAdminReports();
+        if (cancelled) return;
+        setReports(result.reports || []);
         setError(null);
-        setLoading(false);
-      },
-      (err) => {
+      } catch (err) {
+        if (cancelled) return;
         setError(err);
-        setLoading(false);
-      },
-    );
-  }, [user, isAdmin, adminLoading, enabled]);
+        setReports([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
 
-  return { reports, loading, error };
+    return () => {
+      cancelled = true;
+    };
+  }, [user, isAdmin, adminLoading, enabled, retryVersion]);
+
+  return { reports, loading, error, retry };
 }
 
 export async function resolveReport(reportId) {

@@ -1,15 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import {
-  collection,
-  doc,
-  onSnapshot,
-  orderBy,
-  query,
-  where,
-} from 'firebase/firestore';
-import { db } from './firebase';
+import { getDevotions, getStudyGuide, getStudyGuideLesson } from './api';
 
-function useCollection(collectionName, enabled = true, mapper) {
+export function useDevotions(enabled = true) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(Boolean(enabled));
   const [error, setError] = useState(null);
@@ -24,37 +16,31 @@ function useCollection(collectionName, enabled = true, mapper) {
       return undefined;
     }
 
+    let cancelled = false;
     setLoading(true);
     setError(null);
 
-    return onSnapshot(
-      query(
-        collection(db, collectionName),
-        where('status', '==', 'active'),
-        orderBy('order', 'asc'),
-      ),
-      (snapshot) => {
-        setItems(snapshot.docs.map(mapper || defaultMapper));
+    (async () => {
+      try {
+        const result = await getDevotions();
+        if (cancelled) return;
+        setItems(result.devotions || []);
         setError(null);
-        setLoading(false);
-      },
-      (err) => {
+      } catch (err) {
+        if (cancelled) return;
         setError(err);
-        setLoading(false);
-      },
-    );
-  }, [collectionName, enabled, mapper, retryVersion]);
+        setItems([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
 
-  return { items, loading, error, retry };
-}
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled, retryVersion]);
 
-function defaultMapper(item) {
-  return { id: item.id, ...item.data() };
-}
-
-export function useDevotions(enabled = true) {
-  const result = useCollection('devotions', enabled);
-  return { devotions: result.items, loading: result.loading, error: result.error, retry: result.retry };
+  return { devotions: items, loading, error, retry };
 }
 
 export function useStudyGuide(guideId, enabled = true) {
@@ -72,22 +58,28 @@ export function useStudyGuide(guideId, enabled = true) {
       return undefined;
     }
 
+    let cancelled = false;
     setLoading(true);
     setError(null);
 
-    return onSnapshot(
-      doc(db, 'studyGuides', guideId),
-      (snapshot) => {
-        const data = snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null;
-        setGuide(data?.status === 'active' ? data : null);
+    (async () => {
+      try {
+        const result = await getStudyGuide(guideId);
+        if (cancelled) return;
+        setGuide(result.guide || null);
         setError(null);
-        setLoading(false);
-      },
-      (err) => {
+      } catch (err) {
+        if (cancelled) return;
         setError(err);
-        setLoading(false);
-      },
-    );
+        setGuide(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [guideId, enabled, retryVersion]);
 
   return { guide, loading, error, retry };
@@ -108,46 +100,28 @@ export function useGuideLesson(guideId, lessonId, enabled = true) {
       return undefined;
     }
 
+    let cancelled = false;
     setLoading(true);
     setError(null);
 
-    const lessonRef = lessonId
-      ? doc(db, 'studyGuides', guideId, 'lessons', lessonId)
-      : null;
-
-    if (lessonRef) {
-      return onSnapshot(
-        lessonRef,
-        (snapshot) => {
-          const data = snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null;
-          setLesson(data?.status === 'active' ? data : null);
-          setError(null);
-          setLoading(false);
-        },
-        (err) => {
-          setError(err);
-          setLoading(false);
-        },
-      );
-    }
-
-    return onSnapshot(
-      query(
-        collection(db, 'studyGuides', guideId, 'lessons'),
-        where('status', '==', 'active'),
-        orderBy('day', 'asc'),
-      ),
-      (snapshot) => {
-        const firstLesson = snapshot.docs[0];
-        setLesson(firstLesson ? { id: firstLesson.id, ...firstLesson.data() } : null);
+    (async () => {
+      try {
+        const result = await getStudyGuideLesson(guideId, lessonId || null);
+        if (cancelled) return;
+        setLesson(result.lesson || null);
         setError(null);
-        setLoading(false);
-      },
-      (err) => {
+      } catch (err) {
+        if (cancelled) return;
         setError(err);
-        setLoading(false);
-      },
-    );
+        setLesson(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [guideId, lessonId, enabled, retryVersion]);
 
   return { lesson, loading, error, retry };

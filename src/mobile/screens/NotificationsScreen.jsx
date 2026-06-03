@@ -15,14 +15,14 @@ import { getErrorMessage } from '../errors';
 export default function NotificationsScreen({ user, onBack }) {
   const { notifications, unread, read, loading, error, retry } = useNotifications(user?.uid, true);
   const markAllRead = () => {
-    markAllNotificationsRead(user?.uid).catch((error) => {
+    markAllNotificationsRead(user?.uid).then(() => retry()).catch((error) => {
       Alert.alert('Could not update notifications', getErrorMessage(error));
     });
   };
 
   const renderItem = ({ item }) => (
     <Pressable
-      onPress={() => markNotificationRead(item.id).catch((err) => {
+      onPress={() => markNotificationRead(item.id).then(() => retry()).catch((err) => {
         Alert.alert('Could not update notification', getErrorMessage(err));
       })}
       style={({ pressed }) => [styles.itemWrap, pressed && styles.pressed]}

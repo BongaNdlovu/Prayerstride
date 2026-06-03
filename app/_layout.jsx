@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '../src/mobile/AuthProvider';
+import { NotificationStreamGate } from '../src/mobile/NotificationStreamGate';
 import { ErrorBoundary } from '../src/mobile/ErrorBoundary';
 import { useAppFonts } from '../src/mobile/useAppFonts';
 import { colors } from '../src/mobile/theme';
@@ -33,6 +34,7 @@ export default function RootLayout() {
     <ErrorBoundary>
       <SafeAreaProvider>
         <AuthProvider>
+          <NotificationStreamGate />
           <FontGate>
             <StatusBar style="dark" />
             <Stack screenOptions={{ headerShown: false }} />

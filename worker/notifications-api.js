@@ -1,6 +1,9 @@
 import { utcNowIso } from './db/time.js';
 import { commitFirestoreWithD1 } from './db/commit.js';
+import { invalidateUserNotificationStream } from './notification-stream.js';
 import {
+  getNotificationSettingsFromD1,
+  listNotificationsForRecipient,
   markAllNotificationsReadD1,
   markNotificationReadD1,
   notificationSettingsRow,
@@ -8,6 +11,53 @@ import {
 } from './db/notifications-repository.js';
 
 const SETTINGS_KEYS = new Set(['prayerActivity', 'testimonyReactions', 'pushEnabled', 'announcements']);
+
+function serializeNotificationFromFirestore(id, data) {
+  return {
+    id,
+    recipientUid: data.recipientUid,
+    type: data.type ?? null,
+    message: data.message ?? null,
+    relatedId: data.relatedId ?? null,
+    actorUid: data.actorUid ?? null,
+    read: data.read === true,
+    createdAt: data.createdAt,
+  };
+}
+
+async function listNotificationsFromFirestore(env, user, firestoreApi) {
+  const docs = await firestoreApi.runCollectionQuery(env, 'notifications', [
+    {
+      fieldFilter: {
+        field: { fieldPath: 'recipientUid' },
+        op: 'EQUAL',
+        value: { stringValue: user.uid },
+      },
+    },
+  ], [{ field: { fieldPath: 'createdAt' }, direction: 'DESCENDING' }]);
+
+  return docs.map((doc) => {
+    const id = doc.name.split('/').pop();
+    return serializeNotificationFromFirestore(id, firestoreApi.fromFirestoreFields(doc.fields));
+  });
+}
+
+export async function getMyNotifications(env, user, firestoreApi) {
+  let notifications = await listNotificationsForRecipient(env, user.uid);
+  if (notifications == null || notifications.length === 0) {
+    notifications = await listNotificationsFromFirestore(env, user, firestoreApi);
+  }
+  return { status: 200, body: { notifications } };
+}
+
+export async function getMyNotificationSettings(env, user, firestoreApi) {
+  let settings = await getNotificationSettingsFromD1(env, user.uid);
+  if (settings == null) {
+    const doc = await firestoreApi.getDocument(env, firestoreApi.docName(env, 'notificationSettings', user.uid));
+    settings = doc.exists ? firestoreApi.fromFirestoreFields(doc.fields) : {};
+  }
+  return { status: 200, body: { settings } };
+}
 
 export async function markNotificationRead(env, user, notificationId, firestoreApi) {
   const doc = await firestoreApi.getDocument(env, firestoreApi.docName(env, 'notifications', notificationId));
@@ -32,6 +82,7 @@ export async function markNotificationRead(env, user, notificationId, firestoreA
     syncD1: () => markNotificationReadD1(env, notificationId, user.uid),
   });
 
+  await invalidateUserNotificationStream(env, user.uid);
   return { status: 200, body: { ok: true } };
 }
 
@@ -79,6 +130,7 @@ export async function markAllNotificationsRead(env, user, firestoreApi) {
     });
   }
 
+  await invalidateUserNotificationStream(env, user.uid);
   return { status: 200, body: { ok: true, count: docs.length } };
 }
 

@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
-import { getMyProfile } from './api';
-import { db } from './firebase';
+import { getAdminUsers, getMyProfile } from './api';
 import { useIsAdmin } from './useIsAdmin';
 import { clearCachedProfile, getCachedProfile, setCachedProfile } from './profileCache';
 
@@ -10,6 +8,8 @@ export function useUsers(user, enabled = true) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(Boolean(user && enabled));
   const [error, setError] = useState(null);
+  const [retryVersion, setRetryVersion] = useState(0);
+  const retry = useCallback(() => setRetryVersion((version) => version + 1), []);
 
   useEffect(() => {
     if (!enabled || !user) {
@@ -31,24 +31,31 @@ export function useUsers(user, enabled = true) {
       return undefined;
     }
 
+    let cancelled = false;
     setLoading(true);
     setError(null);
 
-    return onSnapshot(
-      query(collection(db, 'users'), orderBy('createdAt', 'desc')),
-      (snapshot) => {
-        setUsers(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })));
+    (async () => {
+      try {
+        const result = await getAdminUsers();
+        if (cancelled) return;
+        setUsers(result.users || []);
         setError(null);
-        setLoading(false);
-      },
-      (err) => {
+      } catch (err) {
+        if (cancelled) return;
         setError(err);
-        setLoading(false);
-      },
-    );
-  }, [user, isAdmin, adminLoading, enabled]);
+        setUsers([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
 
-  return { users, loading, error };
+    return () => {
+      cancelled = true;
+    };
+  }, [user, isAdmin, adminLoading, enabled, retryVersion]);
+
+  return { users, loading, error, retry };
 }
 
 export function useUserProfile(uid, enabled = true) {

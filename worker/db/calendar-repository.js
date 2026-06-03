@@ -15,6 +15,47 @@ export function calendarEventRow(id, data) {
   };
 }
 
+function rowToCalendarEvent(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    ownerUid: row.owner_uid,
+    title: row.title || '',
+    notes: row.notes ?? '',
+    dateKey: row.date_key,
+    startsAt: row.starts_at ?? null,
+    endsAt: row.ends_at ?? null,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function rowToCalendarBookmark(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    ownerUid: row.owner_uid,
+    dateKey: row.date_key,
+    createdAt: row.created_at,
+  };
+}
+
+export async function listCalendarEventsForOwner(env, ownerUid) {
+  if (!env.DB) return null;
+  const result = await env.DB.prepare(
+    'SELECT * FROM calendar_events WHERE owner_uid = ? ORDER BY date_key ASC, created_at ASC',
+  ).bind(ownerUid).all();
+  return (result.results || []).map(rowToCalendarEvent);
+}
+
+export async function listCalendarBookmarksForOwner(env, ownerUid) {
+  if (!env.DB) return null;
+  const result = await env.DB.prepare(
+    'SELECT * FROM calendar_bookmarks WHERE owner_uid = ? ORDER BY date_key ASC',
+  ).bind(ownerUid).all();
+  return (result.results || []).map(rowToCalendarBookmark);
+}
+
 export function calendarBookmarkRow(id, data) {
   return {
     id,

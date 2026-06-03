@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { updateNotificationSettings as updateNotificationSettingsApi } from './api';
-import { db } from './firebase';
+import {
+  getNotificationSettings,
+  updateNotificationSettings as updateNotificationSettingsApi,
+} from './api';
 
 export function useNotificationSettings(userId, enabled = true) {
   const [settings, setSettings] = useState({});
@@ -17,25 +18,35 @@ export function useNotificationSettings(userId, enabled = true) {
       setError(null);
       return undefined;
     }
+
+    let cancelled = false;
     setLoading(true);
     setError(null);
 
-    return onSnapshot(doc(db, 'notificationSettings', userId),
-      (snapshot) => {
-        setSettings(snapshot.exists() ? snapshot.data() : {});
+    (async () => {
+      try {
+        const result = await getNotificationSettings();
+        if (cancelled) return;
+        setSettings(result.settings || {});
         setError(null);
-        setLoading(false);
-      },
-      (err) => {
+      } catch (err) {
+        if (cancelled) return;
         setError(err);
-        setLoading(false);
-      },
-    );
+        setSettings({});
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [userId, enabled, retryVersion]);
 
   return { settings, loading, error, retry };
 }
 
 export async function updateNotificationSettings(userId, patch) {
-  return updateNotificationSettingsApi(patch);
+  const result = await updateNotificationSettingsApi(patch);
+  return result.settings;
 }

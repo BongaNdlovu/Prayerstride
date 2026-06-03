@@ -1,55 +1,19 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  collection,
-  onSnapshot,
-  orderBy,
-  query,
-  limit,
-  where,
-} from 'firebase/firestore';
-import { auth, db } from './firebase';
-import {
   createPrayer as apiCreatePrayer,
   createTestimony as apiCreateTestimony,
   deletePrayer as apiDeletePrayer,
+  getPrayers,
+  getTestimonies,
   markPrayerAnswered as apiMarkPrayerAnswered,
   updatePrayer as apiUpdatePrayer,
 } from './api';
 
-function mapPrayer(docSnap) {
-  const data = docSnap.data();
-  return {
-    id: docSnap.id,
-    title: data.title,
-    body: data.body,
-    authorUid: data.authorUid,
-    authorName: data.isAnonymous ? 'Anonymous' : data.authorName,
-    isAnonymous: Boolean(data.isAnonymous),
-    prayedCount: data.prayedCount || 0,
-    status: data.status || 'active',
-    privacy: data.privacy || 'community',
-    category: data.category || '',
-    prayerLimit: data.prayerLimit || 'daily',
-    urgent: Boolean(data.urgent),
-    allowShare: data.allowShare !== false,
-    createdAt: data.createdAt,
-  };
-}
-
-function mapTestimony(docSnap) {
-  const data = docSnap.data();
-  return {
-    id: docSnap.id,
-    title: data.title,
-    body: data.body,
-    authorUid: data.authorUid,
-    authorName: data.isAnonymous ? 'Anonymous' : data.authorName,
-    isAnonymous: Boolean(data.isAnonymous),
-    amen: data.amen || 0,
-    praiseGod: data.praiseGod || 0,
-    prayerId: data.prayerId ?? null,
-    createdAt: data.createdAt,
-  };
+function resolveScope(options = {}) {
+  if (options.includeAll) return 'all';
+  if (options.scope) return options.scope;
+  if (options.userId) return 'mine';
+  return 'feed';
 }
 
 export function usePrayers(enabled, options = {}) {
@@ -58,6 +22,9 @@ export function usePrayers(enabled, options = {}) {
   const [error, setError] = useState(null);
   const [retryVersion, setRetryVersion] = useState(0);
   const retry = useCallback(() => setRetryVersion((version) => version + 1), []);
+  const scope = resolveScope(options);
+  const pageSize = Number(options.pageSize || 100);
+  const status = options.status || null;
 
   useEffect(() => {
     if (!enabled) {
@@ -66,55 +33,36 @@ export function usePrayers(enabled, options = {}) {
       setError(null);
       return undefined;
     }
+
+    let cancelled = false;
     setLoading(true);
     setError(null);
 
-    const currentUid = options.userId || auth.currentUser?.uid;
-    const includeAll = Boolean(options.includeAll);
-    const prayerRef = collection(db, 'prayers');
-    const pageSize = Number(options.pageSize || 100);
-    const queries = includeAll
-      ? [query(prayerRef, orderBy('createdAt', 'desc'), limit(pageSize))]
-      : [
-          query(prayerRef, where('privacy', '==', 'community'), orderBy('createdAt', 'desc'), limit(pageSize)),
-          ...(currentUid ? [query(prayerRef, where('authorUid', '==', currentUid), orderBy('createdAt', 'desc'), limit(pageSize))] : []),
-        ];
-
-    const sourceMaps = queries.map(() => new Map());
-    const publish = () => {
-      const docsById = new Map();
-      sourceMaps.forEach((sourceMap) => {
-        sourceMap.forEach((item, id) => docsById.set(id, item));
-      });
-      setItems(Array.from(docsById.values()).sort((a, b) => {
-        const aTime = a.createdAt?.toMillis?.() ?? a.createdAt?.seconds ?? 0;
-        const bTime = b.createdAt?.toMillis?.() ?? b.createdAt?.seconds ?? 0;
-        return bTime - aTime;
-      }));
-      setError(null);
-      setLoading(false);
-    };
-
-    const unsubscribers = queries.map((prayerQuery, index) => onSnapshot(
-      prayerQuery,
-      (snapshot) => {
-        snapshot.docChanges().forEach((change) => {
-          if (change.type === 'removed') {
-            sourceMaps[index].delete(change.doc.id);
-            return;
-          }
-          sourceMaps[index].set(change.doc.id, mapPrayer(change.doc));
+    (async () => {
+      try {
+        const result = await getPrayers({
+          scope,
+          status,
+          category: options.category,
+          urgent: options.urgent,
+          limit: pageSize,
         });
-        publish();
-      },
-      (err) => {
+        if (cancelled) return;
+        setItems(result.items || []);
+        setError(null);
+      } catch (err) {
+        if (cancelled) return;
         setError(err);
-        setLoading(false);
-      },
-    ));
+        setItems([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
 
-    return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
-  }, [enabled, options.includeAll, options.pageSize, options.userId, retryVersion]);
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled, scope, pageSize, status, options.category, options.urgent, retryVersion]);
 
   return { prayers: items, loading, error, retry };
 }
@@ -133,21 +81,29 @@ export function useTestimonies(enabled) {
       setError(null);
       return undefined;
     }
+
+    let cancelled = false;
     setLoading(true);
     setError(null);
 
-    return onSnapshot(
-      query(collection(db, 'testimonies'), orderBy('createdAt', 'desc'), limit(100)),
-      (snapshot) => {
-        setItems(snapshot.docs.map(mapTestimony));
+    (async () => {
+      try {
+        const result = await getTestimonies({ limit: 100 });
+        if (cancelled) return;
+        setItems(result.items || []);
         setError(null);
-        setLoading(false);
-      },
-      (err) => {
+      } catch (err) {
+        if (cancelled) return;
         setError(err);
-        setLoading(false);
-      },
-    );
+        setItems([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [enabled, retryVersion]);
 
   return { testimonies: items, loading, error, retry };

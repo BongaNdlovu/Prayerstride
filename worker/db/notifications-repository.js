@@ -1,5 +1,47 @@
 import { utcNowIso } from './time.js';
 
+function rowToNotification(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    recipientUid: row.recipient_uid,
+    type: row.type ?? null,
+    message: row.message ?? null,
+    relatedId: row.related_id ?? null,
+    actorUid: row.actor_uid ?? null,
+    read: row.read === 1,
+    createdAt: row.created_at,
+  };
+}
+
+function rowToNotificationSettings(row) {
+  if (!row) return {};
+  return {
+    prayerActivity: row.prayer_activity === 0 ? false : row.prayer_activity === 1 ? true : undefined,
+    testimonyReactions: row.testimony_reactions === 0 ? false : row.testimony_reactions === 1 ? true : undefined,
+    pushEnabled: row.push_enabled === 0 ? false : row.push_enabled === 1 ? true : undefined,
+    announcements: row.announcements === 0 ? false : row.announcements === 1 ? true : undefined,
+    updatedAt: row.updated_at,
+  };
+}
+
+export async function listNotificationsForRecipient(env, recipientUid, limit = 100) {
+  if (!env.DB) return null;
+  const result = await env.DB.prepare(
+    'SELECT * FROM notifications WHERE recipient_uid = ? ORDER BY created_at DESC LIMIT ?',
+  ).bind(recipientUid, limit).all();
+  return (result.results || []).map(rowToNotification);
+}
+
+export async function getNotificationSettingsFromD1(env, uid) {
+  if (!env.DB) return null;
+  const row = await env.DB.prepare(
+    'SELECT * FROM notification_settings WHERE uid = ?',
+  ).bind(uid).first();
+  if (!row) return null;
+  return rowToNotificationSettings(row);
+}
+
 export function notificationRow(id, data) {
   return {
     id,

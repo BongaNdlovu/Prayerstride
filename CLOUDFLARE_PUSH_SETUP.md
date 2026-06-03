@@ -4,9 +4,9 @@ PrayerStride uses this path for native push notifications:
 
 1. The Expo app gets an FCM token through Expo Notifications.
 2. The app sends that token to `/api/devices/register`.
-3. Cloudflare Worker stores the token under `users/{uid}/devices/{tokenHash}` in Firestore.
+3. Cloudflare Worker dual-writes the token to D1 `push_tokens` and `users/{uid}/devices/{tokenHash}` in Firestore.
 4. Prayer/testimony actions call the Worker.
-5. The Worker writes Firestore notifications and sends FCM pushes.
+5. The Worker writes Firestore notifications, invalidates the user's notification WebSocket stream, and sends FCM pushes (D1 tokens first, Firestore devices fallback).
 
 ## Cloudflare Secrets
 
@@ -52,6 +52,7 @@ EXPO_PUBLIC_API_URL=https://your-worker-domain.workers.dev
 ## Endpoints Added
 
 - `POST /api/devices/register`
+- `GET /api/me/notifications/stream` (WebSocket; use `Authorization: Bearer` or `?access_token=` for React Native)
 - `POST /api/prayers/:id/pray`
 - `POST /api/testimonies/:id/react`
 

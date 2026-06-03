@@ -30,7 +30,7 @@ function matchesCategory(prayer, category) {
 }
 
 export default function DiscoverScreen({ onOpenPrayer }) {
-  const { prayers, loading, error, retry } = usePrayers(true);
+  const { prayers, loading, error, retry } = usePrayers(true, { scope: 'community' });
   const { blockedUids, loading: blocksLoading, error: blocksError, refresh: retryBlocks } = useBlocks(true);
   const feedLoading = loading || blocksLoading;
   const listError = error || blocksError;
