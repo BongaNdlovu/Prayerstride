@@ -182,6 +182,8 @@ describe('data contracts', () => {
     const source = await import('./useIsAdmin.js?raw');
     expect(source.default).toMatch(/export function useIsAdmin/);
     expect(source.default).toMatch(/export function useSuspendedStatus/);
+    expect(source.default).toMatch(/getMyProfile/);
+    expect(source.default).not.toMatch(/onSnapshot/);
   });
 
   it('native hooks do not import web-only libraries', async () => {

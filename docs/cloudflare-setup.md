@@ -85,6 +85,7 @@ npm run d1:migrate:dev
 - `GET /api/me/notifications/stream` — WebSocket on `UserNotificationStream` DO (`ready`, `ping`/`pong`, `invalidate`)
 - Worker calls `invalidateUserNotificationStream` after notification creates/reads (pray, testimony react, suspend, mark read)
 - Mobile: `NotificationStreamGate` connects when signed in; `useNotifications` refetches on `invalidate` (Bearer header or `access_token` query for WebSocket)
+- Mobile admin/suspended checks use `GET /api/me/profile` (Firestore overlays role/suspended fields when D1 is stale)
 
 ## Phase 4 (Firestore → D1 backfill)
 
@@ -93,9 +94,12 @@ Idempotent upserts from Firestore into D1 (skips removed `following` / `encourag
 ```bash
 npm run d1:backfill                              # dry run (writes .d1-backfill/*.sql)
 npm run d1:backfill -- --only=users,prayers      # subset
+npm run d1:backfill -- --only=push_tokens        # Expo/FCM tokens from users/{uid}/devices
 npm run d1:backfill -- --limit=10                # sample for smoke
 npm run d1:backfill:execute                      # apply to local D1
 npm run d1:backfill:remote                       # apply to remote dev D1
 ```
+
+Features: `users`, `prayers`, `calendar`, `notifications`, `push_tokens`.
 
 Requires the same Firebase service-account credentials as purge scripts (`GOOGLE_APPLICATION_CREDENTIALS` or `.env.local`).

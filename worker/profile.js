@@ -35,6 +35,7 @@ export function serializeProfile(profile) {
     role: profile.role || 'user',
     owner: profile.owner === true,
     suspended: profile.suspended === true,
+    suspendedReason: profile.suspendedReason ?? null,
     registrationState: profile.registrationState ?? null,
     communityAccess: profile.communityAccess ?? null,
     dateOfBirth: profile.dateOfBirth ?? null,
@@ -65,11 +66,32 @@ export async function hydrateUserFromFirestore(env, uid, firestoreApi) {
   return getUserByUid(env, uid);
 }
 
+function overlayProfileFromFirestore(profile, firestoreData) {
+  if (!firestoreData) return profile;
+  return {
+    ...profile,
+    role: firestoreData.role || profile.role,
+    owner: firestoreData.owner === true,
+    suspended: firestoreData.suspended === true,
+    suspendedReason: firestoreData.suspendedReason ?? profile.suspendedReason ?? null,
+    registrationState: firestoreData.registrationState ?? profile.registrationState,
+    communityAccess: firestoreData.communityAccess ?? profile.communityAccess,
+  };
+}
+
 export async function getMyProfile(env, user, firestoreApi) {
+  const userDoc = await firestoreApi.getDocument(env, firestoreApi.docName(env, 'users', user.uid));
+  const firestoreData = userDoc.exists
+    ? firestoreApi.fromFirestoreFields(userDoc.fields)
+    : null;
+
   let profile = await getUserByUid(env, user.uid);
-  if (!profile) {
+  if (!profile && firestoreData) {
     profile = await hydrateUserFromFirestore(env, user.uid, firestoreApi);
+  } else if (profile && firestoreData) {
+    profile = overlayProfileFromFirestore(profile, firestoreData);
   }
+
   if (!profile) {
     return { status: 404, body: { error: 'User profile not found.' } };
   }

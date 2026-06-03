@@ -16,22 +16,26 @@ import {
   notificationRow,
   notificationSettingsRow,
 } from '../worker/db/notifications-repository.js';
+import { utcNowIso } from '../worker/db/time.js';
 
-const FEATURES = ['users', 'prayers', 'calendar', 'notifications'];
+const FEATURES = ['users', 'prayers', 'calendar', 'notifications', 'push_tokens'];
 const BATCH_SIZE = 200;
-const WRANGLER_DB = 'prayerstride-db-dev';
-const WRANGLER_ENV = 'development';
+const DEFAULT_WRANGLER_DB = 'prayerstride-db-dev';
+const DEFAULT_WRANGLER_ENV = 'development';
 
 function parseArgs(argv) {
   const execute = argv.includes('--execute');
   const remote = argv.includes('--remote');
+  const production = argv.includes('--production');
   const onlyArg = argv.find((arg) => arg.startsWith('--only='));
   const limitArg = argv.find((arg) => arg.startsWith('--limit='));
   const only = onlyArg
     ? onlyArg.slice('--only='.length).split(',').map((item) => item.trim()).filter(Boolean)
     : FEATURES;
   const limit = limitArg ? Number(limitArg.slice('--limit='.length)) : null;
-  return { execute, remote, only, limit };
+  const wranglerDb = production ? 'prayerstride-db' : DEFAULT_WRANGLER_DB;
+  const wranglerEnv = production ? 'production' : DEFAULT_WRANGLER_ENV;
+  return { execute, remote, production, only, limit, wranglerDb, wranglerEnv };
 }
 
 function userUpsertSql(record) {
@@ -76,6 +80,10 @@ function notificationSettingsUpsertSql(row) {
   return buildUpsertSql('notification_settings', row, 'uid', [
     'prayer_activity', 'testimony_reactions', 'push_enabled', 'announcements', 'updated_at',
   ]);
+}
+
+function pushTokenUpsertSql(row) {
+  return buildUpsertSql('push_tokens', row, 'id', ['uid', 'token', 'platform', 'updated_at']);
 }
 
 async function collectUsers(accessToken, rootPath, limit) {
@@ -157,12 +165,41 @@ async function collectNotifications(accessToken, rootPath, limit) {
   };
 }
 
-function runWranglerExecute(files, remote) {
+async function collectPushTokens(accessToken, rootPath, limit) {
+  const userDocs = await listAllDocuments(accessToken, `${rootPath}/users`);
+  const userSlice = limit ? userDocs.slice(0, limit) : userDocs;
+  const statements = [];
+  let tokenCount = 0;
+  for (const userDoc of userSlice) {
+    const uid = documentId(userDoc.name);
+    const deviceDocs = await listAllDocuments(accessToken, `${userDoc.name}/devices`);
+    for (const deviceDoc of deviceDocs) {
+      const data = fromFirestoreFields(deviceDoc.fields);
+      if (!data.token) continue;
+      statements.push(pushTokenUpsertSql({
+        id: documentId(deviceDoc.name),
+        uid,
+        token: data.token,
+        platform: data.platform || 'android',
+        updated_at: data.updatedAt || utcNowIso(),
+      }));
+      tokenCount += 1;
+    }
+  }
+  return {
+    users: userDocs.length,
+    usersScanned: userSlice.length,
+    tokens: tokenCount,
+    statements,
+  };
+}
+
+function runWranglerExecute(files, remote, wranglerDb, wranglerEnv) {
   for (const file of files) {
     const args = [
-      'wrangler', 'd1', 'execute', WRANGLER_DB,
+      'wrangler', 'd1', 'execute', wranglerDb,
       '--file', file,
-      '--env', WRANGLER_ENV,
+      '--env', wranglerEnv,
     ];
     if (remote) args.push('--remote');
     const result = spawnSync('npx', args, { stdio: 'inherit', shell: true });
@@ -172,7 +209,7 @@ function runWranglerExecute(files, remote) {
   }
 }
 
-const { execute, remote, only, limit } = parseArgs(process.argv);
+const { execute, remote, production, only, limit, wranglerDb, wranglerEnv } = parseArgs(process.argv);
 const invalid = only.filter((feature) => !FEATURES.includes(feature));
 if (invalid.length) {
   throw new Error(`Unknown --only features: ${invalid.join(', ')}. Allowed: ${FEATURES.join(', ')}`);
@@ -183,7 +220,7 @@ const accessToken = await getFirestoreAccessToken({ clientEmail, privateKey });
 const rootPath = `projects/${projectId}/databases/(default)/documents`;
 
 console.log(`Backfill source: Firestore ${projectId} (${source})`);
-console.log(`Target: D1 ${WRANGLER_DB} (${remote ? 'remote' : 'local'}, env ${WRANGLER_ENV})`);
+console.log(`Target: D1 ${wranglerDb} (${remote ? 'remote' : 'local'}, env ${wranglerEnv}${production ? ', production' : ''})`);
 console.log(`Features: ${only.join(', ')}${limit ? `, limit ${limit}` : ''}`);
 
 const summary = {};
@@ -216,6 +253,14 @@ if (only.includes('notifications')) {
   statements.push(...notifications.statements);
 }
 
+if (only.includes('push_tokens')) {
+  const pushTokens = await collectPushTokens(accessToken, rootPath, limit);
+  summary.pushTokenUsers = pushTokens.users;
+  summary.pushTokenUsersScanned = pushTokens.usersScanned;
+  summary.pushTokens = pushTokens.tokens;
+  statements.push(...pushTokens.statements);
+}
+
 summary.sqlStatements = statements.length;
 console.log(JSON.stringify(summary, null, 2));
 
@@ -240,5 +285,5 @@ if (!execute) {
   process.exit(0);
 }
 
-runWranglerExecute(files, remote);
+runWranglerExecute(files, remote, wranglerDb, wranglerEnv);
 console.log('D1 backfill complete.');

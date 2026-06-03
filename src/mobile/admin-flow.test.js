@@ -85,6 +85,6 @@ describe('admin flow', () => {
 
   it('Client admin state excludes suspended profiles', async () => {
     const source = await import('./useIsAdmin.js?raw');
-    expect(source.default).toMatch(/data\?\.role === 'admin' && data\?\.suspended !== true/);
+    expect(source.default).toMatch(/profile\?\.role === 'admin' && profile\?\.suspended !== true/);
   });
 });

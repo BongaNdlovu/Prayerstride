@@ -28,6 +28,7 @@ describe('profile helpers', () => {
       handle: '@alex',
       owner: false,
       suspended: false,
+      suspendedReason: null,
     });
   });
 });

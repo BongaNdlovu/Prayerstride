@@ -15,6 +15,7 @@ crons = ["0 4 * * *"]
 [[d1_databases]]
 binding = "DB"
 database_name = "prayerstride-db"
+database_id = "60aae8a6-3e29-4b86-bbcd-8d9b1cef57c1"
 migrations_dir = "migrations"
 
 [[r2_buckets]]
@@ -29,7 +30,7 @@ bindings = [
 
 [[migrations]]
 tag = "v1"
-new_classes = ["UserNotificationStream", "AdminEventStream"]
+new_sqlite_classes = ["UserNotificationStream", "AdminEventStream"]
 
 [env.development]
 vars = { ENVIRONMENT = "development", API_PUBLIC_URL = "http://127.0.0.1:8787", CORS_ORIGIN = "http://127.0.0.1:8787", ALLOW_DEV_ORIGINS = "true", FIREBASE_PROJECT_ID = "end-of-time-94cd3", FIREBASE_STORAGE_BUCKET = "end-of-time-94cd3.firebasestorage.app" }
@@ -69,11 +70,12 @@ bindings = [
 ]
 
 [env.production]
-vars = { ENVIRONMENT = "production", API_PUBLIC_URL = "https://api.prayerstride.app", CORS_ORIGIN = "https://api.prayerstride.app" }
+vars = { ENVIRONMENT = "production", API_PUBLIC_URL = "https://api.prayerstride.app", CORS_ORIGIN = "https://api.prayerstride.app", FIREBASE_PROJECT_ID = "end-of-time-94cd3", FIREBASE_STORAGE_BUCKET = "end-of-time-94cd3.firebasestorage.app" }
 
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "prayerstride-db"
+database_id = "60aae8a6-3e29-4b86-bbcd-8d9b1cef57c1"
 migrations_dir = "migrations"
 
 [[env.production.r2_buckets]]

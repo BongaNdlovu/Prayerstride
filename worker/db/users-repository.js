@@ -1,7 +1,18 @@
 import { utcNowIso } from './time.js';
 
+function parseMetadataJson(value) {
+  if (!value) return {};
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
 function rowToProfile(row) {
   if (!row) return null;
+  const metadata = parseMetadataJson(row.metadata_json);
   return {
     id: row.uid,
     uid: row.uid,
@@ -13,6 +24,7 @@ function rowToProfile(row) {
     role: row.role || 'user',
     owner: row.owner === 1,
     suspended: row.suspended === 1,
+    suspendedReason: metadata.suspendedReason ?? null,
     registrationState: row.registration_state ?? null,
     communityAccess: row.community_access ?? null,
     dateOfBirth: row.date_of_birth ?? null,
@@ -28,6 +40,14 @@ function rowToProfile(row) {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+}
+
+function moderationMetadata(data = {}) {
+  const metadata = {};
+  if (data.suspendedReason) {
+    metadata.suspendedReason = String(data.suspendedReason).slice(0, 240);
+  }
+  return Object.keys(metadata).length ? JSON.stringify(metadata) : null;
 }
 
 export function profileFromFirestore(uid, data = {}) {
@@ -56,7 +76,7 @@ export function profileFromFirestore(uid, data = {}) {
     deleted_at: data.deletedAt ?? null,
     created_at: data.createdAt || now,
     updated_at: data.updatedAt || now,
-    metadata_json: null,
+    metadata_json: moderationMetadata(data),
   };
 }
 
