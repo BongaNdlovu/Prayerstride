@@ -1,18 +1,16 @@
-import { useMemo } from 'react';
-import { FlatList, StyleSheet, View } from 'react-native';
-import { Award, CheckCircle, Lock, Target } from 'lucide-react-native';
+import { useMemo, useState } from 'react';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Award, CheckCircle, Lock, Star, Target, X } from 'lucide-react-native';
 import { alpha, colors, fonts, radii, spacing } from '../theme';
 import { useGamification } from '../useGamification';
 import ScreenScaffold from '../components/ScreenScaffold';
 import AppHeader from '../components/AppHeader';
-import GlassCard from '../components/GlassCard';
 import Heading from '../components/Heading';
 import BodyText from '../components/BodyText';
-import ProgressRing from '../components/ProgressRing';
 import BadgeTile from '../components/BadgeTile';
 import AsyncState from '../components/AsyncState';
 
-function BadgeSection({ title, subtitle, badges, emptyLabel }) {
+function BadgeSection({ title, subtitle, badges, emptyLabel, onSelectBadge }) {
   return (
     <View style={styles.sectionBlock}>
       <View style={styles.sectionHeader}>
@@ -32,7 +30,7 @@ function BadgeSection({ title, subtitle, badges, emptyLabel }) {
           contentContainerStyle={styles.badgeGrid}
           renderItem={({ item: badge }) => (
             <View key={badge.id} style={styles.gridItem}>
-              <BadgeTile badge={badge} />
+              <BadgeTile badge={badge} onPress={() => onSelectBadge(badge)} />
             </View>
           )}
         />
@@ -46,6 +44,7 @@ function BadgeSection({ title, subtitle, badges, emptyLabel }) {
 }
 
 export default function AchievementsScreen({ user, onBack }) {
+  const [selectedBadge, setSelectedBadge] = useState(null);
   const {
     summary,
     loading,
@@ -93,20 +92,65 @@ export default function AchievementsScreen({ user, onBack }) {
           subtitle="Milestones already added to your walk."
           badges={earnedBadges}
           emptyLabel="No earned badges yet."
+          onSelectBadge={setSelectedBadge}
         />
         <BadgeSection
           title="In Progress"
           subtitle="Badges currently moving forward."
           badges={inProgressBadges}
           emptyLabel="Start a prayer session to begin making progress."
+          onSelectBadge={setSelectedBadge}
         />
         <BadgeSection
           title="Locked"
           subtitle="Future milestones to grow toward."
           badges={lockedBadges}
           emptyLabel="No locked badges."
+          onSelectBadge={setSelectedBadge}
         />
       </AsyncState>
+
+      {selectedBadge ? (
+        <View style={styles.detailOverlay}>
+          <Pressable style={styles.detailBackdrop} onPress={() => setSelectedBadge(null)} accessibilityLabel="Close achievement details" />
+          <View style={styles.detailSheet}>
+            <View style={styles.detailHandle} />
+            <View style={styles.detailHeader}>
+              <Text style={styles.detailTitle}>Achievement</Text>
+              <Pressable onPress={() => setSelectedBadge(null)} style={styles.detailClose} accessibilityLabel="Close achievement details">
+                <X size={18} color={colors.ink} />
+              </Pressable>
+            </View>
+            <View style={styles.detailIconWrap}>
+              {selectedBadge.state === 'earned' ? (
+                <Star size={28} color={colors.gold} fill={colors.gold} />
+              ) : selectedBadge.state === 'locked' ? (
+                <Lock size={26} color={colors.ink3} />
+              ) : (
+                <Award size={28} color={colors.teal} />
+              )}
+            </View>
+            <Heading level="h3" style={styles.detailName}>{selectedBadge.name}</Heading>
+            <BodyText variant="body" style={styles.detailDescription}>{selectedBadge.description}</BodyText>
+            <View style={styles.detailStatusPill}>
+              {selectedBadge.state === 'earned' ? <CheckCircle size={14} color={colors.gold} /> : null}
+              {selectedBadge.state === 'locked' ? <Lock size={14} color={colors.ink3} /> : null}
+              {selectedBadge.state === 'in-progress' ? <Target size={14} color={colors.teal} /> : null}
+              <BodyText variant="caption" style={styles.detailStatusText}>
+                {selectedBadge.state === 'earned' ? 'Earned' : selectedBadge.state === 'locked' ? 'Locked' : 'In progress'}
+              </BodyText>
+            </View>
+            {selectedBadge.state === 'in-progress' ? (
+              <View style={styles.detailProgressWrap}>
+                <View style={styles.detailProgressTrack}>
+                  <View style={[styles.detailProgressFill, { width: `${Math.round(selectedBadge.progress * 100)}%` }]} />
+                </View>
+                <BodyText variant="caption" style={styles.detailProgressText}>{Math.round(selectedBadge.progress * 100)}% complete</BodyText>
+              </View>
+            ) : null}
+          </View>
+        </View>
+      ) : null}
     </ScreenScaffold>
   );
 }
@@ -181,4 +225,71 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
   emptyText: { textAlign: 'center' },
+  detailOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 70,
+    justifyContent: 'flex-end',
+  },
+  detailBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  detailSheet: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: radii.xl,
+    borderTopRightRadius: radii.xl,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.tabBar,
+  },
+  detailHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 4,
+    backgroundColor: colors.surface3,
+    alignSelf: 'center',
+    marginBottom: spacing.lg,
+  },
+  detailHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md },
+  detailTitle: { fontFamily: fonts.displaySemi, fontSize: 18, color: colors.ink },
+  detailClose: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: alpha.ink08,
+  },
+  detailIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: alpha.gold18,
+    marginBottom: spacing.md,
+  },
+  detailName: { marginBottom: spacing.sm },
+  detailDescription: { color: colors.ink2 },
+  detailStatusPill: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    minHeight: 32,
+    borderRadius: radii.pill,
+    paddingHorizontal: spacing.md,
+    backgroundColor: alpha.ink06,
+    marginTop: spacing.lg,
+  },
+  detailStatusText: { color: colors.ink, fontFamily: fonts.sansSemiBold },
+  detailProgressWrap: { marginTop: spacing.lg, gap: spacing.sm },
+  detailProgressTrack: {
+    height: 6,
+    borderRadius: 3,
+    overflow: 'hidden',
+    backgroundColor: alpha.ink10,
+  },
+  detailProgressFill: { height: 6, borderRadius: 3, backgroundColor: colors.teal },
+  detailProgressText: { color: colors.ink3 },
 });

@@ -5,6 +5,7 @@ import {
   ChevronRight,
   Clock,
   Flame,
+  Footprints,
   Heart,
   Megaphone,
   Settings,
@@ -23,7 +24,6 @@ import GlassCard from '../components/GlassCard';
 import Heading from '../components/Heading';
 import BodyText from '../components/BodyText';
 import StatCard from '../components/StatCard';
-import ProgressRing from '../components/ProgressRing';
 import AsyncState from '../components/AsyncState';
 import PrimaryButton from '../components/PrimaryButton';
 
@@ -94,7 +94,7 @@ export default function ProfileScreen({ user, signOut, go }) {
         <Heading level="h3" style={styles.name}>{displayName}</Heading>
         {handle ? <BodyText variant="small" style={styles.handle}>@{handle.replace(/^@/, '')}</BodyText> : null}
         <View style={styles.rankPill}>
-          <FootprintsIconSmall />
+          <Footprints size={11} color={colors.goldLight} />
           <BodyText variant="caption" style={styles.rankPillText}>{gamified.journey?.title || 'Prayer Strider'}</BodyText>
         </View>
         {bio ? <BodyText variant="body" style={styles.bio}>{bio}</BodyText> : (
@@ -210,14 +210,6 @@ export default function ProfileScreen({ user, signOut, go }) {
   );
 }
 
-function FootprintsIconSmall() {
-  return (
-    <View style={{ width: 9, height: 9 }}>
-      <Text style={{ fontSize: 9, color: colors.goldLight }}>👟</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   gearBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   profileCard: { alignItems: 'center', marginTop: spacing.sm, marginBottom: spacing.lg },
@@ -306,3 +298,4 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.92 },
 });
+

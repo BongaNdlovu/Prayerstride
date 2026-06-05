@@ -7,14 +7,13 @@ import Animated, {
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
-import { CheckCircle, Pause, Play, RotateCcw, Timer } from 'lucide-react-native';
+import { ArrowLeft, CheckCircle, Pause, Play, RotateCcw, Timer } from 'lucide-react-native';
 import { colors, fonts, radii, sharedStyles, spacing, typography } from '../theme';
 import { XP_AWARDS } from '../gamification';
 import { addPrayer } from '../usePrayerData';
 import { addPrayerSession } from '../usePrayerSessions';
 import { bumpGamificationRefresh } from '../gamificationRefresh';
 import ScreenScaffold from '../components/ScreenScaffold';
-import AppHeader from '../components/AppHeader';
 import GlassCard from '../components/GlassCard';
 import BodyText from '../components/BodyText';
 import PrimaryButton from '../components/PrimaryButton';
@@ -37,7 +36,7 @@ function formatTime(totalSeconds) {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, user, onDone, onBack }) {
+export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, prayer, user, onDone, onBack }) {
   const [running, setRunning] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -49,6 +48,10 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, us
   const pulse = useSharedValue(1);
   const isDirectPrivateSession = !prayerId;
   const sessionTitle = prayerTitle || privateTitle.trim() || 'Private prayer session';
+  const prayerAuthor = prayer?.authorName || prayer?.name || 'Community member';
+  const prayerInitial = prayerAuthor.slice(0, 1).toUpperCase();
+  const prayerBody = prayer?.body || prayer?.text || 'Hold this prayer with care and attention.';
+  const prayerVerse = prayer?.scriptureRef || prayer?.verse || prayer?.category;
   const timerProgress = presetSeconds > 0
     ? Math.min(seconds / presetSeconds, 1)
     : (seconds % 300) / 300;
@@ -150,7 +153,19 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, us
 
   return (
     <ScreenScaffold pageContent style={styles.screen} contentStyle={styles.content}>
-      <AppHeader centered showLogo title="Prayer Timer" subtitle={isDirectPrivateSession ? 'Private session' : sessionTitle} onBack={onBack} />
+      <View style={styles.timerGlow} />
+      <View style={styles.timerNoise} />
+      <View style={styles.particleOne} />
+      <View style={styles.particleTwo} />
+      <View style={styles.particleThree} />
+
+      <View style={styles.timerHeader}>
+        <Pressable onPress={onBack} style={styles.timerBack} accessibilityRole="button" accessibilityLabel="Back">
+          <ArrowLeft size={18} color="rgba(255,255,255,0.82)" />
+        </Pressable>
+        <Text style={styles.timerTitleText}>Prayer Timer</Text>
+        <View style={styles.timerHeaderSpacer} />
+      </View>
 
       {isDirectPrivateSession ? (
         <GlassCard style={styles.privateCard}>
@@ -166,7 +181,21 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, us
               This creates a private prayer and attaches this stopwatch session to it.
             </BodyText>
         </GlassCard>
-      ) : null}
+      ) : (
+        <View style={styles.timerContextCard}>
+          <View style={styles.timerContextUser}>
+            <View style={styles.timerContextAvatar}>
+              <Text style={styles.timerContextAvatarText}>{prayerInitial}</Text>
+            </View>
+            <View>
+              <Text style={styles.timerContextName}>{prayerAuthor}</Text>
+              <Text style={styles.timerContextTime}>Prayer focus</Text>
+            </View>
+          </View>
+          <Text style={styles.timerContextText} numberOfLines={4}>{prayerBody}</Text>
+          {prayerVerse ? <Text style={styles.timerContextVerse}>{prayerVerse}</Text> : null}
+        </View>
+      )}
 
       <View style={styles.timerPanel}>
         <View style={styles.panelHeader}>
@@ -259,9 +288,108 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, us
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.night },
   content: { paddingBottom: spacing.tabBar },
+  timerGlow: {
+    position: 'absolute',
+    top: -80,
+    alignSelf: 'center',
+    width: 320,
+    height: 320,
+    borderRadius: 160,
+    backgroundColor: 'rgba(42,140,126,0.16)',
+  },
+  timerNoise: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255,255,255,0.015)',
+  },
+  particleOne: {
+    position: 'absolute',
+    top: 118,
+    left: 42,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(212,170,106,0.38)',
+  },
+  particleTwo: {
+    position: 'absolute',
+    top: 208,
+    right: 56,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(59,173,160,0.42)',
+  },
+  particleThree: {
+    position: 'absolute',
+    bottom: 164,
+    left: 70,
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.24)',
+  },
+  timerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
+  },
+  timerBack: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+  },
+  timerTitleText: {
+    color: 'rgba(255,255,255,0.90)',
+    fontFamily: fonts.displaySemi,
+    fontSize: 15,
+  },
+  timerHeaderSpacer: { width: 36 },
   privateCard: { marginBottom: spacing.md },
   input: { alignSelf: 'stretch', marginTop: 0 },
   privateNote: { marginTop: spacing.sm, textAlign: 'center' },
+  timerContextCard: {
+    marginBottom: spacing.lg,
+    borderRadius: radii.lg,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+  },
+  timerContextUser: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 11 },
+  timerContextAvatar: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  timerContextAvatarText: { color: colors.white, fontFamily: fonts.sansExtraBold, fontSize: 14 },
+  timerContextName: { color: colors.white, fontFamily: fonts.sansSemiBold, fontSize: 13 },
+  timerContextTime: { color: 'rgba(255,255,255,0.45)', fontFamily: fonts.sans, fontSize: 11, marginTop: 1 },
+  timerContextText: {
+    color: 'rgba(255,255,255,0.80)',
+    fontFamily: fonts.sans,
+    fontSize: 13,
+    lineHeight: 21,
+  },
+  timerContextVerse: {
+    marginTop: 8,
+    color: colors.tealLight,
+    fontFamily: fonts.sansSemiBold,
+    fontSize: 10.5,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
   timerPanel: {
     borderRadius: radii.xl,
     padding: spacing.xl,

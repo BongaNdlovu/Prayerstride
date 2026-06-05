@@ -172,15 +172,15 @@ function renderScreen({ screen, params, user, suspended, suspendedReason, signIn
   }
 
   switch (screen) {
-    case 'home': return <HomeScreen onOpenPrayer={(p) => goFn('detail', { prayer: p })} go={goFn} />;
+    case 'home': return <HomeScreen user={user} onOpenPrayer={(p) => goFn('detail', { prayer: p })} go={goFn} />;
     case 'leaderboard': return <LeaderboardScreen user={user} onBack={() => backFn('home')} />;
     case 'stride': return <MyStatsScreen user={user} go={goFn} onBack={() => backFn('profile')} />;
     case 'profile': return <ProfileScreen user={user} signOut={signOut} go={goFn} />;
     case 'detail': return params.prayer
       ? <PrayerDetailScreen prayer={params.prayer} user={user} onBack={() => backFn('home')} go={goFn} />
       : <PlaceholderScreen screen="Prayer unavailable" onBack={() => backFn('home')} />;
-    case 'timer': return <PrayerStopwatchScreen prayerId={params.prayerId} title={params.title} user={user} onBack={() => backFn('home')} onDone={() => backFn('stride')} />;
-    case 'prayerStopwatch': return <PrayerStopwatchScreen prayerId={params.prayerId} title={params.title} user={user} onBack={() => backFn('home')} onDone={() => backFn('stride')} />;
+    case 'timer': return <PrayerStopwatchScreen prayerId={params.prayerId} title={params.title} prayer={params.prayer} user={user} onBack={() => backFn('home')} onDone={() => backFn('stride')} />;
+    case 'prayerStopwatch': return <PrayerStopwatchScreen prayerId={params.prayerId} title={params.title} prayer={params.prayer} user={user} onBack={() => backFn('home')} onDone={() => backFn('stride')} />;
     case 'settings': return <SettingsScreen user={user} go={goFn} deleteAccount={deleteAccount} onBack={() => backFn('profile')} />;
     case 'editProfile': return <EditProfileScreen user={user} onBack={() => backFn('profile')} onDone={() => backFn('profile')} />;
     case 'notifications': return <NotificationsScreen user={user} onBack={() => backFn('profile')} />;

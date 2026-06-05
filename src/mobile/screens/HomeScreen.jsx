@@ -15,6 +15,7 @@ import {
   Sparkles,
   Timer,
   Trophy,
+  Footprints,
   X,
 } from 'lucide-react-native';
 import { alpha, colors, fonts, radii, shadow, spacing } from '../theme';
@@ -70,13 +71,6 @@ function prayerMatchesQuery(prayer, query) {
     prayer.scriptureRef,
     prayer.verse,
   ].filter(Boolean).some((value) => String(value).toLowerCase().includes(q));
-}
-
-function greeting() {
-  const hour = new Date().getHours();
-  if (hour < 12) return 'Good morning';
-  if (hour < 17) return 'Good afternoon';
-  return 'Good evening';
 }
 
 function dailyVerse() {
@@ -213,7 +207,7 @@ function XPProgressPanel({ summary }) {
   );
 }
 
-export default function HomeScreen({ onOpenPrayer, go }) {
+export default function HomeScreen({ user, onOpenPrayer, go }) {
   const feedback = useAppFeedback();
   const uid = auth.currentUser?.uid;
   const { prayers, loading: prayersLoading, error: prayersError, retry: retryPrayers } = usePrayers(true);
@@ -242,6 +236,7 @@ export default function HomeScreen({ onOpenPrayer, go }) {
     [prayers, blockedUids, blocksLoading],
   );
   const currentPrayer = visiblePrayers[clampIndex(currentFeedIndex, visiblePrayers.length)];
+  const userInitial = (user?.displayName || user?.email || 'P').slice(0, 1).toUpperCase();
   const searchResults = useMemo(
     () => visiblePrayers
       .map((prayer, index) => ({ prayer, index }))
@@ -369,9 +364,11 @@ export default function HomeScreen({ onOpenPrayer, go }) {
   return (
     <ScreenScaffold pageContent>
       <View style={styles.topBar}>
-        <View>
-          <BodyText variant="caption" style={styles.greeting}>{greeting()}</BodyText>
-          <Heading level="h2" style={styles.headline}>Who can you carry in prayer today?</Heading>
+        <View style={styles.brand}>
+          <View style={styles.brandMark}>
+            <Footprints size={16} color={colors.white} />
+          </View>
+          <Heading level="h3" style={styles.brandName}>PrayerStride</Heading>
         </View>
         <View style={styles.headerActions}>
           <Pressable onPress={() => setSearchOpen(true)} style={styles.headerIconBtn} accessibilityLabel="Search prayers">
@@ -385,6 +382,12 @@ export default function HomeScreen({ onOpenPrayer, go }) {
           </Pressable>
           <Pressable onPress={() => go('notifications')} style={styles.headerIconBtn} accessibilityRole="button" accessibilityLabel="Notifications">
             <Bell size={20} color={colors.ink} />
+            <View style={styles.notifDot} />
+          </Pressable>
+          <Pressable onPress={() => go('profile')} style={styles.avatarRing} accessibilityRole="button" accessibilityLabel="Profile">
+            <View style={styles.headerAvatar}>
+              <Text style={styles.headerAvatarText}>{userInitial}</Text>
+            </View>
           </Pressable>
         </View>
       </View>
@@ -399,7 +402,7 @@ export default function HomeScreen({ onOpenPrayer, go }) {
               saved={savedPrayerIds.has(currentPrayer.id)}
               prayed={prayedPrayerIds.has(currentPrayer.id)}
               canUpdate={currentPrayer.authorUid === uid}
-              onPray={() => go('timer', { prayerId: currentPrayer.id, title: currentPrayer.title })}
+              onPray={() => go('timer', { prayerId: currentPrayer.id, title: currentPrayer.title, prayer: currentPrayer })}
               onAmen={() => handleAmen(currentPrayer)}
               onSave={() => handleSave(currentPrayer)}
               onMore={() => onOpenPrayer(currentPrayer)}
@@ -554,11 +557,66 @@ export default function HomeScreen({ onOpenPrayer, go }) {
 }
 
 const styles = StyleSheet.create({
-  topBar: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: spacing.lg, paddingTop: spacing.sm },
-  greeting: { color: colors.gold, marginBottom: spacing.xs, letterSpacing: 1 },
-  headline: { fontSize: 26, lineHeight: 32, maxWidth: 280 },
-  headerActions: { flexDirection: 'row', gap: spacing.xs },
-  headerIconBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: alpha.ink08 },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
+    paddingTop: spacing.sm,
+  },
+  brand: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+  brandMark: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.gold,
+    ...shadow.gold,
+  },
+  brandName: {
+    fontSize: 20,
+    lineHeight: 25,
+    color: colors.ink,
+  },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  headerIconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface2,
+    borderWidth: 1,
+    borderColor: colors.border,
+    position: 'relative',
+  },
+  notifDot: {
+    position: 'absolute',
+    top: 7,
+    right: 7,
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: colors.redSoft,
+    borderWidth: 1,
+    borderColor: colors.surface2,
+  },
+  avatarRing: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    padding: 2,
+    backgroundColor: colors.gold,
+  },
+  headerAvatar: {
+    flex: 1,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
+  },
+  headerAvatarText: { color: colors.gold, fontFamily: fonts.sansExtraBold, fontSize: 13 },
   progressStack: { gap: spacing.sm, marginBottom: spacing.lg },
   xpBarWrap: {
     paddingHorizontal: 0,

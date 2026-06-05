@@ -51,14 +51,31 @@ describe('HTML design parity', () => {
     expect(source.default).toMatch(/verseCard/);
   });
 
-  it('PrayerStopwatchScreen uses night background', async () => {
+  it('HomeScreen uses the HTML brand header shape', async () => {
+    const source = await import('./screens/HomeScreen.jsx?raw');
+    expect(source.default).toMatch(/brandMark/);
+    expect(source.default).toMatch(/PrayerStride/);
+    expect(source.default).toMatch(/notifDot/);
+    expect(source.default).toMatch(/avatarRing/);
+    expect(source.default).not.toMatch(/Who can you carry in prayer today/);
+  });
+
+  it('PrayerStopwatchScreen uses immersive HTML timer treatment', async () => {
     const source = await import('./screens/PrayerStopwatchScreen.jsx?raw');
     expect(source.default).toMatch(/backgroundColor:\s*colors\.night/);
+    expect(source.default).toMatch(/timerGlow/);
+    expect(source.default).toMatch(/timerNoise/);
+    expect(source.default).toMatch(/particleOne/);
+    expect(source.default).toMatch(/timerContextCard/);
+    expect(source.default).toMatch(/timerContextAvatar/);
+    expect(source.default).toMatch(/timerContextVerse/);
   });
 
   it('ProfileScreen has dark level card', async () => {
     const source = await import('./screens/ProfileScreen.jsx?raw');
     expect(source.default).toMatch(/colors\.night/);
+    expect(source.default).toMatch(/Footprints/);
+    expect(source.default).not.toMatch(/FootprintsIconSmall/);
   });
 
   it('LeaderboardScreen uses night tab active state', async () => {
@@ -69,6 +86,16 @@ describe('HTML design parity', () => {
   it('AchievementsScreen has dark achievement banner', async () => {
     const source = await import('./screens/AchievementsScreen.jsx?raw');
     expect(source.default).toMatch(/achBanner[\s\S]*colors\.night/);
+    expect(source.default).toMatch(/selectedBadge/);
+    expect(source.default).toMatch(/detailOverlay/);
+    expect(source.default).toMatch(/detailSheet/);
+    expect(source.default).toMatch(/detailHandle/);
+  });
+
+  it('legal copy names the active HTML parity fonts', async () => {
+    const source = await import('./screens/CopyrightScreen.jsx?raw');
+    expect(source.default).toMatch(/Playfair Display and DM Sans fonts/);
+    expect(source.default).not.toMatch(/Sora and Inter fonts/);
   });
 
   it('AppFeedbackProvider uses HTML palette for celebration', async () => {
