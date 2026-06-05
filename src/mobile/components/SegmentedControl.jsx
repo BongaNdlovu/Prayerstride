@@ -17,7 +17,7 @@ export default function SegmentedControl({ options, value, onChange, style }) {
             accessibilityState={{ selected: value === option.value }}
             style={[styles.segment, selected && styles.segmentActive]}
           >
-            {Icon ? <Icon size={16} color={selected ? colors.navy : colors.textMuted} /> : null}
+            {Icon ? <Icon size={16} color={selected ? colors.teal : colors.ink3} /> : null}
             <Text style={[styles.label, selected && styles.labelActive]}>{option.label}</Text>
             {option.subtext ? (
               <BodyText variant="caption" style={[styles.subtext, selected && styles.subtextActive]}>
@@ -43,23 +43,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.xs,
-    borderRadius: radii.md,
+    borderRadius: radii.sm,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.white,
     gap: 4,
   },
   segmentActive: {
-    borderColor: colors.navy,
-    backgroundColor: alpha.navy08,
+    borderColor: colors.teal,
+    backgroundColor: alpha.teal08,
   },
   label: {
     fontFamily: fonts.sansSemiBold,
     fontSize: 12,
-    color: colors.textMuted,
+    color: colors.ink3,
     textAlign: 'center',
   },
-  labelActive: { color: colors.navy },
+  labelActive: { color: colors.teal },
   subtext: { fontSize: 10, textAlign: 'center' },
-  subtextActive: { color: colors.textSecondary },
+  subtextActive: { color: colors.ink2 },
 });

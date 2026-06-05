@@ -3,9 +3,10 @@ import { describe, expect, it } from 'vitest';
 describe('profile settings', () => {
   it('ProfileScreen includes routes to required major sections', async () => {
     const source = await import('./screens/ProfileScreen.jsx?raw');
-    expect(source.default).toMatch(/myPrayers/);
-    expect(source.default).toMatch(/answeredPrayers/);
-    expect(source.default).toMatch(/myStats/);
+    expect(source.default).toMatch(/stride/);
+    expect(source.default).toMatch(/leaderboard/);
+    expect(source.default).toMatch(/achievements/);
+    expect(source.default).toMatch(/reminderSettings/);
     expect(source.default).toMatch(/settings/);
     expect(source.default).toMatch(/notifications/);
   });
@@ -19,6 +20,7 @@ describe('profile settings', () => {
     expect(source.default).not.toMatch(/firebase\/storage/);
     expect(source.default).not.toMatch(/showOnEncouragementBoard/);
     expect(source.default).toMatch(/expo-image-picker/);
+    expect(source.default).not.toMatch(/MediaTypeOptions/);
     expect(source.default).toMatch(/changePassword/);
     expect(source.default).toMatch(/resetPassword/);
     expect(source.default).toMatch(/handle/);
@@ -65,8 +67,8 @@ describe('profile settings', () => {
     expect(source.default).not.toMatch(/window\.confirm/);
   });
 
-  it('Support donation text remains disabled', async () => {
-    const source = await import('./screens/SupportDonationScreen.jsx?raw');
-    expect(source.default).toMatch(/not enabled yet/);
+  it('Support donation is removed from prototype navigation', async () => {
+    const app = await import('../../app/index.jsx?raw');
+    expect(app.default).not.toMatch(/case 'support'/);
   });
 });

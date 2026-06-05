@@ -2,8 +2,6 @@ import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   Award,
   BarChart3,
-  BookOpen,
-  Calendar,
   ChevronRight,
   Clock,
   Flame,
@@ -14,7 +12,6 @@ import {
   Trophy,
   User,
   Users,
-  Zap,
 } from 'lucide-react-native';
 import { alpha, colors, fonts, radii, spacing } from '../theme';
 import { XP_PER_LEVEL } from '../gamification';
@@ -31,28 +28,24 @@ import AsyncState from '../components/AsyncState';
 import PrimaryButton from '../components/PrimaryButton';
 
 const PROFILE_ROUTES = {
-  myStats: 'myStats',
-  myPrayers: 'myPrayers',
-  answeredPrayers: 'answeredPrayers',
+  stride: 'stride',
   reminderSettings: 'reminderSettings',
   notifications: 'notifications',
   settings: 'settings',
+  leaderboard: 'leaderboard',
+  achievements: 'achievements',
 };
 
 const QUICK_LINKS = [
-  { label: 'My Stats', route: PROFILE_ROUTES.myStats, icon: BarChart3 },
-  { label: 'Prayer Requests', route: PROFILE_ROUTES.myPrayers, icon: Heart },
+  { label: 'Stride', route: PROFILE_ROUTES.stride, icon: BarChart3 },
+  { label: 'Ranks', route: PROFILE_ROUTES.leaderboard, icon: Users },
   { label: 'Prayer Times', route: PROFILE_ROUTES.reminderSettings, icon: Clock },
-  { label: 'Testimonies', route: PROFILE_ROUTES.answeredPrayers, icon: Sparkles },
+  { label: 'Achievements', route: PROFILE_ROUTES.achievements, icon: Sparkles },
 ];
 
 const MORE_LINKS = [
   { label: 'Edit Profile', route: 'editProfile', icon: User },
-  { label: 'Devotions', route: 'devotions', icon: BookOpen },
-  { label: 'Calendar', route: 'calendar', icon: Calendar },
-  { label: 'Achievements', route: 'achievements', icon: Trophy },
   { label: 'Announcements', route: 'announcements', icon: Megaphone },
-  { label: 'Quick Actions', route: 'quickActions', icon: Zap },
 ];
 
 export default function ProfileScreen({ user, signOut, go }) {
@@ -82,7 +75,7 @@ export default function ProfileScreen({ user, signOut, go }) {
         title="Profile"
         rightAction={(
           <Pressable onPress={() => go(PROFILE_ROUTES.settings)} style={styles.gearBtn} accessibilityLabel="Settings">
-            <Settings size={20} color={colors.navy} />
+            <Settings size={20} color={colors.ink} />
           </Pressable>
         )}
       />
@@ -100,6 +93,10 @@ export default function ProfileScreen({ user, signOut, go }) {
         </View>
         <Heading level="h3" style={styles.name}>{displayName}</Heading>
         {handle ? <BodyText variant="small" style={styles.handle}>@{handle.replace(/^@/, '')}</BodyText> : null}
+        <View style={styles.rankPill}>
+          <FootprintsIconSmall />
+          <BodyText variant="caption" style={styles.rankPillText}>{gamified.journey?.title || 'Prayer Strider'}</BodyText>
+        </View>
         {bio ? <BodyText variant="body" style={styles.bio}>{bio}</BodyText> : (
           <BodyText variant="caption" style={styles.bio}>{user?.email || ''}</BodyText>
         )}
@@ -119,30 +116,35 @@ export default function ProfileScreen({ user, signOut, go }) {
         </View>
       ) : null}
 
-      <GlassCard style={styles.levelCard}>
-        <View style={styles.levelRow}>
-          <ProgressRing progress={gamified.levelInfo.progress} size={72} strokeWidth={6} accent={colors.gold}>
-            <Award size={22} color={colors.gold} />
-          </ProgressRing>
-          <View style={styles.levelCopy}>
-            <Heading level="eyebrow">Level {gamified.levelInfo.level}</Heading>
-            <Heading level="h4">{gamified.totalXP} XP total</Heading>
-            <View style={styles.levelBar}>
-              <View style={[styles.levelFill, { width: `${Math.round(gamified.levelInfo.progress * 100)}%` }]} />
+      <View style={styles.levelCard}>
+        <View style={styles.levelCardRow}>
+          <View style={styles.levelRank}>
+            <Award size={22} color={colors.goldLight} />
+            <View>
+              <BodyText variant="caption" style={styles.levelRankLabel}>Current Rank</BodyText>
+              <Heading level="h4" style={styles.levelRankName}>{gamified.journey?.title || 'Prayer Strider'}</Heading>
             </View>
-            <BodyText variant="caption">
-              {gamified.levelInfo.xpIntoLevel}/{XP_PER_LEVEL} XP · {earnedBadges} badges earned
-            </BodyText>
+          </View>
+          <View style={styles.levelXpCol}>
+            <Heading level="stat" style={styles.levelXpTotal}>{gamified.totalXP.toLocaleString()}</Heading>
+            <BodyText variant="caption" style={styles.levelXpLabel}>Total XP</BodyText>
           </View>
         </View>
-      </GlassCard>
+        <View style={styles.levelBarLabel}>
+          <BodyText variant="caption">Level {gamified.levelInfo.level}</BodyText>
+          <BodyText variant="caption">{gamified.levelInfo.xpIntoLevel} / {XP_PER_LEVEL} XP to Level {gamified.levelInfo.level + 1}</BodyText>
+        </View>
+        <View style={styles.levelBar}>
+          <View style={[styles.levelBarFill, { width: `${Math.round(gamified.levelInfo.progress * 100)}%` }]} />
+        </View>
+      </View>
 
       <View style={styles.statsGrid}>
-        <StatCard icon={Flame} value={String(gamified.streak)} label="Day Streak" sublabel="Keep going" accent={colors.coral} style={styles.statCard} />
-        <StatCard icon={BarChart3} value={String(impact.prayerSessions || 0)} label="Sessions" accent={colors.emerald} style={styles.statCard} />
+        <StatCard icon={Flame} value={String(gamified.streak)} label="Day Streak" sublabel="Keep going" accent={colors.redSoft} style={styles.statCard} />
+        <StatCard icon={BarChart3} value={String(impact.prayerSessions || 0)} label="Sessions" accent={colors.teal} style={styles.statCard} />
         <StatCard icon={Users} value={String(impact.peoplePrayedFor || 0)} label="Prayers Carried" accent={colors.community} style={styles.statCard} />
         <StatCard icon={Heart} value={String(impact.answeredPrayers || 0)} label="Answered Prayers" accent={colors.violet} style={styles.statCard} />
-        <StatCard icon={Trophy} value={String(earnedBadges)} label="Badges" accent={colors.navy} style={styles.statCard} />
+        <StatCard icon={Trophy} value={String(earnedBadges)} label="Badges" accent={colors.gold} style={styles.statCard} />
       </View>
 
       <Heading level="h4" style={styles.sectionTitle}>Quick Links</Heading>
@@ -157,11 +159,11 @@ export default function ProfileScreen({ user, signOut, go }) {
             >
               <View style={styles.menuLeft}>
                 <View style={styles.menuIcon}>
-                  <Icon size={18} color={colors.navy} />
+                  <Icon size={18} color={colors.ink} />
                 </View>
                 <BodyText variant="label">{item.label}</BodyText>
               </View>
-              <ChevronRight size={18} color={colors.textMuted} />
+              <ChevronRight size={18} color={colors.ink3} />
             </Pressable>
           );
         })}
@@ -179,11 +181,11 @@ export default function ProfileScreen({ user, signOut, go }) {
             >
               <View style={styles.menuLeft}>
                 <View style={styles.menuIcon}>
-                  <Icon size={18} color={colors.navy} />
+                  <Icon size={18} color={colors.ink} />
                 </View>
                 <BodyText variant="label">{item.label}</BodyText>
               </View>
-              <ChevronRight size={18} color={colors.textMuted} />
+              <ChevronRight size={18} color={colors.ink3} />
             </Pressable>
           );
         })}
@@ -191,11 +193,11 @@ export default function ProfileScreen({ user, signOut, go }) {
           <Pressable onPress={() => go('adminDashboard')} style={({ pressed }) => [styles.menuItem, styles.menuItemLast, pressed && styles.pressed]}>
             <View style={styles.menuLeft}>
               <View style={styles.menuIcon}>
-                <Settings size={18} color={colors.navy} />
+                <Settings size={18} color={colors.ink} />
               </View>
               <BodyText variant="label">Admin Dashboard</BodyText>
             </View>
-            <ChevronRight size={18} color={colors.textMuted} />
+            <ChevronRight size={18} color={colors.ink3} />
           </Pressable>
         ) : null}
       </GlassCard>
@@ -208,6 +210,14 @@ export default function ProfileScreen({ user, signOut, go }) {
   );
 }
 
+function FootprintsIconSmall() {
+  return (
+    <View style={{ width: 9, height: 9 }}>
+      <Text style={{ fontSize: 9, color: colors.goldLight }}>👟</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   gearBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   profileCard: { alignItems: 'center', marginTop: spacing.sm, marginBottom: spacing.lg },
@@ -215,31 +225,53 @@ const styles = StyleSheet.create({
   avatar: {
     width: 88,
     height: 88,
-    borderRadius: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: alpha.gold22,
   },
-  avatarImage: { width: 88, height: 88, borderRadius: 44 },
+  avatarImage: { width: 88, height: 88, borderRadius: 22 },
   avatarText: { fontFamily: fonts.sansExtraBold, fontSize: 32, color: colors.gold },
   name: { textAlign: 'center' },
-  handle: { marginTop: spacing.xs, color: colors.textMuted, textAlign: 'center' },
+  handle: { marginTop: spacing.xs, color: colors.ink3, textAlign: 'center' },
+  rankPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: colors.night,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: radii.pill,
+    marginTop: spacing.xs,
+    marginBottom: spacing.xs,
+  },
+  rankPillText: { color: colors.goldLight, fontFamily: fonts.sansSemiBold, fontSize: 10.5 },
   bio: { marginTop: spacing.md, textAlign: 'center', maxWidth: 280 },
   statsErrorRow: { marginBottom: spacing.md, alignItems: 'center', gap: spacing.sm },
-  statsError: { color: colors.coral, textAlign: 'center' },
+  statsError: { color: colors.redSoft, textAlign: 'center' },
   statsRetryButton: { minHeight: 36, paddingHorizontal: spacing.lg },
-  levelCard: { marginBottom: spacing.lg },
-  levelRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
-  levelCopy: { flex: 1 },
-  levelBar: {
-    marginTop: spacing.sm,
-    marginBottom: spacing.xs,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: alpha.navy10,
+  levelCard: {
+    marginBottom: spacing.lg,
+    backgroundColor: colors.night,
+    borderRadius: radii.xl,
+    padding: spacing.xl,
     overflow: 'hidden',
   },
-  levelFill: { height: 6, borderRadius: 3, backgroundColor: colors.gold },
+  levelCardRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md },
+  levelRank: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  levelRankLabel: { color: 'rgba(255,255,255,0.50)', fontFamily: fonts.sansExtraBold, letterSpacing: 1, textTransform: 'uppercase' },
+  levelRankName: { color: colors.goldLight },
+  levelXpCol: { alignItems: 'flex-end' },
+  levelXpTotal: { color: colors.white, fontSize: 24 },
+  levelXpLabel: { color: 'rgba(255,255,255,0.40)' },
+  levelBarLabel: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 },
+  levelBar: {
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    overflow: 'hidden',
+  },
+  levelBarFill: { height: 5, borderRadius: 3, backgroundColor: colors.goldLight },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.lg },
   statCard: { minWidth: '46%' },
   sectionTitle: { marginBottom: spacing.sm },
@@ -265,12 +297,12 @@ const styles = StyleSheet.create({
   signOutButton: {
     marginTop: spacing.xl,
     minHeight: 52,
-    borderRadius: radii.lg,
+    borderRadius: radii.sm,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.surfaceMuted,
+    backgroundColor: colors.surface2,
   },
   pressed: { opacity: 0.92 },
 });

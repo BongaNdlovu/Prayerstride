@@ -5,7 +5,8 @@
     "version": "1.0.0",
     "platforms": [
       "ios",
-      "android"
+      "android",
+      "web"
     ],
     "runtimeVersion": "1.0.0",
     "updates": {

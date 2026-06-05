@@ -2,7 +2,7 @@ import 'react-native-gesture-handler';
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { ActivityIndicator, ErrorUtils, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '../src/mobile/AuthProvider';
 import { NotificationStreamGate } from '../src/mobile/NotificationStreamGate';
@@ -13,13 +13,14 @@ import { error as logError, warn } from '../src/mobile/logger';
 
 function GlobalErrorHandler() {
   useEffect(() => {
-    const previousHandler = ErrorUtils.getGlobalHandler?.();
-    ErrorUtils.setGlobalHandler((error, isFatal) => {
+    const errorUtils = globalThis.ErrorUtils;
+    const previousHandler = errorUtils?.getGlobalHandler?.();
+    errorUtils?.setGlobalHandler?.((error, isFatal) => {
       logError(isFatal ? 'Fatal error' : 'Unhandled error', error);
       previousHandler?.(error, isFatal);
     });
     return () => {
-      if (previousHandler) ErrorUtils.setGlobalHandler(previousHandler);
+      if (previousHandler) errorUtils?.setGlobalHandler?.(previousHandler);
     };
   }, []);
   return null;
@@ -36,7 +37,7 @@ function FontGate({ children }) {
   if (!loaded) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator color={colors.navy} size="large" />
+        <ActivityIndicator color={colors.teal} size="large" />
       </View>
     );
   }
@@ -62,5 +63,5 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.screen },
+  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
 });

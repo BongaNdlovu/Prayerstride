@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { ChevronRight, Clock, Flame, Heart, Send, Users } from 'lucide-react-native';
-import { colors, spacing } from '../theme';
+import { Clock, Flame, Footprints, Heart, Send, Users } from 'lucide-react-native';
+import { colors, radii, spacing } from '../theme';
 import { usePrayers } from '../usePrayerData';
 import { usePrayerSessions } from '../usePrayerSessions';
 import { useTestimonies } from '../usePrayerData';
@@ -55,9 +55,9 @@ export default function MyStatsScreen({ user, onBack, go }) {
             </Heading>
             <BodyText variant="small">Walking with God, one day at a time.</BodyText>
           </View>
-          <ProgressRing progress={streakProgress} size={96} strokeWidth={7} accent={colors.coral}>
+          <ProgressRing progress={streakProgress} size={96} strokeWidth={7} accent={colors.redSoft}>
             <View style={styles.ringCenter}>
-              <Flame size={22} color={colors.coral} />
+              <Flame size={22} color={colors.redSoft} />
               <Heading level="h4" style={styles.ringValue}>{streak}</Heading>
             </View>
           </ProgressRing>
@@ -84,34 +84,35 @@ export default function MyStatsScreen({ user, onBack, go }) {
         <StatCard icon={Users} value={`${sessions.length}`} label="prayer sessions" />
       </View>
 
-      <GlassCard style={styles.timeCard}>
-        <View style={styles.streakRow}>
-          <View style={styles.streakInfo}>
-            <Heading level="eyebrow">Prayer Time</Heading>
-            <Heading level="stat" style={styles.timeValue}>{formatPrayerTime(totalSeconds)}</Heading>
-            <BodyText variant="small">Time spent in prayer.</BodyText>
-          </View>
-          <View style={styles.timeIcon}>
-            <Clock size={24} color={colors.white} />
+      <View style={styles.timeCardWrap}>
+        <View style={styles.timeCard}>
+          <View style={styles.timeRow}>
+            <View style={styles.timeInfo}>
+              <Heading level="eyebrow">Prayer Time</Heading>
+              <Heading level="stat" style={styles.timeValue}>{formatPrayerTime(totalSeconds)}</Heading>
+              <BodyText variant="small">Time spent in prayer.</BodyText>
+            </View>
+            <View style={styles.timeIcon}>
+              <Clock size={24} color={colors.white} />
+            </View>
           </View>
         </View>
-      </GlassCard>
+      </View>
 
       <Pressable
-        onPress={() => go?.('createTestimony')}
+        onPress={() => go?.('home')}
         style={({ pressed }) => [styles.testimonyLink, pressed && styles.pressed]}
         accessibilityRole="button"
       >
         <GlassCard style={styles.testimonyCard}>
           <View style={styles.testimonyRow}>
             <View style={styles.testimonyIcon}>
-              <Send size={20} color={colors.white} />
+              <Footprints size={20} color={colors.white} />
             </View>
             <View style={styles.testimonyText}>
-              <Heading level="h4">Share a testimony</Heading>
-              <BodyText variant="small">Tell others how God has answered your prayers.</BodyText>
+              <Heading level="h4">Keep your stride strong.</Heading>
+              <BodyText variant="small">Every minute with God moves you forward.</BodyText>
             </View>
-            <ChevronRight size={20} color={colors.navy} />
           </View>
         </GlassCard>
       </Pressable>
@@ -132,17 +133,24 @@ const styles = StyleSheet.create({
   chartCard: { marginBottom: spacing.md },
   chartHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md },
   chartTitle: { marginTop: spacing.xs },
-  weekTotal: { color: colors.navy, fontWeight: '700' },
+  weekTotal: { color: colors.ink, fontWeight: '700' },
   statsGrid: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.md },
-  timeCard: { marginBottom: spacing.md },
-  timeValue: { marginTop: spacing.sm, marginBottom: spacing.xs },
+  timeCardWrap: { marginBottom: spacing.md },
+  timeCard: {
+    backgroundColor: colors.ink,
+    borderRadius: radii.lg,
+    padding: spacing.xl,
+  },
+  timeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.lg },
+  timeInfo: { flex: 1 },
+  timeValue: { marginTop: spacing.sm, marginBottom: spacing.xs, color: colors.white },
   timeIcon: {
     width: 52,
     height: 52,
     borderRadius: 26,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.navy,
+    backgroundColor: 'rgba(255,255,255,0.10)',
   },
   testimonyLink: { marginBottom: spacing.md },
   testimonyCard: { marginBottom: 0 },
@@ -153,7 +161,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.navy,
+    backgroundColor: colors.ink,
   },
   testimonyText: { flex: 1 },
   pressed: { opacity: 0.92 },

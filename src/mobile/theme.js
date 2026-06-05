@@ -1,83 +1,115 @@
 export const colors = {
   white: '#FFFFFF',
-  canvas: '#F4F7FB',
-  navy: '#0B2A4A',
-  navyDeep: '#07203B',
-  navyMid: '#133558',
 
-  gold: '#E0A106',
-  goldDark: '#B8862E',
-  goldLight: '#F5C542',
-  emerald: '#10B981',
+  ink: '#111827',
+  ink2: '#374151',
+  ink3: '#6B7280',
+  ink4: '#9CA3AF',
+
+  surface: '#FAFAF8',
+  surface2: '#F5F3EF',
+  surface3: '#EDE9E2',
+
+  gold: '#B8924A',
+  goldLight: '#D4AA6A',
+  goldPale: '#F9F3E8',
+
+  teal: '#2A8C7E',
+  tealLight: '#3BADA0',
+  tealPale: '#EAF5F4',
+
+  night: '#0D1B2A',
+  night2: '#152236',
+  night3: '#1E3352',
+
+  amber: '#D97706',
+  redSoft: '#DC4F4F',
+  purple: '#7C3AED',
+
+  border: 'rgba(0,0,0,0.07)',
+
+  // Legacy aliases (backward compat for out-of-scope files)
+  navy: '#111827',
+  navyDeep: '#0D1B2A',
+  navyMid: '#152236',
+  emerald: '#2A8C7E',
   community: '#2F6BFF',
   coral: '#F4795B',
   violet: '#7C5CFC',
 
-  surface: '#FFFFFF',
-  surfaceMuted: '#EEF3F9',
-  border: '#E2E8F2',
-  textPrimary: '#0B2A4A',
-  textSecondary: '#50607A',
-  textMuted: '#8595AD',
+  surfaceMuted: '#F5F3EF',
+  textPrimary: '#111827',
+  textSecondary: '#374151',
+  textMuted: '#6B7280',
 
-  // Legacy aliases (still used in a few places)
-  ink: '#0B2A4A',
-  screen: '#F4F7FB',
-  screenAlt: '#EEF3F9',
-  sand: '#F4F7FB',
-  stone: '#C5D0E0',
-  muted: '#8595AD',
-  warm: '#EEF3F9',
-  dusk: '#133558',
-  olive: '#10B981',
+  screen: '#FAFAF8',
+  screenAlt: '#F5F3EF',
+  sand: '#FAFAF8',
+  stone: '#9CA3AF',
+  muted: '#6B7280',
+  warm: '#F5F3EF',
+  dusk: '#152236',
+  olive: '#2A8C7E',
   clay: '#F4795B',
-  candle: '#F5C542',
-  success: '#10B981',
-  urgent: '#EF4444',
+  candle: '#D4AA6A',
+  success: '#2A8C7E',
+  urgent: '#DC4F4F',
 };
 
 export const onDark = {
   text: '#FFFFFF',
   textSecondary: 'rgba(255,255,255,0.78)',
   textMuted: 'rgba(255,255,255,0.55)',
-  accent: '#E0A106',
+  accent: colors.goldLight,
   surface: 'rgba(255,255,255,0.12)',
   border: 'rgba(255,255,255,0.16)',
 };
 
 export const alpha = {
-  navy06: 'rgba(11,42,74,0.06)',
-  navy08: 'rgba(11,42,74,0.08)',
-  navy10: 'rgba(11,42,74,0.10)',
-  navy12: 'rgba(11,42,74,0.12)',
-  navy16: 'rgba(11,42,74,0.16)',
-  navy20: 'rgba(11,42,74,0.20)',
-  navy55: 'rgba(11,42,74,0.55)',
-  navy62: 'rgba(11,42,74,0.62)',
-  navy72: 'rgba(11,42,74,0.72)',
-  gold18: 'rgba(224,161,6,0.18)',
-  gold22: 'rgba(224,161,6,0.22)',
-  gold30: 'rgba(224,161,6,0.30)',
-  overlay: 'rgba(7,32,59,0.72)',
-  overlayLight: 'rgba(7,32,59,0.48)',
+  ink06: 'rgba(17,24,39,0.06)',
+  ink08: 'rgba(17,24,39,0.08)',
+  ink10: 'rgba(17,24,39,0.10)',
+  ink12: 'rgba(17,24,39,0.12)',
+  ink16: 'rgba(17,24,39,0.16)',
+  ink20: 'rgba(17,24,39,0.20)',
+  ink55: 'rgba(17,24,39,0.55)',
+  ink62: 'rgba(17,24,39,0.62)',
+  ink72: 'rgba(17,24,39,0.72)',
+  gold18: 'rgba(184,146,74,0.18)',
+  gold22: 'rgba(184,146,74,0.22)',
+  gold30: 'rgba(184,146,74,0.30)',
+  teal08: 'rgba(42,140,126,0.08)',
+  overlay: 'rgba(13,27,42,0.72)',
+  overlayLight: 'rgba(13,27,42,0.48)',
+
+  // Legacy alpha aliases
+  navy06: 'rgba(17,24,39,0.06)',
+  navy08: 'rgba(17,24,39,0.08)',
+  navy10: 'rgba(17,24,39,0.10)',
+  navy12: 'rgba(17,24,39,0.12)',
+  navy16: 'rgba(17,24,39,0.16)',
+  navy20: 'rgba(17,24,39,0.20)',
+  navy55: 'rgba(17,24,39,0.55)',
+  navy62: 'rgba(17,24,39,0.62)',
+  navy72: 'rgba(17,24,39,0.72)',
 };
 
 export const gradients = {
-  screen: [colors.canvas, colors.white],
-  spotlight: [colors.navyMid, colors.navyDeep],
-  gold: [colors.goldLight, colors.gold, colors.goldDark],
+  screen: [colors.surface, colors.white],
+  spotlight: [colors.night2, colors.night],
+  gold: [colors.goldLight, colors.gold],
   goldButton: [colors.goldLight, colors.gold],
-  navyButton: [colors.navyMid, colors.navy],
-  card: [colors.white, colors.surfaceMuted],
+  navyButton: [colors.night2, colors.ink],
+  card: [colors.white, colors.surface2],
 };
 
 export const radii = {
   xs: 8,
   sm: 12,
-  md: 16,
-  lg: 18,
-  xl: 22,
-  xxl: 24,
+  md: 18,
+  lg: 24,
+  xl: 32,
+  xxl: 32,
   pill: 999,
 };
 
@@ -89,33 +121,33 @@ export const spacing = {
   xl: 20,
   xxl: 24,
   xxxl: 32,
-  tabBar: 120,
+  tabBar: 100,
 };
 
 export const fonts = {
-  display: 'Sora_700Bold',
-  displaySemi: 'Sora_600SemiBold',
-  displayRegular: 'Sora_400Regular',
-  serif: 'Sora_700Bold',
-  serifRegular: 'Sora_400Regular',
-  serifSemiBold: 'Sora_600SemiBold',
-  sans: 'Inter_400Regular',
-  sansMedium: 'Inter_500Medium',
-  sansSemiBold: 'Inter_600SemiBold',
-  sansBold: 'Inter_700Bold',
-  sansExtraBold: 'Inter_800ExtraBold',
+  display: 'PlayfairDisplay_700Bold',
+  displaySemi: 'PlayfairDisplay_600SemiBold',
+  displayRegular: 'PlayfairDisplay_400Regular',
+  serif: 'PlayfairDisplay_700Bold',
+  serifRegular: 'PlayfairDisplay_400Regular',
+  serifSemiBold: 'PlayfairDisplay_600SemiBold',
+  sans: 'DMSans_400Regular',
+  sansMedium: 'DMSans_500Medium',
+  sansSemiBold: 'DMSans_600SemiBold',
+  sansBold: 'DMSans_700Bold',
+  sansExtraBold: 'DMSans_700Bold',
 };
 
 export const typography = {
-  display: { fontFamily: fonts.display, fontSize: 36, lineHeight: 42, color: colors.textPrimary },
-  h1: { fontFamily: fonts.display, fontSize: 32, lineHeight: 38, color: colors.textPrimary },
-  h2: { fontFamily: fonts.displaySemi, fontSize: 26, lineHeight: 32, color: colors.textPrimary },
-  h3: { fontFamily: fonts.displaySemi, fontSize: 22, lineHeight: 28, color: colors.textPrimary },
-  h4: { fontFamily: fonts.displaySemi, fontSize: 20, lineHeight: 26, color: colors.textPrimary },
-  body: { fontFamily: fonts.sans, fontSize: 15, lineHeight: 23, color: colors.textSecondary },
-  bodySmall: { fontFamily: fonts.sans, fontSize: 13, lineHeight: 20, color: colors.textMuted },
-  label: { fontFamily: fonts.sansSemiBold, fontSize: 13, lineHeight: 18, color: colors.textPrimary },
-  caption: { fontFamily: fonts.sans, fontSize: 12, lineHeight: 16, color: colors.textMuted },
+  display: { fontFamily: fonts.display, fontSize: 36, lineHeight: 42, color: colors.ink },
+  h1: { fontFamily: fonts.display, fontSize: 32, lineHeight: 38, color: colors.ink },
+  h2: { fontFamily: fonts.displaySemi, fontSize: 26, lineHeight: 32, color: colors.ink },
+  h3: { fontFamily: fonts.displaySemi, fontSize: 22, lineHeight: 28, color: colors.ink },
+  h4: { fontFamily: fonts.displaySemi, fontSize: 20, lineHeight: 26, color: colors.ink },
+  body: { fontFamily: fonts.sans, fontSize: 15, lineHeight: 23, color: colors.ink2 },
+  bodySmall: { fontFamily: fonts.sans, fontSize: 13, lineHeight: 20, color: colors.ink3 },
+  label: { fontFamily: fonts.sansSemiBold, fontSize: 13, lineHeight: 18, color: colors.ink },
+  caption: { fontFamily: fonts.sans, fontSize: 12, lineHeight: 16, color: colors.ink3 },
   eyebrow: {
     fontFamily: fonts.sansExtraBold,
     fontSize: 11,
@@ -124,8 +156,8 @@ export const typography = {
     textTransform: 'uppercase',
     color: colors.gold,
   },
-  stat: { fontFamily: fonts.display, fontSize: 28, lineHeight: 34, color: colors.textPrimary },
-  button: { fontFamily: fonts.sansExtraBold, fontSize: 15, lineHeight: 20, color: colors.white },
+  stat: { fontFamily: fonts.display, fontSize: 28, lineHeight: 34, color: colors.ink },
+  button: { fontFamily: fonts.sansBold, fontSize: 15, lineHeight: 20, color: colors.white },
 };
 
 export const onDarkTypography = {
@@ -142,37 +174,37 @@ export const onDarkTypography = {
 
 export const shadow = {
   card: {
-    shadowColor: colors.navy,
-    shadowOffset: { width: 0, height: 8 },
+    shadowColor: colors.ink,
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
-    shadowRadius: 20,
-    elevation: 4,
+    shadowRadius: 12,
+    elevation: 3,
   },
   fab: {
-    shadowColor: colors.navy,
-    shadowOffset: { width: 0, height: 8 },
+    shadowColor: colors.gold,
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.18,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowRadius: 12,
+    elevation: 6,
   },
   subtle: {
-    shadowColor: colors.navy,
-    shadowOffset: { width: 0, height: 2 },
+    shadowColor: colors.ink,
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowRadius: 6,
+    elevation: 1,
   },
 };
 
 export const glass = {
-  backgroundColor: colors.surface,
+  backgroundColor: colors.white,
   borderColor: colors.border,
   borderWidth: 1,
 };
 
 export const cinematicScreen = {
   flex: 1,
-  backgroundColor: colors.canvas,
+  backgroundColor: colors.surface,
 };
 
 export const scenes = {
@@ -192,9 +224,9 @@ export const sharedStyles = {
     borderRadius: radii.md,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.white,
     paddingHorizontal: spacing.lg,
-    color: colors.textPrimary,
+    color: colors.ink,
     fontSize: 15,
     fontFamily: fonts.sans,
   },
@@ -205,7 +237,7 @@ export const sharedStyles = {
   },
   fieldLabel: {
     ...typography.label,
-    color: colors.navy,
+    color: colors.ink,
     marginTop: spacing.lg,
   },
 };

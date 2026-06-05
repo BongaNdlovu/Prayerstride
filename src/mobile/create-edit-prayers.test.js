@@ -7,20 +7,14 @@ import {
 } from './prayerFormOptions';
 
 describe('create-edit prayers', () => {
-  it('create/edit screens import expected functions', async () => {
-    const createSrc = await import('./screens/CreatePrayerScreen.jsx?raw');
-    expect(createSrc.default).toMatch(/addPrayer/);
-    expect(createSrc.default).toMatch(/prayerFormOptions/);
-
-    const editSrc = await import('./screens/EditRequestScreen.jsx?raw');
-    expect(editSrc.default).toMatch(/updatePrayer/);
-    expect(editSrc.default).toMatch(/deletePrayer/);
-    expect(editSrc.default).toMatch(/prayerFormOptions/);
-  });
-
-  it('edit screen uses Alert.alert not window.confirm', async () => {
-    const source = await import('./screens/EditRequestScreen.jsx?raw');
-    expect(source.default).toMatch(/Alert\.alert/);
+  it('HomeScreen owns prototype prayer compose and answered-update flows', async () => {
+    const source = await import('./screens/HomeScreen.jsx?raw');
+    expect(source.default).toMatch(/addPrayer/);
+    expect(source.default).toMatch(/addTestimony/);
+    expect(source.default).toMatch(/markAnswered/);
+    expect(source.default).toMatch(/PRAYER_CATEGORIES/);
+    expect(source.default).toMatch(/composeScriptureRef/);
+    expect(source.default).toMatch(/scriptureRef/);
     expect(source.default).not.toMatch(/window\.confirm/);
   });
 

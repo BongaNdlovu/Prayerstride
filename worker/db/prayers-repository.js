@@ -6,6 +6,8 @@ export function prayerRowFromFirestore(id, data = {}) {
     id,
     title: data.title || '',
     body: data.body || '',
+    category: data.category || null,
+    scripture_ref: data.scriptureRef || null,
     author_uid: data.authorUid || null,
     author_name: data.authorName ?? null,
     is_anonymous: data.isAnonymous === true ? 1 : 0,
@@ -24,12 +26,14 @@ export async function upsertPrayer(env, row) {
   if (!env.DB) return;
   await env.DB.prepare(
     `INSERT INTO prayers (
-      id, title, body, author_uid, author_name, is_anonymous, prayed_count, status,
+      id, title, body, category, scripture_ref, author_uid, author_name, is_anonymous, prayed_count, status,
       privacy, prayer_limit, urgent, allow_share, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       title = excluded.title,
       body = excluded.body,
+      category = excluded.category,
+      scripture_ref = excluded.scripture_ref,
       author_uid = excluded.author_uid,
       author_name = excluded.author_name,
       is_anonymous = excluded.is_anonymous,
@@ -44,6 +48,8 @@ export async function upsertPrayer(env, row) {
     row.id,
     row.title,
     row.body,
+    row.category,
+    row.scripture_ref,
     row.author_uid,
     row.author_name,
     row.is_anonymous,

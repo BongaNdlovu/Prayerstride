@@ -1,36 +1,22 @@
 import { describe, expect, it } from 'vitest';
 
 describe('testimony flow', () => {
-  it('PraiseScreen imports useTestimonies', async () => {
-    const source = await import('./screens/PraiseScreen.jsx?raw');
-    expect(source.default).toMatch(/useTestimonies/);
-  });
-
-  it('PraiseDetailScreen imports reaction API', async () => {
-    const source = await import('./screens/PraiseDetailScreen.jsx?raw');
-    expect(source.default).toMatch(/reactToTestimony/);
-  });
-
-  it('CreateTestimonyScreen imports addTestimony', async () => {
-    const source = await import('./screens/CreateTestimonyScreen.jsx?raw');
+  it('HomeScreen imports addTestimony for answered-prayer updates', async () => {
+    const source = await import('./screens/HomeScreen.jsx?raw');
     expect(source.default).toMatch(/addTestimony/);
+    expect(source.default).toMatch(/prayerId: updatePrayer\.id/);
   });
 
-  it('Reaction type constants include praiseGod and amen', async () => {
+  it('Worker still accepts testimony reaction types for admin/content compatibility', async () => {
     const workerSource = await import('../../worker/index.js?raw');
     expect(workerSource.default).toMatch(/praiseGod/);
     expect(workerSource.default).toMatch(/amen/);
   });
 
-  it('No web-only APIs imported', async () => {
-    const sources = await Promise.all([
-      import('./screens/PraiseScreen.jsx?raw'),
-      import('./screens/PraiseDetailScreen.jsx?raw'),
-      import('./screens/CreateTestimonyScreen.jsx?raw'),
-    ]);
-    for (const { default: src } of sources) {
-      expect(src).not.toMatch(/from ['"]react-dom['"]/);
-      expect(src).not.toMatch(/window\.confirm/);
-    }
+  it('legacy testimony pages are not exposed by the app shell', async () => {
+    const source = await import('../../app/index.jsx?raw');
+    expect(source.default).not.toMatch(/case 'praise'/);
+    expect(source.default).not.toMatch(/case 'praiseDetail'/);
+    expect(source.default).not.toMatch(/case 'createTestimony'/);
   });
 });

@@ -906,8 +906,13 @@ async function createPrayer(env, user, body) {
   await checkCommunityAccess(env, user.uid);
   const title = body.title != null ? String(body.title).trim() : '';
   const prayerBody = body.body != null ? String(body.body).trim() : '';
-  if (!title || !prayerBody) return json({ error: 'Missing title or body' }, 400);
-  assertModerationAllowed({ title, body: prayerBody }, moderationBlocklist(env));
+  const derivedTitle = title || prayerBody.split(/[.!?\n]/, 1)[0].trim();
+  const category = ['Healing', 'Family', 'Strength', 'Provision', 'Guidance', 'Gratitude'].includes(body.category)
+    ? body.category
+    : null;
+  const scriptureRef = body.scriptureRef != null ? String(body.scriptureRef).trim().slice(0, 120) : '';
+  if (!derivedTitle || !prayerBody) return json({ error: 'Missing title or body' }, 400);
+  assertModerationAllowed({ title: derivedTitle, body: prayerBody }, moderationBlocklist(env));
 
   const profile = await getUserProfile(env, user.uid);
   const isAnonymous = Boolean(body.isAnonymous ?? body.anonymous);
@@ -916,8 +921,10 @@ async function createPrayer(env, user, body) {
   const now = new Date().toISOString();
 
   const prayerFields = {
-    title: title.slice(0, 120),
+    title: derivedTitle.slice(0, 120),
     body: prayerBody.slice(0, 2000),
+    category,
+    scriptureRef: scriptureRef || null,
     authorUid: user.uid,
     authorName: resolveAuthorName(profile, user, isAnonymous),
     isAnonymous,
@@ -955,8 +962,15 @@ async function updatePrayer(env, user, prayerId, body) {
   const { contentDoc, data } = await loadAuthorContent(env, 'prayers', prayerId, user);
   const title = body.title != null ? String(body.title).trim() : data.title;
   const prayerBody = body.body != null ? String(body.body).trim() : (body.text != null ? String(body.text).trim() : data.body);
-  if (!title || !prayerBody) return json({ error: 'Missing title or body' }, 400);
-  assertModerationAllowed({ title, body: prayerBody }, moderationBlocklist(env));
+  const derivedTitle = title || prayerBody.split(/[.!?\n]/, 1)[0].trim() || data.title;
+  const category = body.category != null
+    ? (['Healing', 'Family', 'Strength', 'Provision', 'Guidance', 'Gratitude'].includes(body.category) ? body.category : null)
+    : (data.category || null);
+  const scriptureRef = body.scriptureRef != null
+    ? (String(body.scriptureRef).trim().slice(0, 120) || null)
+    : (data.scriptureRef || null);
+  if (!derivedTitle || !prayerBody) return json({ error: 'Missing title or body' }, 400);
+  assertModerationAllowed({ title: derivedTitle, body: prayerBody }, moderationBlocklist(env));
 
   const profile = await getUserProfile(env, user.uid);
   const isAnonymous = body.isAnonymous != null ? Boolean(body.isAnonymous ?? body.anonymous) : data.isAnonymous;
@@ -967,8 +981,10 @@ async function updatePrayer(env, user, prayerId, body) {
 
   const nextFields = {
     ...data,
-    title: title.slice(0, 120),
+    title: derivedTitle.slice(0, 120),
     body: prayerBody.slice(0, 2000),
+    category,
+    scriptureRef,
     authorName: resolveAuthorName(profile, user, isAnonymous),
     isAnonymous,
     privacy: body.privacy != null ? (body.privacy === 'private' ? 'private' : 'community') : (data.privacy || 'community'),
@@ -2659,10 +2675,11 @@ function withCors(response, env, request) {
   const origin = request?.headers.get('Origin') || '';
   const allowedOrigins = [
     env.CORS_ORIGIN || 'https://api.prayerstride.app',
+    ...(env.CORS_ORIGINS || '').split(',').map((value) => value.trim()).filter(Boolean),
     'https://api.prayerstride.app',
     'https://prayerstride.app',
     'https://prayerstride.fanelesibonge50.workers.dev',
-  ];
+  ].filter((value, index, list) => value && list.indexOf(value) === index);
   const isDevelopment = env.ENVIRONMENT === 'development';
   const allowDevOrigins = isDevelopment && (env.ALLOW_DEV_ORIGINS === 'true' || env.ALLOW_DEV_ORIGINS === '1');
   const isDevOrigin = origin.startsWith('http://localhost:')

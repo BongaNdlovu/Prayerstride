@@ -14,8 +14,7 @@ import PrimaryButton from '../components/PrimaryButton';
 
 const TABS = [
   { key: 'weekly', label: 'Weekly' },
-  { key: 'monthly', label: 'Monthly' },
-  { key: 'all', label: 'All Time' },
+  { key: 'all', label: 'All-Time' },
 ];
 
 function TabButton({ item, active, onPress }) {
@@ -116,7 +115,7 @@ export default function LeaderboardScreen({ user, onBack }) {
         {hidden ? (
           <GlassCard style={styles.hiddenCard}>
             <View style={styles.hiddenIcon}>
-              <Lock size={20} color={colors.navy} />
+              <Lock size={20} color={colors.ink} />
             </View>
             <Heading level="h4" style={styles.hiddenTitle}>Stay private until you opt in</Heading>
             <BodyText variant="small" style={styles.hiddenCopy}>
@@ -168,16 +167,16 @@ const styles = StyleSheet.create({
   tabButton: {
     flex: 1,
     minHeight: 40,
-    borderRadius: radii.lg,
+    borderRadius: radii.pill,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.white,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tabButtonActive: { backgroundColor: alpha.gold18, borderColor: alpha.gold30 },
+  tabButtonActive: { backgroundColor: colors.night, borderColor: colors.night },
   tabLabel: { fontFamily: fonts.sansSemiBold },
-  tabLabelActive: { color: colors.navy },
+  tabLabelActive: { color: colors.white },
   hiddenCard: { marginBottom: spacing.lg, alignItems: 'center' },
   hiddenIcon: {
     width: 44,
@@ -207,25 +206,25 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: alpha.navy08,
+    backgroundColor: alpha.ink08,
     marginBottom: spacing.xs,
   },
   podiumName: { textAlign: 'center', maxWidth: '100%' },
   podiumBlock: {
     width: '100%',
     height: 56,
-    borderTopLeftRadius: radii.md,
-    borderTopRightRadius: radii.md,
-    backgroundColor: alpha.navy10,
+    borderTopLeftRadius: radii.sm,
+    borderTopRightRadius: radii.sm,
+    backgroundColor: colors.surface2,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: spacing.sm,
   },
   podiumBlockFirst: {
     height: 72,
-    backgroundColor: alpha.gold18,
+    backgroundColor: colors.gold,
   },
-  podiumRank: { fontFamily: fonts.sansExtraBold, fontSize: 18, color: colors.navy },
+  podiumRank: { fontFamily: fonts.sansExtraBold, fontSize: 18, color: colors.ink },
   meCard: { marginBottom: spacing.lg },
   meRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   meCopy: { flex: 1 },
@@ -250,9 +249,9 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: alpha.navy08,
+    backgroundColor: alpha.ink08,
   },
-  rankText: { color: colors.navy, fontFamily: fonts.sansExtraBold },
+  rankText: { color: colors.ink, fontFamily: fonts.sansExtraBold },
   rowCopy: { flex: 1 },
   rowName: { fontSize: 17, lineHeight: 22 },
   rowPoints: { fontSize: 18, lineHeight: 24 },

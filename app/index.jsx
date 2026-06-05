@@ -22,32 +22,18 @@ import AccountSuspendedScreen from '../src/mobile/screens/AccountSuspendedScreen
 import AchievementsScreen from '../src/mobile/screens/AchievementsScreen';
 import AdminDashboardScreen from '../src/mobile/screens/AdminDashboardScreen';
 import AnnouncementsScreen from '../src/mobile/screens/AnnouncementsScreen';
-import AnsweredPrayersScreen from '../src/mobile/screens/AnsweredPrayersScreen';
 import AuthScreen from '../src/mobile/screens/AuthScreen';
-import CalendarScreen from '../src/mobile/screens/CalendarScreen';
-import CreatePrayerScreen from '../src/mobile/screens/CreatePrayerScreen';
-import CreateTestimonyScreen from '../src/mobile/screens/CreateTestimonyScreen';
-import DailyChallengeScreen from '../src/mobile/screens/DailyChallengeScreen';
-import DevotionsScreen from '../src/mobile/screens/DevotionsScreen';
-import DiscoverScreen from '../src/mobile/screens/DiscoverScreen';
 import EditProfileScreen from '../src/mobile/screens/EditProfileScreen';
-import EditRequestScreen from '../src/mobile/screens/EditRequestScreen';
-import GuideDetailScreen from '../src/mobile/screens/GuideDetailScreen';
 import HelpCenterScreen from '../src/mobile/screens/HelpCenterScreen';
 import HomeScreen from '../src/mobile/screens/HomeScreen';
-import LessonReaderScreen from '../src/mobile/screens/LessonReaderScreen';
 import LeaderboardScreen from '../src/mobile/screens/LeaderboardScreen';
-import MyPrayersScreen from '../src/mobile/screens/MyPrayersScreen';
 import MyStatsScreen from '../src/mobile/screens/MyStatsScreen';
 import NotificationSettingsScreen from '../src/mobile/screens/NotificationSettingsScreen';
 import NotificationsScreen from '../src/mobile/screens/NotificationsScreen';
-import PraiseDetailScreen from '../src/mobile/screens/PraiseDetailScreen';
-import PraiseScreen from '../src/mobile/screens/PraiseScreen';
 import PrayerDetailScreen from '../src/mobile/screens/PrayerDetailScreen';
 import PrayerStopwatchScreen from '../src/mobile/screens/PrayerStopwatchScreen';
 import PrivacyPolicyScreen from '../src/mobile/screens/PrivacyPolicyScreen';
 import ProfileScreen from '../src/mobile/screens/ProfileScreen';
-import QuickActionsScreen from '../src/mobile/screens/QuickActionsScreen';
 import ReminderSetupScreen from '../src/mobile/screens/ReminderSetupScreen';
 import RemindersScreen from '../src/mobile/screens/RemindersScreen';
 import ReportDetailsScreen from '../src/mobile/screens/ReportDetailsScreen';
@@ -55,7 +41,6 @@ import ResetPasswordScreen from '../src/mobile/screens/ResetPasswordScreen';
 import SettingsScreen from '../src/mobile/screens/SettingsScreen';
 import SplashScreen from '../src/mobile/screens/SplashScreen';
 import StayConnectedScreen from '../src/mobile/screens/StayConnectedScreen';
-import SupportDonationScreen from '../src/mobile/screens/SupportDonationScreen';
 import TermsOfServiceScreen from '../src/mobile/screens/TermsOfServiceScreen';
 import AboutScreen from '../src/mobile/screens/AboutScreen';
 import CopyrightScreen from '../src/mobile/screens/CopyrightScreen';
@@ -63,7 +48,7 @@ import WelcomeScreen from '../src/mobile/screens/WelcomeScreen';
 import { AppFeedbackProvider } from '../src/mobile/AppFeedbackProvider';
 
 const AUTH_ROUTES = ['splash', 'welcome', 'reminderSetup', 'stayConnected', 'signIn', 'createAccount', 'resetPassword'];
-const MAIN_TAB_ROUTES = ['home', 'leaderboard', 'myStats', 'profile'];
+const MAIN_TAB_ROUTES = ['home', 'leaderboard', 'stride', 'profile'];
 
 export default function MobileApp() {
   const { user, loading, registering, signIn, register, completePendingRegistration, signOut, resetPassword, deleteAccount } = useAuth();
@@ -188,25 +173,14 @@ function renderScreen({ screen, params, user, suspended, suspendedReason, signIn
 
   switch (screen) {
     case 'home': return <HomeScreen onOpenPrayer={(p) => goFn('detail', { prayer: p })} go={goFn} />;
-    case 'myPrayers': return <MyPrayersScreen user={user} onOpenPrayer={(p) => goFn('detail', { prayer: p })} onBack={() => backFn('profile')} />;
-    case 'discover': return <DiscoverScreen onOpenPrayer={(p) => goFn('detail', { prayer: p })} />;
-    case 'create': return <CreatePrayerScreen user={user} />;
-    case 'praise': return <PraiseScreen onOpenTestimony={(t) => goFn('praiseDetail', { testimony: t })} />;
     case 'leaderboard': return <LeaderboardScreen user={user} onBack={() => backFn('home')} />;
-    case 'myStats': return <MyStatsScreen user={user} go={goFn} onBack={() => backFn('profile')} />;
+    case 'stride': return <MyStatsScreen user={user} go={goFn} onBack={() => backFn('profile')} />;
     case 'profile': return <ProfileScreen user={user} signOut={signOut} go={goFn} />;
     case 'detail': return params.prayer
-      ? <PrayerDetailScreen prayer={params.prayer} user={user} onBack={() => backFn('discover')} go={goFn} />
-      : <PlaceholderScreen screen="Prayer unavailable" onBack={() => backFn('discover')} />;
-    case 'praiseDetail': return params.testimony
-      ? <PraiseDetailScreen testimony={params.testimony} onBack={() => backFn('praise')} />
-      : <PlaceholderScreen screen="Praise report unavailable" onBack={() => backFn('praise')} />;
-    case 'createTestimony': return <CreateTestimonyScreen user={user} linkedPrayerId={params.prayerId} onDone={() => backFn('praise')} />;
-    case 'editRequest': return params.prayer
-      ? <EditRequestScreen prayer={params.prayer} user={user} onDone={() => backFn('myPrayers')} />
-      : <PlaceholderScreen screen="Prayer unavailable" onBack={() => backFn('myPrayers')} />;
-    case 'prayerStopwatch': return <PrayerStopwatchScreen prayerId={params.prayerId} title={params.title} user={user} onBack={() => backFn('myStats')} onDone={() => backFn('myStats')} />;
-    case 'answeredPrayers': return <AnsweredPrayersScreen user={user} onOpenPrayer={(p) => goFn('detail', { prayer: p })} onBack={() => backFn('profile')} />;
+      ? <PrayerDetailScreen prayer={params.prayer} user={user} onBack={() => backFn('home')} go={goFn} />
+      : <PlaceholderScreen screen="Prayer unavailable" onBack={() => backFn('home')} />;
+    case 'timer': return <PrayerStopwatchScreen prayerId={params.prayerId} title={params.title} user={user} onBack={() => backFn('home')} onDone={() => backFn('stride')} />;
+    case 'prayerStopwatch': return <PrayerStopwatchScreen prayerId={params.prayerId} title={params.title} user={user} onBack={() => backFn('home')} onDone={() => backFn('stride')} />;
     case 'settings': return <SettingsScreen user={user} go={goFn} deleteAccount={deleteAccount} onBack={() => backFn('profile')} />;
     case 'editProfile': return <EditProfileScreen user={user} onBack={() => backFn('profile')} onDone={() => backFn('profile')} />;
     case 'notifications': return <NotificationsScreen user={user} onBack={() => backFn('profile')} />;
@@ -214,18 +188,11 @@ function renderScreen({ screen, params, user, suspended, suspendedReason, signIn
     case 'privacyPolicy': return <PrivacyPolicyScreen onBack={() => backFn('settings')} />;
     case 'termsOfService': return <TermsOfServiceScreen onBack={() => backFn('settings')} />;
     case 'helpCenter': return <HelpCenterScreen onBack={() => backFn('settings')} />;
-    case 'support': return <SupportDonationScreen onBack={() => backFn('settings')} />;
     case 'announcements': return <AnnouncementsScreen onBack={() => backFn('profile')} />;
-    case 'devotions': return <DevotionsScreen go={goFn} onBack={() => backFn('profile')} />;
-    case 'guideDetail': return <GuideDetailScreen guideId={params.guideId} go={goFn} back={() => backFn('devotions')} />;
-    case 'lessonReader': return <LessonReaderScreen guideId={params.guideId} lessonId={params.lessonId} onBack={() => backFn('devotions')} />;
-    case 'calendar': return <CalendarScreen user={user} onBack={() => backFn('profile')} />;
     case 'about': return <AboutScreen onBack={() => backFn('settings')} />;
     case 'copyright': return <CopyrightScreen onBack={() => backFn('settings')} />;
     case 'reminderSettings': return <RemindersScreen user={user} onBack={() => backFn('profile')} />;
     case 'achievements': return <AchievementsScreen user={user} onBack={() => backFn('profile')} />;
-    case 'dailyChallenge': return <DailyChallengeScreen user={user} onBack={() => backFn('home')} go={goFn} />;
-    case 'quickActions': return <QuickActionsScreen go={goFn} onBack={() => backFn('profile')} />;
     case 'adminDashboard': return <AdminDashboardScreen user={user} go={goFn} onBack={() => backFn('profile')} />;
     case 'reportDetails': return <ReportDetailsScreen report={params.report} go={goFn} back={() => backFn('adminDashboard')} />;
     case 'accountSuspended': return <AccountSuspendedScreen reason={suspendedReason} onSignOut={signOut} />;
@@ -259,16 +226,16 @@ function AccountStateError({ error, onRetry, onSignOut }) {
 function Centered({ label }) {
   return (
     <SafeAreaView style={styles.centered}>
-      <ActivityIndicator color={colors.navy} />
+      <ActivityIndicator color={colors.teal} />
       <Text style={styles.centeredText}>{label}</Text>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  shell: { flex: 1, backgroundColor: colors.screen },
-  appBody: { flex: 1, backgroundColor: colors.screen },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.screen },
+  shell: { flex: 1, backgroundColor: colors.surface },
+  appBody: { flex: 1, backgroundColor: colors.surface },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
   centeredText: { marginTop: spacing.md, color: colors.textPrimary, fontWeight: '700' },
   accountError: { flex: 1, justifyContent: 'center', padding: spacing.xxl },
   accountErrorSignOut: { marginTop: spacing.md },

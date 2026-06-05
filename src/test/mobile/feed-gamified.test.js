@@ -16,9 +16,14 @@ describe('gamified feed source contract', () => {
     expect(source.default).toMatch(/prayForRequest/);
     expect(source.default).toMatch(/bookmarkPrayer/);
     expect(source.default).toMatch(/addPrayer/);
+    expect(source.default).toMatch(/addTestimony/);
+    expect(source.default).toMatch(/markAnswered/);
     expect(source.default).toMatch(/useAppFeedback/);
-    expect(source.default).toMatch(/go\('prayerStopwatch'/);
+    expect(source.default).toMatch(/go\('timer'/);
     expect(source.default).toMatch(/PRAYER_DETAILS_LIMIT/);
+    expect(source.default).toMatch(/PRAYER_CATEGORIES/);
+    expect(source.default).toMatch(/composeScriptureRef/);
+    expect(source.default).toMatch(/gesture\.dy/);
     expect(source.default).toMatch(/setCurrentFeedIndex/);
     expect(source.default).not.toMatch(/document\./);
     expect(source.default).not.toMatch(/LEADERBOARD_DATA/);

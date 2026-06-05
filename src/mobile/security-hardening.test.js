@@ -52,6 +52,7 @@ describe('security hardening', () => {
     const source = await import('../../worker/index.js?raw');
     expect(source.default).toMatch(/const title = body\.title != null \? String\(body\.title\)\.trim\(\) : ''/);
     expect(source.default).toMatch(/const prayerBody = body\.body != null \? String\(body\.body\)\.trim\(\) : ''/);
-    expect(source.default).toMatch(/if \(!title \|\| !prayerBody\) return json\(\{ error: 'Missing title or body' \}, 400\)/);
+    expect(source.default).toMatch(/const derivedTitle = title \|\| prayerBody\.split/);
+    expect(source.default).toMatch(/if \(!derivedTitle \|\| !prayerBody\) return json\(\{ error: 'Missing title or body' \}, 400\)/);
   });
 });

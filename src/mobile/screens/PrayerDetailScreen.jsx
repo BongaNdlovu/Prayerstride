@@ -167,8 +167,7 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
           onPress: async () => {
             try {
               await markAnswered(prayer.id);
-              Alert.alert('Prayer marked answered', 'You can now share a testimony.');
-              if (go) go('createTestimony', { prayerId: prayer.id });
+              Alert.alert('Prayer marked answered', 'You can share a prayer update from your own feed card.');
               if (onRefresh) onRefresh();
             } catch (error) {
               Alert.alert('Could not update', getErrorMessage(error));
@@ -180,7 +179,7 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
   };
 
   const handleTimer = () => {
-    if (go) go('prayerStopwatch', { prayerId: prayer.id, title: prayer.title });
+    if (go) go('timer', { prayerId: prayer.id, title: prayer.title });
   };
 
   const prayLabel = isOwner

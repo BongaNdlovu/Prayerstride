@@ -2,15 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 const staticScreens = [
   'AnnouncementsScreen',
-  'DevotionsScreen',
-  'GuideDetailScreen',
   'LeaderboardScreen',
-  'LessonReaderScreen',
-  'CalendarScreen',
   'RemindersScreen',
   'AchievementsScreen',
-  'DailyChallengeScreen',
-  'QuickActionsScreen',
 ];
 
 describe('static feature screens', () => {
@@ -30,14 +24,6 @@ describe('static feature screens', () => {
     }
   });
 
-  it('Quick Actions includes expected route names', async () => {
-    const source = await import('./screens/QuickActionsScreen.jsx?raw');
-    expect(source.default).toMatch(/create/);
-    expect(source.default).toMatch(/createTestimony/);
-    expect(source.default).toMatch(/myPrayers/);
-    expect(source.default).toMatch(/prayerStopwatch/);
-  });
-
   it('Reminders screen uses persisted notification settings', async () => {
     const source = await import('./screens/RemindersScreen.jsx?raw');
     expect(source.default).toMatch(/useNotificationSettings/);
@@ -48,12 +34,8 @@ describe('static feature screens', () => {
     const screens = [
       'AchievementsScreen',
       'AnnouncementsScreen',
-      'CalendarScreen',
-      'DevotionsScreen',
-      'GuideDetailScreen',
       'HomeScreen',
       'LeaderboardScreen',
-      'LessonReaderScreen',
       'RemindersScreen',
     ];
     for (const name of screens) {
@@ -75,15 +57,13 @@ describe('static feature screens', () => {
     expect(source.default).not.toMatch(/<Pressable style=\{styles\.quietRow\}>/);
   });
 
-  it('Praise screen passes card navigation directly without nesting press targets', async () => {
-    const source = await import('./screens/PraiseScreen.jsx?raw');
-    expect(source.default).toMatch(/onPress=\{\(\) => onOpenTestimony\?\.\(testimony\)\}/);
-    expect(source.default).not.toMatch(/<Pressable key=\{testimony\.id\}/);
-  });
-
   it('AppFeedbackProvider is mounted in app shell', async () => {
     const app = await import('../../app/index.jsx?raw');
     expect(app.default).toMatch(/AppFeedbackProvider/);
+    expect(app.default).toMatch(/MAIN_TAB_ROUTES = \['home', 'leaderboard', 'stride', 'profile'\]/);
+    expect(app.default).not.toMatch(/case 'discover'/);
+    expect(app.default).not.toMatch(/case 'praise'/);
+    expect(app.default).not.toMatch(/case 'dailyChallenge'/);
   });
 
   it('AppFeedbackProvider exports without browser APIs', async () => {

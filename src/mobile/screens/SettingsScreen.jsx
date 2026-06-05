@@ -75,7 +75,7 @@ export default function SettingsScreen({ user, go, deleteAccount, onBack }) {
             style={[styles.menuItem, index === ITEMS.length - 1 && styles.menuItemLast]}
           >
             <BodyText variant="label">{item.label}</BodyText>
-            <ChevronRight size={18} color={colors.textMuted} />
+            <ChevronRight size={18} color={colors.ink3} />
           </Pressable>
         ))}
       </GlassCard>
@@ -121,7 +121,7 @@ export default function SettingsScreen({ user, go, deleteAccount, onBack }) {
             placeholder="Password"
             secureTextEntry
             style={styles.passwordInput}
-            placeholderTextColor={colors.textMuted}
+            placeholderTextColor={colors.ink3}
           />
           <PrimaryButton label={busy ? 'Deleting...' : 'Delete my account'} onPress={submitDelete} busy={busy} style={styles.deleteConfirm} />
           <Pressable onPress={() => setConfirmingDelete(false)}>
@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
   deleteLabel: { color: colors.gold },
   passwordInput: {
     ...sharedStyles.input,
-    color: colors.textPrimary,
+    color: colors.ink,
     fontFamily: fonts.sans,
   },
   deleteConfirm: { marginTop: spacing.sm },

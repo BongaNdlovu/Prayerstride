@@ -368,7 +368,13 @@ function AnnouncementsAdminList({ announcements }) {
               <PrimaryButton
                 label="Edit"
                 variant="ghost"
-                onPress={() => { setEditingId(item.id); setTitle(item.title); setBody(item.body); setCategory(item.category); setStartsAt(item.startsAt || new Date().toISOString()); }}
+                onPress={() => {
+                  setEditingId(item.id);
+                  setTitle(item.title);
+                  setBody(item.body);
+                  setCategory(item.category);
+                  setStartsAt(item.startsAt instanceof Date ? item.startsAt.toISOString() : item.startsAt || new Date().toISOString());
+                }}
                 style={styles.actionBtnOutline}
               />
               {item.status === 'active' ? (

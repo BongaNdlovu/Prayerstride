@@ -8,203 +8,186 @@ const mobileSrc = resolve(root, 'src', 'mobile');
 const screensDir = resolve(mobileSrc, 'screens');
 const componentsDir = resolve(mobileSrc, 'components');
 
-const APP_SCREENS = [
-  'splash', 'welcome', 'reminderSetup', 'stayConnected', 'signIn', 'createAccount', 'resetPassword',
-  'home', 'discover', 'detail', 'prayerStopwatch', 'create', 'createTestimony', 'editRequest',
-  'quickActions', 'praise', 'praiseDetail',
-  'announcements', 'devotions', 'guideDetail', 'lessonReader',
-  'calendar', 'myStats', 'answeredPrayers', 'myPrayers', 'achievements', 'dailyChallenge', 'reminderSettings',
-  'profile', 'settings', 'notifications', 'notificationSettings', 'support', 'helpCenter',
-  'privacyPolicy', 'termsOfService', 'about', 'copyright', 'adminDashboard', 'reportDetails', 'accountSuspended',
-];
-
-const screenFiles = {
-  answeredPrayers: 'AnsweredPrayersScreen',
-  achievements: 'AchievementsScreen',
-  dailyChallenge: 'DailyChallengeScreen',
-  adminDashboard: 'AdminDashboardScreen',
-  announcements: 'AnnouncementsScreen',
-  calendar: 'CalendarScreen',
-  create: 'CreatePrayerScreen',
-  createTestimony: 'CreateTestimonyScreen',
-  devotions: 'DevotionsScreen',
-  discover: 'DiscoverScreen',
-  editRequest: 'EditRequestScreen',
-  guideDetail: 'GuideDetailScreen',
-  helpCenter: 'HelpCenterScreen',
+const prototypeRoutes = {
   home: 'HomeScreen',
-  lessonReader: 'LessonReaderScreen',
-  myPrayers: 'MyPrayersScreen',
-  myStats: 'MyStatsScreen',
-  notifications: 'NotificationsScreen',
-  notificationSettings: 'NotificationSettingsScreen',
-  praise: 'PraiseScreen',
-  praiseDetail: 'PraiseDetailScreen',
-  prayerStopwatch: 'PrayerStopwatchScreen',
-  accountSuspended: 'AccountSuspendedScreen',
-  privacyPolicy: 'PrivacyPolicyScreen',
+  leaderboard: 'LeaderboardScreen',
+  stride: 'MyStatsScreen',
   profile: 'ProfileScreen',
-  quickActions: 'QuickActionsScreen',
-  reminderSettings: 'RemindersScreen',
-  reportDetails: 'ReportDetailsScreen',
-  support: 'SupportDonationScreen',
-  termsOfService: 'TermsOfServiceScreen',
-  about: 'AboutScreen',
-  copyright: 'CopyrightScreen',
-  settings: 'SettingsScreen',
+  timer: 'PrayerStopwatchScreen',
+  achievements: 'AchievementsScreen',
 };
 
-const componentFiles = [
-  'PageHero', 'GlassCard', 'AppHeader', 'BottomTabs',
-  'EmptyState', 'ToggleRow', 'StatCard', 'PrayerCard', 'TestimonyCard',
-  'StreakCalendar',
+const preservedRoutes = {
+  announcements: 'AnnouncementsScreen',
+  adminDashboard: 'AdminDashboardScreen',
+  editProfile: 'EditProfileScreen',
+  reminderSettings: 'RemindersScreen',
+  settings: 'SettingsScreen',
+  notifications: 'NotificationsScreen',
+  notificationSettings: 'NotificationSettingsScreen',
+  reportDetails: 'ReportDetailsScreen',
+  accountSuspended: 'AccountSuspendedScreen',
+  privacyPolicy: 'PrivacyPolicyScreen',
+  termsOfService: 'TermsOfServiceScreen',
+  helpCenter: 'HelpCenterScreen',
+  about: 'AboutScreen',
+  copyright: 'CopyrightScreen',
+};
+
+const authScreens = ['splash', 'welcome', 'reminderSetup', 'stayConnected', 'signIn', 'createAccount', 'resetPassword'];
+
+const removedScreens = [
+  'AnsweredPrayersScreen',
+  'CalendarScreen',
+  'CreatePrayerScreen',
+  'CreateTestimonyScreen',
+  'DailyChallengeScreen',
+  'DevotionsScreen',
+  'DiscoverScreen',
+  'EditRequestScreen',
+  'GuideDetailScreen',
+  'LessonReaderScreen',
+  'MyPrayersScreen',
+  'PraiseDetailScreen',
+  'PraiseScreen',
+  'QuickActionsScreen',
+  'SupportDonationScreen',
 ];
 
-const mobileFiles = [
-  'AuthProvider', 'api', 'firebase', 'navigation', 'notifications', 'theme',
-  'usePrayerData', 'usePrayerSessions', 'useReports',
-  'useUsers', 'useNotifications', 'useNotificationSettings', 'useIsAdmin',
-  'useCalendarEvents', 'useAnnouncements',
-  'sessionStats', 'prayerFormOptions',
+const componentFiles = [
+  'PageHero',
+  'GlassCard',
+  'AppHeader',
+  'BottomTabs',
+  'EmptyState',
+  'ToggleRow',
+  'StatCard',
+  'PrayerCard',
+  'TestimonyCard',
+  'WeeklyBarChart',
+  'ProgressRing',
+  'AsyncState',
+  'MotionPressable',
 ];
 
 let passed = 0;
 let failed = 0;
 
 function check(description, condition) {
-  if (condition) { passed++; console.log(`  PASS: ${description}`); }
-  else { failed++; console.error(`  FAIL: ${description}`); }
-}
-
-console.log('Restored Feature Smoke Test\n');
-
-// 1. Every APP_SCREENS route is handled in render switch/map
-console.log('1. Screen routes in app/index.jsx');
-const indexContent = readFileSync(resolve(root, 'app', 'index.jsx'), 'utf-8');
-for (const screen of APP_SCREENS) {
-  const mappedName = screenFiles[screen];
-  if (mappedName) {
-    check(`Route '${screen}' → ${mappedName} imported`, indexContent.includes(mappedName));
-    // Check that the route is actually rendered in the switch statement
-    check(`Route '${screen}' has case in switch`, indexContent.includes(`case '${screen}'`));
+  if (condition) {
+    passed++;
+    console.log(`  PASS: ${description}`);
   } else {
-    // auth screens handled separately
-    const authScreens = ['splash', 'welcome', 'reminderSetup', 'stayConnected', 'signIn', 'createAccount', 'resetPassword'];
-    const detailScreens = ['detail'];
-    check(`Route '${screen}' is auth or detail route`, authScreens.includes(screen) || detailScreens.includes(screen));
-    // Check that auth screens have explicit if statements
-    if (authScreens.includes(screen)) {
-      check(`Route '${screen}' has explicit handling`, indexContent.includes(`if (screen === '${screen}')`));
-    }
+    failed++;
+    console.error(`  FAIL: ${description}`);
   }
 }
 
-// 2. All restored screen files exist
-console.log('\n2. Screen files exist');
-for (const [route, component] of Object.entries(screenFiles)) {
-  const path = resolve(screensDir, `${component}.jsx`);
-  check(`Screen: ${component}.jsx`, existsSync(path));
+function read(relativePath) {
+  return readFileSync(resolve(root, relativePath), 'utf-8');
 }
 
-// 3. All shared native components exist
-console.log('\n3. Shared components exist');
-for (const name of componentFiles) {
-  const path = resolve(componentsDir, `${name}.jsx`);
-  check(`Component: ${name}.jsx`, existsSync(path));
+console.log('Prototype Migration Smoke Test\n');
+
+const appSource = read('app/index.jsx');
+const bottomTabsSource = read('src/mobile/components/BottomTabs.jsx');
+const homeSource = read('src/mobile/screens/HomeScreen.jsx');
+const profileSource = read('src/mobile/screens/ProfileScreen.jsx');
+const adminSource = read('src/mobile/screens/AdminDashboardScreen.jsx');
+
+console.log('1. Prototype routes are wired');
+for (const [route, component] of Object.entries(prototypeRoutes)) {
+  check(`Route '${route}' imports ${component}`, appSource.includes(component));
+  check(`Route '${route}' has explicit handling`, appSource.includes(`case '${route}'`));
 }
 
-// 4. Admin screens import moderation APIs
-console.log('\n4. Admin imports');
-const adminSource = readFileSync(resolve(screensDir, 'AdminDashboardScreen.jsx'), 'utf-8');
-check('Admin imports useIsAdmin', adminSource.includes('useIsAdmin'));
-check('Admin imports useReports', adminSource.includes('useReports'));
-check('Admin imports adminDeleteContent', adminSource.includes('adminDeleteContent'));
-check('Admin imports adminSuspendUser', adminSource.includes('adminSuspendUser'));
-check('Admin imports adminCreateAnnouncement', adminSource.includes('adminCreateAnnouncement'));
-check('Admin imports adminArchiveAnnouncement', adminSource.includes('adminArchiveAnnouncement'));
+console.log('\n2. Preserved routes are still wired');
+for (const [route, component] of Object.entries(preservedRoutes)) {
+  check(`Route '${route}' imports ${component}`, appSource.includes(component));
+  check(`Route '${route}' has explicit handling`, appSource.includes(`case '${route}'`));
+}
 
-const calendarSource = readFileSync(resolve(screensDir, 'CalendarScreen.jsx'), 'utf-8');
-check('Calendar uses useCalendarEvents', calendarSource.includes('useCalendarEvents'));
-check('Calendar does not import mockData', !calendarSource.includes('mockData'));
+console.log('\n3. Auth routes are still wired');
+for (const route of authScreens) {
+  check(`Auth route '${route}' has explicit handling`, appSource.includes(`screen === '${route}'`));
+}
+check('AuthScreen still handles sign-in/create-account', appSource.includes('AuthScreen mode="signIn"') && appSource.includes('AuthScreen mode="register"'));
 
-const announcementsSource = readFileSync(resolve(screensDir, 'AnnouncementsScreen.jsx'), 'utf-8');
-check('Announcements uses useAnnouncements', announcementsSource.includes('useAnnouncements'));
-check('Announcements does not import mockData', !announcementsSource.includes('mockData'));
-
+console.log('\n4. Legacy standalone screens are gone');
+for (const component of removedScreens) {
+  check(`${component}.jsx removed`, !existsSync(resolve(screensDir, `${component}.jsx`)));
+  check(`${component} not imported by app shell`, !appSource.includes(component));
+}
 [
-  'AchievementsScreen.jsx',
-  'DevotionsScreen.jsx',
-  'GuideDetailScreen.jsx',
-  'LessonReaderScreen.jsx',
-  'RemindersScreen.jsx',
-].forEach((file) => {
-  const source = readFileSync(resolve(screensDir, file), 'utf-8');
-  check(`${file} does not import mockData`, !source.includes('mockData'));
+  'answeredPrayers',
+  'calendar',
+  'create',
+  'createTestimony',
+  'dailyChallenge',
+  'devotions',
+  'discover',
+  'editRequest',
+  'guideDetail',
+  'lessonReader',
+  'myPrayers',
+  'praise',
+  'praiseDetail',
+  'quickActions',
+  'support',
+].forEach((route) => {
+  check(`Legacy route '${route}' removed`, !appSource.includes(`case '${route}'`));
 });
 
-// 5. Notification settings screen imports Firestore settings hook
-console.log('\n5. Notification settings');
-const notifSettingsSrc = readFileSync(resolve(screensDir, 'NotificationSettingsScreen.jsx'), 'utf-8');
-check('Imports useNotificationSettings', notifSettingsSrc.includes('useNotificationSettings'));
+console.log('\n5. Prototype tabs and feed behavior');
+check('Bottom tabs use Feed, Ranks, Stride, Profile', bottomTabsSource.includes("key: 'home'") && bottomTabsSource.includes("key: 'leaderboard'") && bottomTabsSource.includes("key: 'stride'") && bottomTabsSource.includes("key: 'profile'"));
+check('Timer is focused from Home prayer card', homeSource.includes("go('timer', { prayerId: currentPrayer.id, title: currentPrayer.title })"));
+check('Home creates prototype prayer fields', homeSource.includes('addPrayer') && homeSource.includes('PRAYER_CATEGORIES') && homeSource.includes('composeScriptureRef'));
+check('Home updates answered prayers through testimony flow', homeSource.includes('addTestimony') && homeSource.includes('markAnswered(updatePrayer.id)'));
+check('Home supports vertical feed gestures', homeSource.includes('gesture.dy') && homeSource.includes('setCurrentFeedIndex'));
 
-// 6. Stats screen imports current visual summary components
-console.log('\n6. Stats screen imports');
-const statsSrc = readFileSync(resolve(screensDir, 'MyStatsScreen.jsx'), 'utf-8');
-check('Imports WeeklyBarChart', statsSrc.includes('WeeklyBarChart'));
-check('Imports ProgressRing', statsSrc.includes('ProgressRing'));
+console.log('\n6. Preserved feature access');
+check('Profile links to reminders', profileSource.includes("route: PROFILE_ROUTES.reminderSettings"));
+check('Profile links to edit profile', profileSource.includes("route: 'editProfile'"));
+check('Profile links to announcements', profileSource.includes("route: 'announcements'"));
+check('Profile keeps admin dashboard access', profileSource.includes("go('adminDashboard')"));
+check('Admin dashboard can create announcements', adminSource.includes('adminCreateAnnouncement') && adminSource.includes('adminArchiveAnnouncement'));
 
-// 7. Prayer detail imports reports and pray API
-console.log('\n7. Prayer detail imports');
-const prayerDetailSrc = readFileSync(resolve(screensDir, 'PrayerDetailScreen.jsx'), 'utf-8');
-check('Imports prayForRequest', prayerDetailSrc.includes('prayForRequest'));
+console.log('\n7. Shared components exist');
+for (const name of componentFiles) {
+  check(`Component: ${name}.jsx`, existsSync(resolve(componentsDir, `${name}.jsx`)));
+}
 
-// 8. Native files do not import web-only APIs
-console.log('\n8. No web-only APIs in mobile files');
-const allMobilePaths = [
-  ...Object.values(screenFiles).map((f) => resolve(screensDir, `${f}.jsx`)),
-  ...componentFiles.map((f) => resolve(componentsDir, `${f}.jsx`)),
-  ...mobileFiles.map((f) => resolve(mobileSrc, `${f}.js`)),
-  ...mobileFiles.map((f) => resolve(mobileSrc, `${f}.jsx`)),
+console.log('\n8. No web-only APIs in mobile shell');
+const checkedFiles = [
   resolve(root, 'app', 'index.jsx'),
+  ...Object.values({ ...prototypeRoutes, ...preservedRoutes }).map((component) => resolve(screensDir, `${component}.jsx`)),
+  ...componentFiles.map((component) => resolve(componentsDir, `${component}.jsx`)),
+  resolve(mobileSrc, 'firebase.js'),
+  resolve(mobileSrc, 'usePrayerData.js'),
+  resolve(mobileSrc, 'useAnnouncements.js'),
+  resolve(mobileSrc, 'useNotificationSettings.js'),
 ];
-
-const webBanned = ["from 'react-dom'", 'from "react-dom"', 'window.confirm', 'document.querySelector', 'localStorage.setItem', 'localStorage.getItem'];
-for (const path of allMobilePaths) {
-  if (!existsSync(path)) continue;
-  const content = readFileSync(path, 'utf-8');
-  const relPath = path.replace(root, '');
-  for (const banned of webBanned) {
-    check(`${relPath}: no ${banned.split('.')[0] || banned}`, !content.includes(banned));
+const banned = ["from 'react-dom'", 'from "react-dom"', 'window.confirm', 'document.querySelector', 'localStorage.setItem', 'localStorage.getItem'];
+for (const filePath of checkedFiles) {
+  if (!existsSync(filePath)) continue;
+  const source = readFileSync(filePath, 'utf-8');
+  const label = filePath.replace(root, '');
+  for (const token of banned) {
+    check(`${label}: no ${token}`, !source.includes(token));
   }
 }
 
-// 9. api.js includes Firebase token attachment
-console.log('\n9. API token attachment');
-const apiSrc = readFileSync(resolve(mobileSrc, 'api.js'), 'utf-8');
-check('api.js includes getIdToken', apiSrc.includes('getIdToken'));
-check('api.js includes Authorization Bearer', apiSrc.includes('Authorization') && apiSrc.includes('Bearer'));
+console.log('\n9. Web auth support');
+const firebaseSource = read('src/mobile/firebase.js');
+check('Firebase auth uses browser auth on web', firebaseSource.includes("Platform.OS === 'web'") && firebaseSource.includes('return getAuth(app)'));
+check('Firebase auth keeps native AsyncStorage persistence path', firebaseSource.includes('getReactNativePersistence(AsyncStorage)'));
 
-// 10. No route in APP_SCREENS is left permanently mapped to placeholder
-console.log('\n10. No placeholder-only routes');
-// The placeholder is only used for unknown routes in the default case
-check('PlaceholderScreen only in default case and definition', indexContent.includes('default: return <PlaceholderScreen'));
+console.log('\n10. Backend fields for prototype prayers');
+const workerSource = read('worker/index.js');
+const rulesSource = read('firestore.rules');
+check('Worker stores category and scriptureRef', workerSource.includes('category') && workerSource.includes('scriptureRef'));
+check('Firestore rules allow category and scriptureRef', rulesSource.includes('optionalPrayerCategory') && rulesSource.includes('scriptureRef'));
 
-// 11. Check that auth screens actually render their components, not AuthScreen fallback
-console.log('\n11. Auth screens render correctly');
-const authScreenComponents = ['SplashScreen', 'WelcomeScreen', 'ReminderSetupScreen', 'StayConnectedScreen'];
-for (const component of authScreenComponents) {
-  const screenContent = readFileSync(resolve(screensDir, `${component}.jsx`), 'utf-8');
-  check(`${component} exports default`, screenContent.includes('export default'));
-  check(`${component} has proper props`, screenContent.includes('props') || screenContent.includes('(') || screenContent.includes('{'));
-}
-
-// 12. Check PrayerDetailScreen has required features per plan
-console.log('\n12. PrayerDetailScreen feature completeness');
-check('PrayerDetailScreen excludes removed comment thread', !prayerDetailSrc.includes('useEncouragements') && !prayerDetailSrc.includes('EncouragementThread'));
-check('PrayerDetailScreen imports reports hook', prayerDetailSrc.includes('submitReport') || prayerDetailSrc.includes('useReports'));
-check('PrayerDetailScreen has timer navigation', prayerDetailSrc.includes('prayerStopwatch') || prayerDetailSrc.includes('timer'));
-check('PrayerDetailScreen has bookmark logic', prayerDetailSrc.includes('bookmark') || prayerDetailSrc.includes('AsyncStorage'));
-
-console.log(`\n---`);
+console.log('\n---');
 console.log(`${passed} passed, ${failed} failed`);
 if (failed > 0) process.exit(1);

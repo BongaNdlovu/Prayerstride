@@ -6,11 +6,11 @@ import { colors, fonts, radii, shadow, spacing } from './theme';
 const FeedbackContext = createContext(null);
 
 const CELEBRATION_PARTICLES = [
-  { left: '18%', color: colors.gold, delay: 0 },
-  { left: '32%', color: colors.emerald, delay: 40 },
-  { left: '48%', color: colors.coral, delay: 80 },
-  { left: '62%', color: colors.community, delay: 120 },
-  { left: '76%', color: colors.violet, delay: 160 },
+  { left: '18%', color: colors.teal, delay: 0 },
+  { left: '32%', color: colors.goldLight, delay: 40 },
+  { left: '48%', color: colors.redSoft, delay: 80 },
+  { left: '62%', color: colors.tealLight, delay: 120 },
+  { left: '76%', color: colors.purple, delay: 160 },
 ];
 
 function Toast({ toast }) {
@@ -92,8 +92,8 @@ const styles = StyleSheet.create({
     left: spacing.lg,
     right: spacing.lg,
     zIndex: 100,
-    borderRadius: radii.lg,
-    backgroundColor: colors.navy,
+    borderRadius: radii.md,
+    backgroundColor: colors.ink,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     alignItems: 'center',
@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   toastTextGold: {
-    color: colors.navy,
+    color: colors.ink,
   },
   celebrationHost: {
     ...StyleSheet.absoluteFillObject,

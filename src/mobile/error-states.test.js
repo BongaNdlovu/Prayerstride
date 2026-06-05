@@ -10,14 +10,10 @@ const retryHooks = [
 
 const retryScreens = [
   'AchievementsScreen',
-  'AnsweredPrayersScreen',
-  'DiscoverScreen',
   'HomeScreen',
-  'MyPrayersScreen',
   'MyStatsScreen',
   'NotificationSettingsScreen',
   'NotificationsScreen',
-  'PraiseScreen',
   'ProfileScreen',
   'RemindersScreen',
 ];
@@ -51,20 +47,16 @@ describe('error states', () => {
     expect(source.default).toMatch(/onRetry=/);
   });
 
-  it('feed empty states are not shown while errors are active', async () => {
-    const screens = ['DiscoverScreen', 'MyPrayersScreen', 'PraiseScreen'];
-    for (const name of screens) {
-      const source = await import(`./screens/${name}.jsx?raw`);
-      expect(source.default).toMatch(/empty=\{!(?:feedLoading|loading) && !(?:error|listError)/);
-    }
+  it('HomeScreen feed empty state is not shown while errors are active', async () => {
+    const source = await import('./screens/HomeScreen.jsx?raw');
+    expect(source.default).toMatch(/<AsyncState loading=\{listLoading\} error=\{listError\}/);
+    expect(source.default).toMatch(/styles\.emptyFeedCard/);
   });
 
   it('feed screens stay closed when blocked-user loading fails', async () => {
-    const screens = ['DiscoverScreen', 'HomeScreen', 'PraiseScreen'];
-    for (const name of screens) {
-      const source = await import(`./screens/${name}.jsx?raw`);
-      expect(source.default).toMatch(/blocksError/);
-    }
+    const source = await import('./screens/HomeScreen.jsx?raw');
+    expect(source.default).toMatch(/blocksError/);
+    expect(source.default).toMatch(/const listError = prayersError \|\| blocksError/);
   });
 
   it('notification write failures are surfaced to the user', async () => {

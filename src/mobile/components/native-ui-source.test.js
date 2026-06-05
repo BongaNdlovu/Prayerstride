@@ -4,8 +4,8 @@ describe('native UI kit', () => {
   it('theme exports expected keys', async () => {
     const source = await import('../theme.js?raw');
     expect(source.default).toMatch(/export const colors/);
-    expect(source.default).toMatch(/#E0A106/);
-    expect(source.default).toMatch(/#0B2A4A/);
+    expect(source.default).toMatch(/#B8924A/);
+    expect(source.default).toMatch(/#111827/);
     expect(source.default).toMatch(/export const shadow/);
     expect(source.default).toMatch(/export const glass/);
     expect(source.default).toMatch(/export const cinematicScreen/);
@@ -23,7 +23,6 @@ describe('native UI kit', () => {
   it('shared components export successfully', { timeout: 15000 }, async () => {
     const modules = [
       'ScreenScaffold',
-      'PageHero',
       'GlassCard',
       'AppHeader',
       'BottomTabs',
@@ -53,7 +52,7 @@ describe('native UI kit', () => {
   });
 
   it('shared native components do not import react-dom or browser APIs', async () => {
-    const names = ['ScreenScaffold', 'PageHero', 'GlassCard', 'AppHeader', 'BottomTabs', 'EmptyState', 'ToggleRow', 'StatCard', 'PrayerCard', 'TestimonyCard', 'WeeklyBarChart', 'StreakCalendar', 'AsyncState', 'MotionPressable'];
+    const names = ['ScreenScaffold', 'GlassCard', 'AppHeader', 'BottomTabs', 'EmptyState', 'ToggleRow', 'StatCard', 'PrayerCard', 'TestimonyCard', 'WeeklyBarChart', 'StreakCalendar', 'AsyncState', 'MotionPressable'];
 
     for (const name of names) {
       const source = await import(`../components/${name}.jsx?raw`);

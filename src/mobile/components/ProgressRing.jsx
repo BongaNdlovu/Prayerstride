@@ -8,8 +8,8 @@ export default function ProgressRing({
   size = 100,
   strokeWidth = 6,
   children,
-  accent = colors.gold,
-  trackColor = alpha.navy12,
+  accent = colors.tealLight,
+  trackColor = alpha.ink10,
 }) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;

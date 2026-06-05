@@ -1,10 +1,10 @@
 import { StyleSheet, View } from 'react-native';
-import { colors, fonts, spacing } from '../theme';
+import { colors, spacing } from '../theme';
 import Heading from './Heading';
 import BodyText from './BodyText';
 import GlassCard from './GlassCard';
 
-export default function StatCard({ icon: Icon, value, label, sublabel, accent = colors.gold, style }) {
+export default function StatCard({ icon: Icon, value, label, sublabel, accent = colors.teal, style }) {
   return (
     <GlassCard style={[styles.card, style]}>
       {Icon ? <Icon color={accent} size={21} /> : null}
@@ -18,6 +18,6 @@ export default function StatCard({ icon: Icon, value, label, sublabel, accent = 
 const styles = StyleSheet.create({
   card: { flex: 1, minHeight: 116, marginBottom: 0 },
   value: { marginTop: spacing.sm + 2, fontSize: 25 },
-  label: { marginTop: 3, fontFamily: fonts.sansMedium, color: colors.textSecondary },
+  label: { marginTop: 3, color: colors.ink2 },
   sublabel: { marginTop: 2 },
 });

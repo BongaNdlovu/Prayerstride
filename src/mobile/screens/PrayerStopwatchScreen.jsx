@@ -159,7 +159,7 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, us
               onChangeText={setPrivateTitle}
               editable={!running && seconds === 0 && !readyToLog}
               placeholder="What are you praying about?"
-              placeholderTextColor={colors.textMuted}
+              placeholderTextColor={colors.ink3}
               style={[sharedStyles.input, styles.input]}
             />
             <BodyText variant="caption" style={styles.privateNote}>
@@ -201,9 +201,9 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, us
           <ProgressRing
             progress={timerProgress}
             size={222}
-            strokeWidth={10}
-            accent={running ? colors.emerald : colors.gold}
-            trackColor="rgba(255,255,255,0.12)"
+            strokeWidth={5}
+            accent={running ? colors.tealLight : colors.goldLight}
+            trackColor="rgba(255,255,255,0.07)"
           >
             <View style={styles.timerCenter}>
               <Text style={styles.timer}>{formatTime(seconds)}</Text>
@@ -257,17 +257,17 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, us
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
+  screen: { flex: 1, backgroundColor: colors.night },
   content: { paddingBottom: spacing.tabBar },
   privateCard: { marginBottom: spacing.md },
   input: { alignSelf: 'stretch', marginTop: 0 },
   privateNote: { marginTop: spacing.sm, textAlign: 'center' },
   timerPanel: {
-    borderRadius: radii.xxl,
+    borderRadius: radii.xl,
     padding: spacing.xl,
-    backgroundColor: colors.navyDeep,
+    backgroundColor: colors.night2,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
+    borderColor: 'rgba(255,255,255,0.10)',
     overflow: 'hidden',
   },
   panelHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.lg },
@@ -301,13 +301,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.16)',
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(255,255,255,0.07)',
   },
-  presetPillActive: { backgroundColor: colors.emerald, borderColor: colors.emerald },
-  presetText: { color: 'rgba(255,255,255,0.68)', fontFamily: fonts.sansSemiBold, fontSize: 13 },
+  presetPillActive: { backgroundColor: colors.teal, borderColor: colors.teal },
+  presetText: { color: 'rgba(255,255,255,0.60)', fontFamily: fonts.sansSemiBold, fontSize: 13 },
   presetTextActive: { color: colors.white },
-  ringWrap: { alignItems: 'center', marginBottom: spacing.md },
+  ringWrap: { alignItems: 'center', marginBottom: spacing.sm },
   timerCenter: { alignItems: 'center', justifyContent: 'center' },
   timer: {
     ...typography.display,
@@ -316,8 +316,8 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
     color: colors.white,
   },
-  timerLabel: { marginTop: spacing.xs, color: 'rgba(255,255,255,0.58)', textAlign: 'center' },
-  segmentRow: { flexDirection: 'row', justifyContent: 'center', gap: spacing.xs, marginBottom: spacing.sm },
+  timerLabel: { marginTop: spacing.xs, color: 'rgba(255,255,255,0.40)', textAlign: 'center', letterSpacing: 1.2, textTransform: 'uppercase' },
+  segmentRow: { flexDirection: 'row', justifyContent: 'center', gap: spacing.xs, marginBottom: spacing.sm, marginTop: spacing.sm },
   segment: {
     width: 42,
     height: 5,
@@ -333,9 +333,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    backgroundColor: 'rgba(224,161,6,0.16)',
+    backgroundColor: 'rgba(184,146,74,0.15)',
     borderWidth: 1,
-    borderColor: 'rgba(245,197,66,0.28)',
+    borderColor: 'rgba(184,146,74,0.30)',
     marginBottom: spacing.lg,
   },
   milestoneText: { color: colors.goldLight, fontFamily: fonts.sansSemiBold },

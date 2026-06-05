@@ -12,25 +12,11 @@ describe('bug fix regressions — batch 1 and 2', () => {
     expect(source.default).toMatch(/prayer\?\.id/);
   });
 
-  it('AnsweredPrayersScreen guards signed-out user access', async () => {
-    const source = await import('./screens/AnsweredPrayersScreen.jsx?raw');
-    expect(source.default).toMatch(/user\?\.uid/);
-    expect(source.default).not.toMatch(/user\.uid && p\.status/);
-    expect(source.default).toMatch(/uid \? prayers\.filter/);
-  });
-
   it('ProfileScreen uses optional chaining for user profile fields', async () => {
     const source = await import('./screens/ProfileScreen.jsx?raw');
     expect(source.default).toMatch(/user\?\.displayName/);
     expect(source.default).toMatch(/user\?\.photoURL/);
     expect(source.default).toMatch(/user\?\.email/);
-  });
-
-  it('MyPrayersScreen filters with optional user uid', async () => {
-    const source = await import('./screens/MyPrayersScreen.jsx?raw');
-    expect(source.default).toMatch(/const uid = user\?\.uid/);
-    expect(source.default).toMatch(/uid \? prayers\.filter/);
-    expect(source.default).not.toMatch(/prayer\.authorUid === user\.uid/);
   });
 
   it('updateCalendarEvent validates blank titles before trim', async () => {
@@ -42,11 +28,6 @@ describe('bug fix regressions — batch 1 and 2', () => {
     const source = await import('./screens/RemindersScreen.jsx?raw');
     expect(source.default).toMatch(/updateNotificationSettings\(user\.uid, \{ \[id\]: value \}\)/);
     expect(source.default).not.toMatch(/prayerActivity: settings\.prayerActivity/);
-  });
-
-  it('PraiseDetailScreen ignores rapid duplicate reaction taps', async () => {
-    const source = await import('./screens/PraiseDetailScreen.jsx?raw');
-    expect(source.default).toMatch(/reactingRef\.current\.has\(key\)/);
   });
 
   it('testimony feed masks anonymous authors in the Worker serializer', async () => {
@@ -77,19 +58,11 @@ describe('bug fix regressions — batch 1 and 2', () => {
     expect(source.default).not.toMatch(/2h ago/);
   });
 
-  it('PraiseScreen reconciles optimistic reactions against server counts', async () => {
-    const source = await import('./screens/PraiseScreen.jsx?raw');
-    expect(source.default).toMatch(/pendingReactions/);
-    expect(source.default).toMatch(/serverCount >= pending\.baseline \+ 1/);
-    expect(source.default).toMatch(/reactingRef\.current/);
-    expect(source.default).toMatch(/createdAt/);
-  });
-
-  it('CreateTestimonyScreen shows success alert before navigation', async () => {
-    const source = await import('./screens/CreateTestimonyScreen.jsx?raw');
-    expect(source.default).toMatch(/Alert\.alert\('Testimony shared'/);
-    expect(source.default).toMatch(/onPress: \(\) => \{ if \(onDone\) onDone\(\); \}/);
-    expect(source.default).not.toMatch(/if \(onDone\) onDone\(\);\s*\n\s*Alert\.alert\('Testimony shared'/);
+  it('HomeScreen submits answered-prayer updates before marking the prayer answered', async () => {
+    const source = await import('./screens/HomeScreen.jsx?raw');
+    expect(source.default).toMatch(/await addTestimony/);
+    expect(source.default).toMatch(/await markAnswered\(updatePrayer\.id\)/);
+    expect(source.default.indexOf('await addTestimony')).toBeLessThan(source.default.indexOf('await markAnswered(updatePrayer.id)'));
   });
 
   it('PrimaryButton supports subdued secondary variant', async () => {

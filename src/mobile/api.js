@@ -1,5 +1,6 @@
 import { auth } from './firebase';
 import { getApiErrorMessage, toUserFacingError } from './errors';
+import { isMockDataEnabled, mockApiFetch, mockUploadAvatar } from './mockData';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || '';
 const API_TIMEOUT_MS = 15000;
@@ -23,6 +24,10 @@ export function createFetchAbortContext(externalSignal, timeoutMs = API_TIMEOUT_
 }
 
 export async function apiFetch(path, options = {}) {
+  if (isMockDataEnabled()) {
+    return mockApiFetch(path, options, auth.currentUser);
+  }
+
   const token = await auth.currentUser?.getIdToken();
   if (!token) throw new Error('You must be signed in.');
 
@@ -73,6 +78,10 @@ export function updateMyProfile(payload) {
 }
 
 export async function uploadMyAvatar(file, signal) {
+  if (isMockDataEnabled()) {
+    return mockUploadAvatar(file, auth.currentUser);
+  }
+
   const token = await auth.currentUser?.getIdToken();
   if (!token) throw new Error('You must be signed in.');
   if (!file?.blob && !file?.uri) throw new Error('Could not prepare the profile photo for upload.');
@@ -271,6 +280,7 @@ export function registerDevice(payload) {
 }
 
 export function buildNotificationStreamUrl(idToken) {
+  if (isMockDataEnabled()) return null;
   const base = API_URL.replace(/\/$/, '');
   if (!base || !idToken) return null;
   const wsBase = base.replace(/^http/i, (scheme) => (

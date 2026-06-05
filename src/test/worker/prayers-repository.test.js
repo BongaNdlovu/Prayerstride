@@ -6,6 +6,8 @@ describe('prayers repository', () => {
     const row = prayerRowFromFirestore('prayer-1', {
       title: 'Heal',
       body: 'Please pray',
+      category: 'Healing',
+      scriptureRef: 'Psalm 34:17',
       authorUid: 'uid-1',
       authorName: 'Alex',
       prayedCount: 3,
@@ -22,6 +24,8 @@ describe('prayers repository', () => {
       id: 'prayer-1',
       title: 'Heal',
       body: 'Please pray',
+      category: 'Healing',
+      scripture_ref: 'Psalm 34:17',
       author_uid: 'uid-1',
       prayed_count: 3,
       urgent: 1,

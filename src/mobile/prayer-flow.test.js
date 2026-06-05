@@ -6,11 +6,6 @@ describe('prayer flow', () => {
     expect(source.default).toMatch(/prayForRequest/);
   });
 
-  it('PraiseScreen imports reaction API helper', async () => {
-    const source = await import('./screens/PraiseScreen.jsx?raw');
-    expect(source.default).toMatch(/reactToTestimony/);
-  });
-
   it('HomeScreen imports usePrayers', async () => {
     const source = await import('./screens/HomeScreen.jsx?raw');
     expect(source.default).toMatch(/usePrayers/);
@@ -19,13 +14,16 @@ describe('prayer flow', () => {
   it('HomeScreen opens prayer stopwatch from the focused feed card', async () => {
     const source = await import('./screens/HomeScreen.jsx?raw');
     expect(source.default).toMatch(/PrayerFocusCard/);
-    expect(source.default).toMatch(/go\('prayerStopwatch', \{ prayerId: currentPrayer\.id, title: currentPrayer\.title \}\)/);
+    expect(source.default).toMatch(/go\('timer', \{ prayerId: currentPrayer\.id, title: currentPrayer\.title \}\)/);
     expect(source.default).toMatch(/accessibilityLabel="Start prayer timer"/);
   });
 
-  it('DiscoverScreen imports usePrayers', async () => {
-    const source = await import('./screens/DiscoverScreen.jsx?raw');
-    expect(source.default).toMatch(/usePrayers/);
+  it('app shell no longer exposes legacy prayer feed routes', async () => {
+    const source = await import('../../app/index.jsx?raw');
+    expect(source.default).not.toMatch(/case 'discover'/);
+    expect(source.default).not.toMatch(/case 'myPrayers'/);
+    expect(source.default).not.toMatch(/case 'create'/);
+    expect(source.default).not.toMatch(/case 'editRequest'/);
   });
 
   it('PrayerDetailScreen source does not import web APIs', async () => {

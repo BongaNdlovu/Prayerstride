@@ -6,10 +6,11 @@ describe('gamification release hardening', () => {
   it('HomeScreen renders gamified streak and journey without encouragement entry points', async () => {
     const source = await import('./screens/HomeScreen.jsx?raw');
     expect(source.default).toMatch(/useGamification/);
-    expect(source.default).toMatch(/dailyChallenge/);
+    expect(source.default).toMatch(/XPProgressPanel/);
+    expect(source.default).toMatch(/PrayerFocusCard/);
     expect(source.default).not.toMatch(/weeklyEncouragers/);
     expect(source.default).not.toMatch(/Weekly Encouragers/);
-    expect(source.default).toMatch(/StreakCalendar/);
+    expect(source.default).not.toMatch(/go\('dailyChallenge'/);
   });
 
   it('LeaderboardScreen uses authoritative leaderboard and preference hooks', async () => {
@@ -18,14 +19,6 @@ describe('gamification release hardening', () => {
     expect(source.default).toMatch(/useGamificationPreferences/);
     expect(source.default).toMatch(/Show Me on Leaderboard/);
     expect(source.default).not.toMatch(/LEADERBOARD_DATA/);
-  });
-
-  it('DailyChallengeScreen uses server summary with loading and retry states', async () => {
-    const source = await import('./screens/DailyChallengeScreen.jsx?raw');
-    expect(source.default).toMatch(/useGamification/);
-    expect(source.default).toMatch(/AsyncState/);
-    expect(source.default).toMatch(/onRetry=\{retry\}/);
-    expect(source.default).toMatch(/prayedTodayIds/);
   });
 
   it('AchievementsScreen uses authoritative server badge grid', async () => {
@@ -42,7 +35,7 @@ describe('gamification release hardening', () => {
     expect(source.default).toMatch(/impact\.peoplePrayedFor/);
     expect(source.default).not.toMatch(/encouragementsSent/);
     expect(source.default).not.toMatch(/weeklyEncouragers/);
-    expect(source.default).toMatch(/XP total/);
+    expect(source.default).toMatch(/Total XP/);
   });
 
   it('keeps core screens open when only gamification stats fail', async () => {
@@ -61,11 +54,15 @@ describe('gamification release hardening', () => {
     expect(source.default).not.toMatch(/Weekly Encouragers/);
   });
 
-  it('Praise screen keeps All and Recent tabs without following filters', async () => {
-    const source = await import('./screens/PraiseScreen.jsx?raw');
-    expect(source.default).toMatch(/const TABS = \['All', 'Recent'\]/);
-    expect(source.default).not.toMatch(/useFollowing/);
-    expect(source.default).not.toMatch(/Following/);
+  it('prototype gamification screens are reachable without legacy daily challenge or praise routes', async () => {
+    const app = await import('../../app/index.jsx?raw');
+    expect(app.default).toMatch(/case 'home'/);
+    expect(app.default).toMatch(/case 'leaderboard'/);
+    expect(app.default).toMatch(/case 'stride'/);
+    expect(app.default).toMatch(/case 'profile'/);
+    expect(app.default).toMatch(/case 'achievements'/);
+    expect(app.default).not.toMatch(/case 'dailyChallenge'/);
+    expect(app.default).not.toMatch(/case 'praise'/);
   });
 
   it('PrayerDetailScreen no longer sends encouragements or follow actions through the worker API', async () => {

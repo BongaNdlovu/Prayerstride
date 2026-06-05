@@ -38,7 +38,8 @@ export function serializePrayerRow(row) {
     prayedCount: row.prayed_count ?? 0,
     status: row.status || 'active',
     privacy: row.privacy || 'community',
-    category: '',
+    category: row.category || '',
+    scriptureRef: row.scripture_ref || '',
     prayerLimit: row.prayer_limit || 'daily',
     urgent: row.urgent === 1,
     allowShare: row.allow_share !== 0,
@@ -59,6 +60,7 @@ export function serializePrayerFromFirestore(id, data) {
     status: data.status || 'active',
     privacy: data.privacy || 'community',
     category: data.category || '',
+    scriptureRef: data.scriptureRef || '',
     prayerLimit: data.prayerLimit || 'daily',
     urgent: Boolean(data.urgent),
     allowShare: data.allowShare !== false,
@@ -72,7 +74,7 @@ function categoryMatches(prayer, category) {
   if (!normalized || normalized === 'all') return true;
   const stored = prayer.category?.toLowerCase();
   if (stored === normalized) return true;
-  const text = `${prayer.title || ''} ${prayer.body || ''}`.toLowerCase();
+  const text = `${prayer.title || ''} ${prayer.body || ''} ${prayer.scriptureRef || ''}`.toLowerCase();
   const keywords = {
     health: ['health', 'healing', 'sick', 'hospital', 'medical', 'cancer', 'surgery'],
     family: ['family', 'marriage', 'child', 'parent', 'spouse', 'son', 'daughter'],
@@ -82,7 +84,7 @@ function categoryMatches(prayer, category) {
   return (keywords[normalized] || [normalized]).some((keyword) => text.includes(keyword));
 }
 
-function buildD1Query(scope, userUid, status, urgentOnly, cursor, limit) {
+function buildD1Query(scope, userUid, status, category, urgentOnly, cursor, limit) {
   const clauses = [];
   const binds = [];
 
@@ -105,6 +107,10 @@ function buildD1Query(scope, userUid, status, urgentOnly, cursor, limit) {
   if (urgentOnly) {
     clauses.push('urgent = 1');
   }
+  if (category) {
+    clauses.push('LOWER(COALESCE(category, \'\')) = ?');
+    binds.push(category.trim().toLowerCase());
+  }
   if (cursor) {
     clauses.push('(created_at < ? OR (created_at = ? AND id < ?))');
     binds.push(cursor.createdAt, cursor.createdAt, cursor.id);
@@ -122,6 +128,7 @@ async function listPrayersFromD1(env, options) {
     options.scope,
     options.userUid,
     options.status,
+    options.category,
     options.urgentOnly,
     options.cursor,
     options.limit,
@@ -236,8 +243,6 @@ export async function getPrayersFeed(env, user, url, firestoreApi, requireAdmin)
   let items = await listPrayersFromD1(env, options);
   if (!items.length) {
     items = await listPrayersFromFirestore(env, firestoreApi, options);
-  } else if (category) {
-    items = items.filter((item) => categoryMatches(item, category));
   }
 
   const hasMore = items.length > limit;

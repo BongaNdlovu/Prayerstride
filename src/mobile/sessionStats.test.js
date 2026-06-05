@@ -90,7 +90,8 @@ describe('sessionStats', () => {
   it('HomeScreen uses gamification summary for streak and daily goal', async () => {
     const source = await import('./screens/HomeScreen.jsx?raw');
     expect(source.default).toMatch(/useGamification/);
-    expect(source.default).toMatch(/dailyGoalProgress/);
-    expect(source.default).toMatch(/dailyChallenge/);
+    expect(source.default).toMatch(/levelInfo/);
+    expect(source.default).toMatch(/summary/);
+    expect(source.default).not.toMatch(/go\('dailyChallenge'/);
   });
 });

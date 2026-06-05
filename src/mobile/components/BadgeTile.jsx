@@ -15,9 +15,9 @@ export default function BadgeTile({ badge, onPress, compact = false }) {
         {earned ? (
           <Star size={compact ? 18 : 22} color={colors.gold} fill={colors.gold} />
         ) : locked ? (
-          <Lock size={compact ? 16 : 18} color={colors.textMuted} />
+          <Lock size={compact ? 16 : 18} color={colors.ink3} />
         ) : (
-          <Award size={compact ? 18 : 22} color={colors.violet} />
+          <Award size={compact ? 18 : 22} color={colors.teal} />
         )}
       </View>
       <Heading level="h4" style={[styles.title, compact && styles.titleCompact]} numberOfLines={2}>
@@ -42,10 +42,10 @@ const styles = StyleSheet.create({
   tile: {
     flex: 1,
     minHeight: 168,
-    borderRadius: radii.xxl,
+    borderRadius: radii.lg,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.white,
     padding: spacing.lg,
     gap: spacing.xs,
   },
@@ -57,22 +57,22 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: alpha.navy08,
+    backgroundColor: alpha.ink08,
     marginBottom: spacing.xs,
   },
   iconWrapEarned: { backgroundColor: alpha.gold22 },
-  iconWrapLocked: { backgroundColor: colors.surfaceMuted },
+  iconWrapLocked: { backgroundColor: colors.surface2 },
   title: { fontSize: 16, lineHeight: 20 },
   titleCompact: { fontSize: 14, lineHeight: 18 },
   description: { minHeight: 32 },
-  progress: { fontFamily: fonts.sansSemiBold, fontSize: 12, color: colors.textMuted, marginTop: spacing.xs },
+  progress: { fontFamily: fonts.sansSemiBold, fontSize: 12, color: colors.ink3, marginTop: spacing.xs },
   progressEarned: { color: colors.gold },
   progressBar: {
     marginTop: spacing.xs,
     height: 5,
     borderRadius: 3,
-    backgroundColor: alpha.navy10,
+    backgroundColor: alpha.ink10,
     overflow: 'hidden',
   },
-  progressFill: { height: 5, borderRadius: 3, backgroundColor: colors.violet },
+  progressFill: { height: 5, borderRadius: 3, backgroundColor: colors.teal },
 });

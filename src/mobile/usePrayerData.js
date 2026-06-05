@@ -114,6 +114,8 @@ export async function addPrayer(data, user) {
   const result = await apiCreatePrayer({
     title: data.title,
     body: data.body,
+    category: data.category || null,
+    scriptureRef: data.scriptureRef?.trim() || null,
     isAnonymous: Boolean(data.isAnonymous ?? data.anonymous),
     privacy: data.privacy || 'community',
     prayerLimit: data.prayerLimit || 'daily',
@@ -128,6 +130,8 @@ export async function updatePrayer(prayerId, data) {
   await apiUpdatePrayer(prayerId, {
     title: data.title,
     body: data.body || data.text,
+    category: data.category || null,
+    scriptureRef: data.scriptureRef?.trim() || null,
     isAnonymous: Boolean(data.isAnonymous ?? data.anonymous),
     privacy: data.privacy || 'community',
     prayerLimit: data.prayerLimit || 'daily',

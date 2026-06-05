@@ -14,11 +14,16 @@ export async function prepareAvatarBlob(assetUri) {
     { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG },
   );
   const response = await fetch(manipulated.uri);
-  const blob = await response.blob();
+  const rawBlob = await response.blob();
+  const blob = rawBlob.type === AVATAR_CONTENT_TYPE
+    ? rawBlob
+    : typeof rawBlob.slice === 'function'
+      ? rawBlob.slice(0, rawBlob.size, AVATAR_CONTENT_TYPE)
+      : new Blob([rawBlob], { type: AVATAR_CONTENT_TYPE });
   if (blob.size >= MAX_AVATAR_BYTES) {
     throw new AvatarTooLargeError();
   }
-  return { uri: manipulated.uri, blob };
+  return { uri: manipulated.uri, blob, type: AVATAR_CONTENT_TYPE };
 }
 
 export async function uploadAvatarFile(file, signal) {

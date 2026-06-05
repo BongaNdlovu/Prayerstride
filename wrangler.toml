@@ -7,6 +7,7 @@ ENVIRONMENT = "production"
 FIREBASE_PROJECT_ID = "end-of-time-94cd3"
 FIREBASE_STORAGE_BUCKET = "end-of-time-94cd3.firebasestorage.app"
 CORS_ORIGIN = "https://api.prayerstride.app"
+CORS_ORIGINS = "https://api.prayerstride.app,https://prayerstride.app,https://prayerstride.fanelesibonge50.workers.dev,http://127.0.0.1:8083,http://localhost:8083,http://127.0.0.1:8082,http://localhost:8082"
 API_PUBLIC_URL = "https://api.prayerstride.app"
 
 [triggers]
@@ -33,7 +34,7 @@ tag = "v1"
 new_sqlite_classes = ["UserNotificationStream", "AdminEventStream"]
 
 [env.development]
-vars = { ENVIRONMENT = "development", API_PUBLIC_URL = "http://127.0.0.1:8787", CORS_ORIGIN = "http://127.0.0.1:8787", ALLOW_DEV_ORIGINS = "true", FIREBASE_PROJECT_ID = "end-of-time-94cd3", FIREBASE_STORAGE_BUCKET = "end-of-time-94cd3.firebasestorage.app" }
+vars = { ENVIRONMENT = "development", API_PUBLIC_URL = "http://127.0.0.1:8787", CORS_ORIGIN = "http://127.0.0.1:8787", CORS_ORIGINS = "http://127.0.0.1:8787,http://127.0.0.1:8083,http://localhost:8083,http://127.0.0.1:8082,http://localhost:8082", ALLOW_DEV_ORIGINS = "true", FIREBASE_PROJECT_ID = "end-of-time-94cd3", FIREBASE_STORAGE_BUCKET = "end-of-time-94cd3.firebasestorage.app" }
 
 [[env.development.d1_databases]]
 binding = "DB"
@@ -52,7 +53,7 @@ bindings = [
 ]
 
 [env.staging]
-vars = { ENVIRONMENT = "staging", API_PUBLIC_URL = "https://api-staging.prayerstride.app", CORS_ORIGIN = "https://api-staging.prayerstride.app" }
+vars = { ENVIRONMENT = "staging", API_PUBLIC_URL = "https://api-staging.prayerstride.app", CORS_ORIGIN = "https://api-staging.prayerstride.app", CORS_ORIGINS = "https://api-staging.prayerstride.app,http://127.0.0.1:8083,http://localhost:8083,http://127.0.0.1:8082,http://localhost:8082" }
 
 [[env.staging.d1_databases]]
 binding = "DB"
@@ -70,7 +71,7 @@ bindings = [
 ]
 
 [env.production]
-vars = { ENVIRONMENT = "production", API_PUBLIC_URL = "https://api.prayerstride.app", CORS_ORIGIN = "https://api.prayerstride.app", FIREBASE_PROJECT_ID = "end-of-time-94cd3", FIREBASE_STORAGE_BUCKET = "end-of-time-94cd3.firebasestorage.app" }
+vars = { ENVIRONMENT = "production", API_PUBLIC_URL = "https://api.prayerstride.app", CORS_ORIGIN = "https://api.prayerstride.app", CORS_ORIGINS = "https://api.prayerstride.app,https://prayerstride.app,https://prayerstride.fanelesibonge50.workers.dev,http://127.0.0.1:8083,http://localhost:8083,http://127.0.0.1:8082,http://localhost:8082", FIREBASE_PROJECT_ID = "end-of-time-94cd3", FIREBASE_STORAGE_BUCKET = "end-of-time-94cd3.firebasestorage.app" }
 
 [[env.production.d1_databases]]
 binding = "DB"

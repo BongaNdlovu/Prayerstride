@@ -17,15 +17,15 @@ export default function WeeklyBarChart({ data, width = 308, height = 150 }) {
       <Svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`}>
         <Defs>
           <LinearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor={colors.community} />
-            <Stop offset="1" stopColor={colors.navy} />
+            <Stop offset="0" stopColor={colors.tealLight} />
+            <Stop offset="1" stopColor={colors.teal} />
           </LinearGradient>
         </Defs>
         {[0, 0.25, 0.5, 0.75, 1].map((frac, index) => {
           const y = padding.top + chartH * (1 - frac);
           const label = Math.round(maxVal * frac);
           return (
-            <SvgText key={`yl-${index}`} x={padding.left - 7} y={y + 4} textAnchor="end" fontSize="10" fill={colors.textMuted}>
+            <SvgText key={`yl-${index}`} x={padding.left - 7} y={y + 4} textAnchor="end" fontSize="10" fill={colors.ink3}>
               {frac === 0 ? '0m' : `${label}m`}
             </SvgText>
           );
@@ -50,7 +50,7 @@ export default function WeeklyBarChart({ data, width = 308, height = 150 }) {
         {data.map((item, index) => {
           const x = padding.left + index * (chartW / data.length) + barWidth / 2 + 4;
           return (
-            <SvgText key={`xl-${index}`} x={x} y={height - 5} textAnchor="middle" fontSize="10" fill={colors.textMuted}>
+            <SvgText key={`xl-${index}`} x={x} y={height - 5} textAnchor="middle" fontSize="10" fill={colors.ink4}>
               {item.day}
             </SvgText>
           );

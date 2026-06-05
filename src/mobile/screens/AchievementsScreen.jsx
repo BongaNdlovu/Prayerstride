@@ -67,35 +67,27 @@ export default function AchievementsScreen({ user, onBack }) {
     <ScreenScaffold pageContent style={styles.screen}>
       <AppHeader title="Badges" subtitle="Gentle milestones for consistency and care." onBack={onBack} centered showLogo />
       <AsyncState loading={loading} error={error} onRetry={retry}>
-        <GlassCard style={styles.summaryCard}>
-          <View style={styles.summaryRow}>
-            <View style={styles.summaryInfo}>
-              <Heading level="eyebrow">Badge Collection</Heading>
-              <Heading level="stat" style={styles.summaryPercent}>{earnedCount}/{badges.length}</Heading>
-              <BodyText variant="caption">{Math.round(overallProgress * 100)}% earned</BodyText>
-              <View style={styles.summaryTrack}>
-                <View style={[styles.summaryFill, { width: `${Math.round(overallProgress * 100)}%` }]} />
-              </View>
-            </View>
-            <ProgressRing progress={overallProgress} size={72} strokeWidth={6} accent={colors.violet}>
-              <Award size={22} color={colors.violet} />
-            </ProgressRing>
+        <View style={styles.achBanner}>
+          <BodyText variant="caption" style={styles.achBannerLabel}>Your Progress</BodyText>
+          <Heading level="stat" style={styles.achBannerCount}>{earnedCount}<BodyText variant="caption" style={styles.achBannerTotal}> / {badges.length} Achievements</BodyText></Heading>
+          <View style={styles.achBannerTrack}>
+            <View style={[styles.achBannerFill, { width: `${Math.round(overallProgress * 100)}%` }]} />
           </View>
-          <View style={styles.statusRow}>
-            <View style={styles.statusPill}>
-              <CheckCircle size={14} color={colors.gold} />
-              <BodyText variant="caption" style={styles.statusText}>{earnedBadges.length} earned</BodyText>
-            </View>
-            <View style={styles.statusPill}>
-              <Target size={14} color={colors.violet} />
-              <BodyText variant="caption" style={styles.statusText}>{inProgressBadges.length} active</BodyText>
-            </View>
-            <View style={styles.statusPill}>
-              <Lock size={14} color={colors.textMuted} />
-              <BodyText variant="caption" style={styles.statusText}>{lockedBadges.length} locked</BodyText>
-            </View>
+        </View>
+        <View style={styles.statusRow}>
+          <View style={styles.statusPill}>
+            <CheckCircle size={14} color={colors.gold} />
+            <BodyText variant="caption" style={styles.statusText}>{earnedBadges.length} earned</BodyText>
           </View>
-        </GlassCard>
+          <View style={styles.statusPill}>
+            <Target size={14} color={colors.teal} />
+            <BodyText variant="caption" style={styles.statusText}>{inProgressBadges.length} active</BodyText>
+          </View>
+          <View style={styles.statusPill}>
+            <Lock size={14} color={colors.ink3} />
+            <BodyText variant="caption" style={styles.statusText}>{lockedBadges.length} locked</BodyText>
+          </View>
+        </View>
         <BadgeSection
           title="Earned"
           subtitle="Milestones already added to your walk."
@@ -121,19 +113,30 @@ export default function AchievementsScreen({ user, onBack }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  summaryCard: { marginBottom: spacing.lg },
-  summaryRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
-  summaryInfo: { flex: 1 },
-  summaryPercent: { marginTop: spacing.sm, marginBottom: spacing.xs },
-  summaryTrack: {
-    height: 7,
-    borderRadius: 4,
+  achBanner: {
+    marginBottom: spacing.lg,
+    borderRadius: radii.xl,
+    backgroundColor: colors.night,
+    padding: spacing.xl,
     overflow: 'hidden',
-    backgroundColor: alpha.navy10,
-    marginTop: spacing.md,
   },
-  summaryFill: { height: 7, borderRadius: 4, backgroundColor: colors.violet },
-  statusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.lg },
+  achBannerLabel: {
+    fontFamily: fonts.sansExtraBold,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    color: 'rgba(255,255,255,0.50)',
+    marginBottom: spacing.xs,
+  },
+  achBannerCount: { color: colors.white, marginBottom: spacing.sm },
+  achBannerTotal: { color: 'rgba(255,255,255,0.40)', fontSize: 16 },
+  achBannerTrack: {
+    height: 6,
+    borderRadius: 3,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.10)',
+  },
+  achBannerFill: { height: 6, borderRadius: 3, backgroundColor: colors.goldLight },
+  statusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.lg },
   statusPill: {
     minHeight: 32,
     borderRadius: radii.pill,
@@ -141,9 +144,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    backgroundColor: alpha.navy06,
+    backgroundColor: alpha.ink06,
   },
-  statusText: { color: colors.navy, fontFamily: fonts.sansSemiBold },
+  statusText: { color: colors.ink, fontFamily: fonts.sansSemiBold },
   sectionBlock: { marginBottom: spacing.xl },
   sectionHeader: {
     flexDirection: 'row',
@@ -160,7 +163,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     textAlign: 'center',
     textAlignVertical: 'center',
-    color: colors.navy,
+    color: colors.ink,
     fontFamily: fonts.sansExtraBold,
     backgroundColor: alpha.gold18,
   },
@@ -169,10 +172,10 @@ const styles = StyleSheet.create({
   gridItem: { flex: 1 },
   emptySection: {
     minHeight: 72,
-    borderRadius: radii.lg,
+    borderRadius: radii.sm,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.white,
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.lg,

@@ -66,6 +66,19 @@ service cloud.firestore {
       return !(key in request.resource.data) || request.resource.data[key] is bool;
     }
 
+    function optionalPrayerCategory(key) {
+      return !(key in request.resource.data)
+        || request.resource.data[key] == null
+        || request.resource.data[key] in [
+          "Healing",
+          "Family",
+          "Strength",
+          "Provision",
+          "Guidance",
+          "Gratitude"
+        ];
+    }
+
     function optionalTags(key) {
       return !(key in request.resource.data)
         || request.resource.data[key] == null
@@ -150,7 +163,7 @@ service cloud.firestore {
 
     function validPrayerCreate() {
       return signedIn()
-        && request.resource.data.keys().hasOnly(["title", "body", "authorUid", "authorName", "isAnonymous", "createdAt", "updatedAt", "prayedCount", "status", "privacy", "urgent", "allowShare", "prayerLimit"])
+        && request.resource.data.keys().hasOnly(["title", "body", "authorUid", "authorName", "isAnonymous", "createdAt", "updatedAt", "prayedCount", "status", "privacy", "urgent", "allowShare", "prayerLimit", "category", "scriptureRef"])
         && request.resource.data.keys().hasAll(["title", "body", "authorUid", "authorName", "isAnonymous", "createdAt", "updatedAt", "prayedCount", "status"])
         && request.resource.data.authorUid == request.auth.uid
         && validString(request.resource.data.title, 120)
@@ -166,13 +179,15 @@ service cloud.firestore {
         && (!("privacy" in request.resource.data) || request.resource.data.privacy == null || request.resource.data.privacy in ["community", "private"])
         && optionalBool("urgent")
         && optionalBool("allowShare")
+        && optionalPrayerCategory("category")
+        && optionalString("scriptureRef", 120)
         && (!("prayerLimit" in request.resource.data) || request.resource.data.prayerLimit in ["daily", "once", "weekly"]);
     }
 
     function validPrayerAuthorUpdate() {
       return isAuthor()
         && unchanged(["authorUid", "authorName", "createdAt", "prayedCount"])
-        && changedOnly(["title", "body", "isAnonymous", "status", "updatedAt", "privacy", "urgent", "allowShare", "prayerLimit"])
+        && changedOnly(["title", "body", "isAnonymous", "status", "updatedAt", "privacy", "urgent", "allowShare", "prayerLimit", "category", "scriptureRef"])
         && request.resource.data.status in ["active", "answered"]
         && validString(request.resource.data.title, 120)
         && validString(request.resource.data.body, 2000)
@@ -182,6 +197,8 @@ service cloud.firestore {
         && (!("privacy" in request.resource.data) || request.resource.data.privacy == null || request.resource.data.privacy in ["community", "private"])
         && optionalBool("urgent")
         && optionalBool("allowShare")
+        && optionalPrayerCategory("category")
+        && optionalString("scriptureRef", 120)
         && (!("prayerLimit" in request.resource.data) || request.resource.data.prayerLimit in ["daily", "once", "weekly"]);
     }
 

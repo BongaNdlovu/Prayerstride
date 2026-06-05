@@ -67,7 +67,7 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
@@ -180,11 +180,11 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
               <Image source={{ uri: photoURL }} style={styles.avatarImage} />
             ) : (
               <View style={styles.avatarFallback}>
-                <Camera size={28} color={colors.navy} />
+                <Camera size={28} color={colors.ink} />
               </View>
             )}
             <View style={styles.avatarBadge}>
-              <Camera size={14} color={colors.textPrimary} />
+              <Camera size={14} color={colors.ink} />
             </View>
           </Pressable>
           <BodyText variant="caption" style={styles.avatarHint}>Tap to change profile photo</BodyText>
@@ -195,7 +195,7 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
             onChangeText={setName}
             placeholder="Your name"
             style={styles.input}
-            placeholderTextColor={colors.textMuted}
+            placeholderTextColor={colors.ink3}
           />
 
           <Heading level="eyebrow" style={styles.fieldLabel}>Username</Heading>
@@ -207,7 +207,7 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
               placeholder="username"
               autoCapitalize="none"
               style={styles.handleInput}
-              placeholderTextColor={colors.textMuted}
+              placeholderTextColor={colors.ink3}
             />
           </View>
 
@@ -219,7 +219,7 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
             multiline
             maxLength={BIO_MAX}
             style={[styles.input, styles.textArea]}
-            placeholderTextColor={colors.textMuted}
+            placeholderTextColor={colors.ink3}
           />
           <BodyText variant="caption" style={styles.charCount}>{bio.length}/{BIO_MAX}</BodyText>
 
@@ -235,7 +235,7 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
             placeholder="Current password"
             secureTextEntry
             style={styles.input}
-            placeholderTextColor={colors.textMuted}
+            placeholderTextColor={colors.ink3}
           />
           <TextInput
             value={newPassword}
@@ -243,7 +243,7 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
             placeholder="New password"
             secureTextEntry
             style={styles.input}
-            placeholderTextColor={colors.textMuted}
+            placeholderTextColor={colors.ink3}
           />
           <PrimaryButton label="Change Password" onPress={savePassword} busy={passwordBusy} disabled={passwordBusy} style={styles.saveButton} />
         </GlassCard>
@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
     borderRadius: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.warm,
+    backgroundColor: colors.surface2,
   },
   avatarBadge: {
     position: 'absolute',
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.navyMid,
+    backgroundColor: colors.night2,
     borderWidth: 2,
     borderColor: colors.border,
   },
@@ -288,8 +288,8 @@ const styles = StyleSheet.create({
     paddingTop: 0,
     paddingBottom: 0,
   },
-  handlePrefix: { color: colors.textMuted },
-  handleInput: { flex: 1, color: colors.textPrimary, fontFamily: fonts.sans, fontSize: 15, paddingVertical: spacing.md },
+  handlePrefix: { color: colors.ink3 },
+  handleInput: { flex: 1, color: colors.ink, fontFamily: fonts.sans, fontSize: 15, paddingVertical: spacing.md },
   textArea: { ...sharedStyles.textArea, minHeight: 100 },
   charCount: { marginTop: spacing.xs, textAlign: 'right' },
   saveButton: { marginTop: spacing.xl },

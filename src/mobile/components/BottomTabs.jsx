@@ -1,34 +1,42 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { BarChart3, Sun, Trophy, User } from 'lucide-react-native';
+import { Footprints, Home, Trophy, User } from 'lucide-react-native';
 import { alpha, colors, fonts, spacing } from '../theme';
 
 const tabs = [
-  { key: 'home', label: 'Feed', icon: Sun },
+  { key: 'home', label: 'Feed', icon: Home },
   { key: 'leaderboard', label: 'Ranks', icon: Trophy },
-  { key: 'myStats', label: 'Stride', icon: BarChart3 },
+  { key: 'stride', label: 'Stride', icon: Footprints },
   { key: 'profile', label: 'Profile', icon: User },
 ];
 
 const styles = StyleSheet.create({
   shell: {
-    position: 'relative',
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    backgroundColor: colors.white,
-    paddingBottom: spacing.lg,
+    backgroundColor: 'rgba(250,250,248,0.92)',
+    paddingBottom: spacing.lg + 8,
   },
   tabs: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-around',
-    paddingTop: spacing.sm + 2,
+    paddingTop: 10,
     paddingHorizontal: spacing.sm,
   },
   tabItem: { flex: 1, alignItems: 'center', gap: 4, paddingBottom: spacing.xs },
   tabIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   tabIconActive: { backgroundColor: alpha.gold18 },
-  tabLabel: { fontFamily: fonts.sansSemiBold, fontSize: 10, color: colors.textMuted },
-  tabLabelActive: { color: colors.navy },
+  tabStrideWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: colors.surface2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabStrideWrapActive: { backgroundColor: colors.night },
+  tabLabel: { fontFamily: fonts.sansSemiBold, fontSize: 10, color: colors.ink3 },
+  tabLabelActive: { color: colors.ink },
 });
 
 export default function BottomTabs({ active, onChange }) {
@@ -37,11 +45,19 @@ export default function BottomTabs({ active, onChange }) {
       <View style={styles.tabs}>
         {tabs.map(({ key, label, icon: Icon }) => {
           const selected = key === active;
+          const isStride = key === 'stride';
+
           return (
             <Pressable key={key} onPress={() => onChange(key, {})} style={styles.tabItem} accessibilityRole="button" accessibilityLabel={label}>
-              <View style={[styles.tabIcon, selected && styles.tabIconActive]}>
-                <Icon size={20} color={selected ? colors.navy : colors.textMuted} />
-              </View>
+              {isStride ? (
+                <View style={[styles.tabStrideWrap, selected && styles.tabStrideWrapActive]}>
+                  <Icon size={14} color={selected ? colors.goldLight : colors.ink3} />
+                </View>
+              ) : (
+                <View style={[styles.tabIcon, selected && styles.tabIconActive]}>
+                  <Icon size={19} color={selected ? colors.ink : colors.ink3} />
+                </View>
+              )}
               <Text style={[styles.tabLabel, selected && styles.tabLabelActive]}>{label}</Text>
             </Pressable>
           );

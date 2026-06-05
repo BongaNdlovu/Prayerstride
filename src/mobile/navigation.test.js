@@ -49,7 +49,7 @@ describe('navigation', () => {
   });
 
   it('reset clears history', () => {
-    const state = { screen: 'detail', params: { id: '1' }, history: [{ screen: 'home', params: {} }, { screen: 'discover', params: {} }] };
+    const state = { screen: 'detail', params: { id: '1' }, history: [{ screen: 'home', params: {} }, { screen: 'leaderboard', params: {} }] };
     const fresh = reset('home');
     expect(fresh.screen).toBe('home');
     expect(fresh.params).toEqual({});

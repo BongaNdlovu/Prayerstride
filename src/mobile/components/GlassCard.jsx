@@ -1,11 +1,13 @@
 import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { colors, glass, radii, shadow, spacing } from '../theme';
+import { colors, radii, shadow, spacing } from '../theme';
 
 const styles = StyleSheet.create({
   card: {
-    ...glass,
-    borderRadius: radii.xxl,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.lg,
     padding: spacing.xl - 2,
     ...shadow.card,
   },

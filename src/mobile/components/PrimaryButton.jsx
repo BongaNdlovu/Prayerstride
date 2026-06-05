@@ -42,10 +42,10 @@ export default function PrimaryButton({
         style={[styles.secondary, disabled && styles.disabled, style]}
       >
         {busy ? (
-          <ActivityIndicator color={colors.navy} />
+          <ActivityIndicator color={colors.ink} />
         ) : (
           <View style={styles.inner}>
-            {Icon ? <Icon size={18} color={colors.navy} /> : null}
+            {Icon ? <Icon size={18} color={colors.ink} /> : null}
             <Text style={[styles.secondaryText, textStyle]}>{label}</Text>
           </View>
         )}
@@ -74,36 +74,36 @@ export default function PrimaryButton({
 }
 
 const styles = StyleSheet.create({
-  wrap: { borderRadius: radii.lg, overflow: 'hidden', ...shadow.subtle },
+  wrap: { borderRadius: radii.md, overflow: 'hidden', ...shadow.subtle },
   gradient: {
     minHeight: 52,
     paddingHorizontal: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radii.lg,
+    borderRadius: radii.md,
   },
   inner: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   text: { ...typography.button },
   disabled: { opacity: 0.5 },
   ghost: {
     minHeight: 52,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: colors.navy,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-  },
-  ghostText: { ...typography.button, color: colors.navy },
-  secondary: {
-    minHeight: 52,
-    borderRadius: radii.lg,
+    borderRadius: radii.md,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
   },
-  secondaryText: { ...typography.button, color: colors.navy },
+  ghostText: { ...typography.button, color: colors.ink },
+  secondary: {
+    minHeight: 52,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  secondaryText: { ...typography.button, color: colors.ink },
 });

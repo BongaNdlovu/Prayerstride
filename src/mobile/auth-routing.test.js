@@ -22,8 +22,10 @@ function getRouteForSuspendedUser(currentScreen) {
 }
 
 describe('auth routing', () => {
-  it('uses AsyncStorage persistence so signed-in users survive app restarts', async () => {
+  it('uses browser auth on web and AsyncStorage persistence on native', async () => {
     const source = await import('./firebase.js?raw');
+    expect(source.default).toMatch(/Platform\.OS === 'web'/);
+    expect(source.default).toMatch(/return getAuth\(app\)/);
     expect(source.default).toMatch(/getReactNativePersistence\(AsyncStorage\)/);
     expect(source.default).not.toMatch(/inMemoryPersistence/);
   });

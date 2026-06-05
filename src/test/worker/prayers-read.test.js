@@ -16,6 +16,8 @@ describe('prayers read helpers', () => {
       prayed_count: 2,
       status: 'active',
       privacy: 'community',
+      category: 'Healing',
+      scripture_ref: 'Psalm 34:17',
       prayer_limit: 'daily',
       urgent: 1,
       allow_share: 1,
@@ -26,6 +28,8 @@ describe('prayers read helpers', () => {
       id: 'p1',
       authorUid: 'u1',
       authorName: 'Alex',
+      category: 'Healing',
+      scriptureRef: 'Psalm 34:17',
       prayedCount: 2,
       urgent: true,
     });
@@ -37,11 +41,14 @@ describe('prayers read helpers', () => {
       body: 'Need peace',
       authorUid: 'u2',
       authorName: 'Sam',
+      category: 'Guidance',
+      scriptureRef: 'Philippians 4:6',
       isAnonymous: true,
       createdAt: '2026-01-02T00:00:00.000Z',
     });
 
     expect(item.authorName).toBe('Anonymous');
     expect(item.isAnonymous).toBe(true);
+      expect(item.scriptureRef).toBe('Philippians 4:6');
   });
 });

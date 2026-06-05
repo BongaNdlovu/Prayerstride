@@ -2,30 +2,26 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, PanResponder, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
-  Award,
   Bell,
   Bookmark,
   BookOpen,
-  ChevronLeft,
-  ChevronRight,
-  Flame,
+  ArrowDown,
+  ArrowUp,
   Heart,
-  Map,
   MoreHorizontal,
+  PenLine,
   Search,
   SendHorizontal,
   Sparkles,
-  Target,
   Timer,
   Trophy,
   X,
-  Zap,
 } from 'lucide-react-native';
 import { alpha, colors, fonts, radii, shadow, spacing } from '../theme';
-import { DAILY_PRAY_GOAL, XP_AWARDS, XP_PER_LEVEL } from '../gamification';
+import { XP_PER_LEVEL } from '../gamification';
 import { auth } from '../firebase';
 import { bookmarkPrayer, prayForRequest } from '../api';
-import { addPrayer, usePrayers } from '../usePrayerData';
+import { addPrayer, addTestimony, markAnswered, usePrayers } from '../usePrayerData';
 import { filterBlockedItems, useBlocks } from '../useBlocks';
 import { useGamification } from '../useGamification';
 import { useAppFeedback } from '../AppFeedbackProvider';
@@ -37,8 +33,9 @@ import BodyText from '../components/BodyText';
 import GlassCard from '../components/GlassCard';
 import PrimaryButton from '../components/PrimaryButton';
 import AsyncState from '../components/AsyncState';
-import ProgressRing from '../components/ProgressRing';
-import StreakCalendar from '../components/StreakCalendar';
+import SegmentedControl from '../components/SegmentedControl';
+
+const PRAYER_CATEGORIES = ['Healing', 'Family', 'Strength', 'Provision', 'Guidance', 'Gratitude'];
 
 const DAILY_VERSES = [
   {
@@ -108,10 +105,10 @@ function ProgressDots({ count, activeIndex, onSelect }) {
   );
 }
 
-function PrayerFocusCard({ prayer, saved, prayed, onPray, onAmen, onSave, onMore }) {
+function PrayerFocusCard({ prayer, saved, prayed, canUpdate, onPray, onAmen, onSave, onMore, onUpdate }) {
   const initial = prayer.authorName?.slice(0, 1)?.toUpperCase() || 'P';
   return (
-    <GlassCard style={styles.focusCard}>
+    <View style={styles.focusCard}>
       <View style={styles.focusHeader}>
         <View style={styles.focusAvatar}>
           <Text style={styles.focusAvatarText}>{initial}</Text>
@@ -125,42 +122,60 @@ function PrayerFocusCard({ prayer, saved, prayed, onPray, onAmen, onSave, onMore
       </View>
 
       <View style={styles.focusBody}>
-        <Text style={styles.focusQuote}>"</Text>
-        <Heading level="h4" style={styles.focusTitle}>{prayer.title}</Heading>
+        <Text style={styles.focusQuote}>{'"'}</Text>
+        {prayer.status === 'answered' ? (
+          <View style={styles.answeredBadge}>
+            <BodyText variant="caption" style={styles.answeredText}>Prayer Answered</BodyText>
+          </View>
+        ) : null}
         <BodyText variant="body" style={styles.focusText}>{prayer.body}</BodyText>
+        {prayer.scriptureRef || prayer.category ? (
+          <BodyText variant="caption" style={styles.focusVerse}>
+            {prayer.scriptureRef || prayer.category}
+          </BodyText>
+        ) : null}
       </View>
 
       <View style={styles.focusActions}>
         <Pressable onPress={onPray} style={styles.focusAction} accessibilityLabel="Start prayer timer">
           <View style={[styles.focusActionIcon, styles.focusActionPrimary]}>
-            <Timer size={18} color={colors.community} />
+            <Timer size={18} color={colors.teal} />
           </View>
           <BodyText variant="caption">Pray</BodyText>
         </Pressable>
         <Pressable onPress={onAmen} style={styles.focusAction} accessibilityLabel="Say amen">
           <View style={[styles.focusActionIcon, prayed && styles.focusActionAmen]}>
-            <Heart size={18} color={prayed ? colors.urgent : colors.textMuted} fill={prayed ? colors.urgent : 'transparent'} />
+            <Heart size={18} color={prayed ? colors.redSoft : colors.ink3} fill={prayed ? colors.redSoft : 'transparent'} />
           </View>
           <BodyText variant="caption">{prayed ? 'Amen' : 'Amen'}</BodyText>
         </Pressable>
         <Pressable onPress={onSave} style={styles.focusAction} accessibilityLabel="Save prayer">
           <View style={[styles.focusActionIcon, saved && styles.focusActionSaved]}>
-            <Bookmark size={18} color={saved ? colors.gold : colors.textMuted} fill={saved ? colors.gold : 'transparent'} />
+            <Bookmark size={18} color={saved ? colors.gold : colors.ink3} fill={saved ? colors.gold : 'transparent'} />
           </View>
           <BodyText variant="caption">{saved ? 'Saved' : 'Save'}</BodyText>
         </Pressable>
+        {canUpdate ? (
+          <Pressable onPress={onUpdate} style={styles.focusAction} accessibilityLabel="Share prayer update">
+            <View style={styles.focusActionIcon}>
+              <PenLine size={18} color={colors.ink3} />
+            </View>
+            <BodyText variant="caption">Update</BodyText>
+          </Pressable>
+        ) : (
         <Pressable onPress={onMore} style={styles.focusAction} accessibilityLabel="More options">
           <View style={styles.focusActionIcon}>
-            <MoreHorizontal size={18} color={colors.textMuted} />
+            <MoreHorizontal size={18} color={colors.ink3} />
           </View>
           <BodyText variant="caption">More</BodyText>
         </Pressable>
+        )}
       </View>
-    </GlassCard>
+    </View>
   );
 }
 
-function XPProgressPanel({ summary, onOpenDevotions }) {
+function XPProgressPanel({ summary }) {
   const levelInfo = summary.levelInfo;
   const progressPct = Math.round(Math.min(Math.max(levelInfo.progress || 0, 0), 1) * 100);
   const xpIntoLevel = Number(levelInfo.xpIntoLevel || 0);
@@ -169,11 +184,11 @@ function XPProgressPanel({ summary, onOpenDevotions }) {
 
   return (
     <View style={styles.progressStack}>
-      <GlassCard style={styles.xpPanel}>
-        <View style={styles.xpTopRow}>
-          <View style={styles.levelPill}>
-            <Sparkles size={13} color={colors.gold} />
-            <BodyText variant="caption" style={styles.levelPillText}>
+      <View style={styles.xpBarWrap}>
+        <View style={styles.xpBarRow}>
+          <View style={styles.levelBadge}>
+            <Sparkles size={10} color={colors.ink} />
+            <BodyText variant="caption" style={styles.levelBadgeText}>
               Level {levelInfo.level} - {summary.journey.title}
             </BodyText>
           </View>
@@ -184,22 +199,16 @@ function XPProgressPanel({ summary, onOpenDevotions }) {
         <View style={styles.xpTrack}>
           <View style={[styles.xpFill, { width: `${progressPct}%` }]} />
         </View>
-        <View style={styles.xpMetaRow}>
-          <BodyText variant="caption">{formatXP(xpToNextLevel)} XP to Level {levelInfo.level + 1}</BodyText>
-          <BodyText variant="caption" style={styles.todayXp}>+{formatXP(summary.todayXP)} today</BodyText>
-        </View>
-      </GlassCard>
+      </View>
 
-      <Pressable onPress={onOpenDevotions} accessibilityRole="button" accessibilityLabel="Open devotions">
-        <LinearGradient colors={[colors.navyMid, colors.navyDeep]} style={styles.verseCard}>
-          <View style={styles.verseLabelRow}>
-            <BookOpen size={13} color={colors.goldLight} />
-            <BodyText variant="caption" style={styles.verseLabel}>Today's Verse</BodyText>
-          </View>
-          <Heading level="h4" style={styles.verseText}>{verse.text}</Heading>
-          <BodyText variant="caption" style={styles.verseRef}>{verse.ref}</BodyText>
-        </LinearGradient>
-      </Pressable>
+      <LinearGradient colors={[colors.night2, colors.night]} style={styles.verseCard}>
+        <View style={styles.verseLabelRow}>
+          <BookOpen size={13} color={colors.goldLight} />
+          <BodyText variant="caption" style={styles.verseLabel}>Today's Verse</BodyText>
+        </View>
+        <Heading level="h4" style={styles.verseText}>{verse.text}</Heading>
+        <BodyText variant="caption" style={styles.verseRef}>{verse.ref}</BodyText>
+      </LinearGradient>
     </View>
   );
 }
@@ -220,9 +229,13 @@ export default function HomeScreen({ onOpenPrayer, go }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [composeOpen, setComposeOpen] = useState(false);
-  const [composeTitle, setComposeTitle] = useState('');
   const [composeBody, setComposeBody] = useState('');
+  const [composeCategory, setComposeCategory] = useState('Guidance');
+  const [composeScriptureRef, setComposeScriptureRef] = useState('');
   const [composeBusy, setComposeBusy] = useState(false);
+  const [updatePrayer, setUpdatePrayer] = useState(null);
+  const [updateBody, setUpdateBody] = useState('');
+  const [updateBusy, setUpdateBusy] = useState(false);
 
   const visiblePrayers = useMemo(
     () => (blocksLoading ? [] : filterBlockedItems(prayers, blockedUids)),
@@ -244,11 +257,6 @@ export default function HomeScreen({ onOpenPrayer, go }) {
     retryStats();
   };
 
-  const earnedBadges = useMemo(
-    () => gamified.badges.filter((badge) => badge.state === 'earned').length,
-    [gamified.badges],
-  );
-
   const goToPrayerIndex = (nextIndex) => {
     if (!visiblePrayers.length) return;
     const clamped = clampIndex(nextIndex, visiblePrayers.length);
@@ -264,10 +272,10 @@ export default function HomeScreen({ onOpenPrayer, go }) {
   goToPrayerIndexRef.current = goToPrayerIndex;
 
   const panResponder = useRef(PanResponder.create({
-    onMoveShouldSetPanResponder: (_event, gesture) => Math.abs(gesture.dx) > 24,
+    onMoveShouldSetPanResponder: (_event, gesture) => Math.abs(gesture.dy) > 24,
     onPanResponderRelease: (_event, gesture) => {
-      if (gesture.dx < -40) goToPrayerIndexRef.current(feedIndexRef.current + 1);
-      if (gesture.dx > 40) goToPrayerIndexRef.current(feedIndexRef.current - 1);
+      if (gesture.dy < -40) goToPrayerIndexRef.current(feedIndexRef.current + 1);
+      if (gesture.dy > 40) goToPrayerIndexRef.current(feedIndexRef.current - 1);
     },
   })).current;
 
@@ -309,26 +317,52 @@ export default function HomeScreen({ onOpenPrayer, go }) {
   };
 
   const submitComposePrayer = async () => {
-    if (!composeTitle.trim() || !composeBody.trim() || composeBusy) return;
+    if (!composeBody.trim() || composeBusy) return;
     setComposeBusy(true);
     try {
       await addPrayer({
-        title: composeTitle.trim(),
         body: composeBody.trim(),
+        category: composeCategory,
+        scriptureRef: composeScriptureRef,
         privacy: 'community',
         prayerLimit: 'daily',
         urgent: false,
         allowShare: true,
       }, auth.currentUser);
       setComposeOpen(false);
-      setComposeTitle('');
       setComposeBody('');
+      setComposeCategory('Guidance');
+      setComposeScriptureRef('');
       feedback.showToast({ message: 'Prayer shared' });
       retryPrayers();
     } catch (error) {
       Alert.alert('Could not share prayer', getErrorMessage(error));
     } finally {
       setComposeBusy(false);
+    }
+  };
+
+  const submitUpdate = async () => {
+    if (!updatePrayer?.id || !updateBody.trim() || updateBusy) return;
+    setUpdateBusy(true);
+    try {
+      await addTestimony({
+        title: updatePrayer.title || 'Prayer update',
+        body: updateBody.trim(),
+        prayerId: updatePrayer.id,
+        shared: true,
+      }, auth.currentUser);
+      await markAnswered(updatePrayer.id);
+      setUpdatePrayer(null);
+      setUpdateBody('');
+      feedback.celebrate();
+      feedback.showToast({ message: 'Prayer update shared' });
+      retryPrayers();
+      retryStats();
+    } catch (error) {
+      Alert.alert('Could not share update', getErrorMessage(error));
+    } finally {
+      setUpdateBusy(false);
     }
   };
 
@@ -341,104 +375,22 @@ export default function HomeScreen({ onOpenPrayer, go }) {
         </View>
         <View style={styles.headerActions}>
           <Pressable onPress={() => setSearchOpen(true)} style={styles.headerIconBtn} accessibilityLabel="Search prayers">
-            <Search size={19} color={colors.navy} />
+            <Search size={19} color={colors.ink} />
           </Pressable>
           <Pressable onPress={() => setComposeOpen(true)} style={styles.headerIconBtn} accessibilityLabel="Share a prayer">
-            <SendHorizontal size={19} color={colors.navy} />
+            <SendHorizontal size={19} color={colors.ink} />
           </Pressable>
           <Pressable onPress={() => go('achievements')} style={styles.headerIconBtn} accessibilityRole="button" accessibilityLabel="Badges">
-            <Trophy size={19} color={colors.navy} />
+            <Trophy size={19} color={colors.ink} />
           </Pressable>
           <Pressable onPress={() => go('notifications')} style={styles.headerIconBtn} accessibilityRole="button" accessibilityLabel="Notifications">
-            <Bell size={20} color={colors.navy} />
+            <Bell size={20} color={colors.ink} />
           </Pressable>
         </View>
       </View>
 
       <AsyncState loading={listLoading} error={listError} onRetry={retry}>
-        <XPProgressPanel summary={gamified} onOpenDevotions={() => go('devotions')} />
-
-        <GlassCard style={styles.streakCard}>
-          <View style={styles.streakHeader}>
-            <View style={styles.streakCopy}>
-              <Heading level="eyebrow">Current Streak</Heading>
-              <View style={styles.streakValueRow}>
-                <Flame size={22} color={colors.coral} />
-                <Heading level="stat" style={styles.streakValue}>{gamified.streak}</Heading>
-                <BodyText variant="label">days</BodyText>
-              </View>
-            </View>
-            <ProgressRing progress={gamified.dailyGoalProgress} size={88} strokeWidth={7} accent={colors.gold}>
-              <View style={styles.ringCenter}>
-                <Target size={18} color={colors.gold} />
-                <Heading level="h4" style={styles.ringValue}>
-                  {gamified.dailyPrayCount}/{DAILY_PRAY_GOAL}
-                </Heading>
-              </View>
-            </ProgressRing>
-          </View>
-          <BodyText variant="caption" style={styles.goalCaption}>Today&apos;s prayer goal</BodyText>
-          <StreakCalendar
-            streak={gamified.streak}
-            currentDayIndex={gamified.currentDayIndex}
-            activeDayIndexes={gamified.activeDayIndexes}
-          />
-        </GlassCard>
-
-        <View style={styles.inlineStats}>
-          <GlassCard style={styles.inlineStatCard}>
-            <Zap size={18} color={colors.gold} />
-            <Heading level="h4" style={styles.inlineStatValue}>+{gamified.todayXP} XP</Heading>
-            <BodyText variant="caption">Today</BodyText>
-          </GlassCard>
-          <GlassCard style={styles.inlineStatCard}>
-            <Award size={18} color={colors.violet} />
-            <Heading level="h4" style={styles.inlineStatValue}>Level {gamified.levelInfo.level}</Heading>
-            <BodyText variant="caption">{earnedBadges} badges earned</BodyText>
-          </GlassCard>
-        </View>
-
-        <Pressable onPress={() => go('achievements')}>
-          <GlassCard style={styles.journeyCard}>
-            <View style={styles.journeyRow}>
-              <View style={styles.journeyIcon}>
-                <Map size={22} color={colors.community} />
-              </View>
-              <View style={styles.journeyCopy}>
-                <Heading level="eyebrow">Prayer Journey</Heading>
-                <Heading level="h4">{gamified.journey.title}</Heading>
-                <BodyText variant="small">{gamified.journey.subtitle}</BodyText>
-                <View style={styles.levelBar}>
-                  <View style={[styles.levelFill, { width: `${Math.round(gamified.levelInfo.progress * 100)}%` }]} />
-                </View>
-                <BodyText variant="caption">
-                  {gamified.levelInfo.xpIntoLevel}/500 XP to next level
-                </BodyText>
-              </View>
-              <ChevronRight size={18} color={colors.textMuted} />
-            </View>
-          </GlassCard>
-        </Pressable>
-
-        <Pressable onPress={() => go('dailyChallenge')}>
-          <GlassCard style={styles.challengeCard}>
-            <View style={styles.challengeRow}>
-              <View style={styles.challengeIcon}>
-                <Sparkles size={20} color={colors.gold} />
-              </View>
-              <View style={styles.challengeCopy}>
-                <Heading level="eyebrow">Daily Challenge</Heading>
-                <Heading level="h4">Pray for 5 People</Heading>
-                <BodyText variant="small">
-                  {gamified.dailyChallengeComplete
-                    ? 'Completed today'
-                    : `${gamified.dailyPrayCount}/${gamified.dailyChallengeGoal} carried so far`}
-                </BodyText>
-              </View>
-              <BodyText variant="caption" style={styles.challengeXp}>+{XP_AWARDS.dailyChallenge} XP</BodyText>
-            </View>
-          </GlassCard>
-        </Pressable>
+        <XPProgressPanel summary={gamified} />
 
         {currentPrayer ? (
           <View style={styles.feedViewport} {...panResponder.panHandlers}>
@@ -446,10 +398,15 @@ export default function HomeScreen({ onOpenPrayer, go }) {
               prayer={currentPrayer}
               saved={savedPrayerIds.has(currentPrayer.id)}
               prayed={prayedPrayerIds.has(currentPrayer.id)}
-              onPray={() => go('prayerStopwatch', { prayerId: currentPrayer.id, title: currentPrayer.title })}
+              canUpdate={currentPrayer.authorUid === uid}
+              onPray={() => go('timer', { prayerId: currentPrayer.id, title: currentPrayer.title })}
               onAmen={() => handleAmen(currentPrayer)}
               onSave={() => handleSave(currentPrayer)}
               onMore={() => onOpenPrayer(currentPrayer)}
+              onUpdate={() => {
+                setUpdatePrayer(currentPrayer);
+                setUpdateBody('');
+              }}
             />
             <View style={styles.feedNavRow}>
               <Pressable
@@ -457,7 +414,8 @@ export default function HomeScreen({ onOpenPrayer, go }) {
                 style={styles.feedNavBtn}
                 accessibilityLabel="Previous prayer"
               >
-                <ChevronLeft size={22} color={colors.navy} />
+                <ArrowUp size={18} color={colors.ink} />
+                <BodyText variant="caption" style={styles.feedNavText}>Prev</BodyText>
               </Pressable>
               <ProgressDots
                 count={visiblePrayers.length}
@@ -469,7 +427,8 @@ export default function HomeScreen({ onOpenPrayer, go }) {
                 style={styles.feedNavBtn}
                 accessibilityLabel="Next prayer"
               >
-                <ChevronRight size={22} color={colors.navy} />
+                <BodyText variant="caption" style={styles.feedNavText}>Next</BodyText>
+                <ArrowDown size={18} color={colors.ink} />
               </Pressable>
             </View>
           </View>
@@ -484,13 +443,13 @@ export default function HomeScreen({ onOpenPrayer, go }) {
         <View style={styles.searchOverlay}>
           <View style={styles.searchHeader}>
             <Pressable onPress={() => { setSearchOpen(false); setSearchQuery(''); }} style={styles.searchCloseBtn}>
-              <X size={20} color={colors.navy} />
+              <X size={20} color={colors.ink} />
             </Pressable>
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholder="Search prayers..."
-              placeholderTextColor={colors.textMuted}
+              placeholderTextColor={colors.ink3}
               style={styles.searchInput}
               autoFocus
             />
@@ -520,22 +479,14 @@ export default function HomeScreen({ onOpenPrayer, go }) {
             <View style={styles.composeHeader}>
               <Heading level="h4">Share a Prayer</Heading>
               <Pressable onPress={() => setComposeOpen(false)} style={styles.searchCloseBtn}>
-                <X size={20} color={colors.navy} />
+                <X size={20} color={colors.ink} />
               </Pressable>
             </View>
-            <TextInput
-              value={composeTitle}
-              onChangeText={setComposeTitle}
-              placeholder="Title"
-              placeholderTextColor={colors.textMuted}
-              style={styles.composeInput}
-              maxLength={120}
-            />
             <TextInput
               value={composeBody}
               onChangeText={(text) => setComposeBody(text.slice(0, PRAYER_DETAILS_LIMIT))}
               placeholder="What would you like prayer for?"
-              placeholderTextColor={colors.textMuted}
+              placeholderTextColor={colors.ink3}
               style={[styles.composeInput, styles.composeBodyInput]}
               multiline
               maxLength={PRAYER_DETAILS_LIMIT}
@@ -543,11 +494,57 @@ export default function HomeScreen({ onOpenPrayer, go }) {
             <BodyText variant="caption" style={styles.composeCounter}>
               {composeBody.length}/{PRAYER_DETAILS_LIMIT}
             </BodyText>
+            <BodyText variant="label" style={styles.composeLabel}>Category</BodyText>
+            <SegmentedControl
+              options={PRAYER_CATEGORIES.map((value) => ({ value, label: value }))}
+              value={composeCategory}
+              onChange={setComposeCategory}
+              style={styles.composeSegments}
+            />
+            <TextInput
+              value={composeScriptureRef}
+              onChangeText={setComposeScriptureRef}
+              placeholder="Scripture Reference (optional)"
+              placeholderTextColor={colors.ink3}
+              style={styles.composeInput}
+              maxLength={120}
+            />
             <PrimaryButton
               label={composeBusy ? 'Sharing...' : 'Share Prayer'}
               onPress={submitComposePrayer}
               busy={composeBusy}
-              disabled={!composeTitle.trim() || !composeBody.trim()}
+              disabled={!composeBody.trim()}
+            />
+          </View>
+        </View>
+      ) : null}
+
+      {updatePrayer ? (
+        <View style={styles.composeOverlay}>
+          <View style={styles.composeSheet}>
+            <View style={styles.composeHeader}>
+              <Heading level="h4">Add Prayer Update</Heading>
+              <Pressable onPress={() => setUpdatePrayer(null)} style={styles.searchCloseBtn}>
+                <X size={20} color={colors.ink} />
+              </Pressable>
+            </View>
+            <TextInput
+              value={updateBody}
+              onChangeText={(text) => setUpdateBody(text.slice(0, 280))}
+              placeholder="Share an update or testimony..."
+              placeholderTextColor={colors.ink3}
+              style={[styles.composeInput, styles.composeBodyInput]}
+              multiline
+              maxLength={280}
+            />
+            <BodyText variant="caption" style={styles.composeCounter}>
+              {updateBody.length}/280
+            </BodyText>
+            <PrimaryButton
+              label={updateBusy ? 'Sharing...' : 'Share Update'}
+              onPress={submitUpdate}
+              busy={updateBusy}
+              disabled={!updateBody.trim()}
             />
           </View>
         </View>
@@ -558,38 +555,44 @@ export default function HomeScreen({ onOpenPrayer, go }) {
 
 const styles = StyleSheet.create({
   topBar: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: spacing.lg, paddingTop: spacing.sm },
-  greeting: { color: colors.gold, marginBottom: spacing.xs, fontFamily: fonts.sansSemiBold, letterSpacing: 1 },
+  greeting: { color: colors.gold, marginBottom: spacing.xs, letterSpacing: 1 },
   headline: { fontSize: 26, lineHeight: 32, maxWidth: 280 },
   headerActions: { flexDirection: 'row', gap: spacing.xs },
-  headerIconBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: alpha.navy08 },
-  progressStack: { gap: spacing.md, marginBottom: spacing.lg },
-  xpPanel: { padding: spacing.lg },
-  xpTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
-  levelPill: {
-    flex: 1,
-    minHeight: 30,
-    borderRadius: radii.pill,
-    backgroundColor: alpha.gold18,
-    paddingHorizontal: spacing.md,
+  headerIconBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: alpha.ink08 },
+  progressStack: { gap: spacing.sm, marginBottom: spacing.lg },
+  xpBarWrap: {
+    paddingHorizontal: 0,
+    gap: 4,
+  },
+  xpBarRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  levelBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: 5,
+    backgroundColor: colors.gold,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+    borderRadius: radii.pill,
   },
-  levelPillText: { flex: 1, color: colors.navy, fontFamily: fonts.sansSemiBold },
-  xpLabel: { color: colors.textSecondary, fontFamily: fonts.sansSemiBold },
+  levelBadgeText: { color: colors.ink, fontFamily: fonts.sansExtraBold, fontSize: 10, letterSpacing: 0.4, textTransform: 'uppercase' },
+  xpLabel: { color: colors.ink3 },
   xpTrack: {
-    height: 8,
-    borderRadius: 4,
+    height: 5,
+    borderRadius: 3,
     overflow: 'hidden',
-    backgroundColor: alpha.navy10,
-    marginTop: spacing.md,
+    backgroundColor: colors.surface3,
+    marginTop: spacing.xs,
   },
-  xpFill: { height: 8, borderRadius: 4, backgroundColor: colors.gold },
+  xpFill: {
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: colors.goldLight,
+  },
   xpMetaRow: { marginTop: spacing.sm, flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md },
   todayXp: { color: colors.gold, fontFamily: fonts.sansSemiBold },
   verseCard: {
     minHeight: 150,
-    borderRadius: radii.xxl,
+    borderRadius: radii.lg,
     padding: spacing.xl,
     overflow: 'hidden',
     justifyContent: 'space-between',
@@ -597,7 +600,7 @@ const styles = StyleSheet.create({
   verseLabelRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.md },
   verseLabel: { color: colors.goldLight, fontFamily: fonts.sansExtraBold, letterSpacing: 1.6, textTransform: 'uppercase' },
   verseText: { color: colors.white, fontSize: 19, lineHeight: 28 },
-  verseRef: { marginTop: spacing.md, color: colors.emerald, fontFamily: fonts.sansSemiBold },
+  verseRef: { marginTop: spacing.md, color: colors.tealLight, fontFamily: fonts.sansSemiBold },
   streakCard: { marginBottom: spacing.lg },
   streakHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.lg, marginBottom: spacing.sm },
   streakCopy: { flex: 1 },
@@ -605,7 +608,7 @@ const styles = StyleSheet.create({
   streakValue: { fontSize: 34, lineHeight: 38 },
   ringCenter: { alignItems: 'center', justifyContent: 'center' },
   ringValue: { marginTop: 2, fontSize: 15 },
-  goalCaption: { marginBottom: spacing.md, color: colors.textMuted },
+  goalCaption: { marginBottom: spacing.md, color: colors.ink3 },
   inlineStats: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.lg },
   inlineStatCard: { flex: 1, alignItems: 'flex-start', gap: spacing.xs },
   inlineStatValue: { fontSize: 22, lineHeight: 28 },
@@ -617,7 +620,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: alpha.navy08,
+    backgroundColor: alpha.ink08,
   },
   journeyCopy: { flex: 1 },
   levelBar: {
@@ -625,10 +628,10 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
     height: 6,
     borderRadius: 3,
-    backgroundColor: alpha.navy10,
+    backgroundColor: alpha.ink10,
     overflow: 'hidden',
   },
-  levelFill: { height: 6, borderRadius: 3, backgroundColor: colors.community },
+  levelFill: { height: 6, borderRadius: 3, backgroundColor: colors.teal },
   challengeCard: { marginBottom: spacing.lg },
   challengeRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   challengeIcon: {
@@ -642,7 +645,15 @@ const styles = StyleSheet.create({
   challengeCopy: { flex: 1 },
   challengeXp: { color: colors.gold, fontFamily: fonts.sansSemiBold },
   feedViewport: { marginBottom: spacing.lg },
-  focusCard: { minHeight: 320 },
+  focusCard: {
+    borderRadius: radii.xl,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.xl,
+    minHeight: 340,
+    ...shadow.card,
+  },
   focusHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.lg },
   focusAvatar: {
     width: 44,
@@ -650,13 +661,13 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: alpha.navy08,
+    backgroundColor: alpha.ink08,
   },
-  focusAvatarText: { fontFamily: fonts.sansExtraBold, fontSize: 16, color: colors.navy },
+  focusAvatarText: { fontFamily: fonts.sansExtraBold, fontSize: 16, color: colors.ink },
   focusMeta: { flex: 1 },
-  urgentLabel: { color: colors.urgent, marginTop: 2 },
+  urgentLabel: { color: colors.redSoft, marginTop: 2 },
   focusBody: { flex: 1, marginBottom: spacing.lg },
-  focusQuote: { fontSize: 32, lineHeight: 32, color: alpha.gold30, fontFamily: fonts.display },
+  focusQuote: { fontSize: 32, lineHeight: 32, color: colors.goldLight, fontFamily: fonts.display, opacity: 0.6 },
   focusTitle: { fontSize: 20, lineHeight: 26, marginBottom: spacing.sm },
   focusText: { lineHeight: 23 },
   focusActions: {
@@ -671,14 +682,14 @@ const styles = StyleSheet.create({
   focusActionIcon: {
     width: 44,
     height: 44,
-    borderRadius: radii.md,
+    borderRadius: radii.sm,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: alpha.navy06,
+    backgroundColor: alpha.ink06,
   },
-  focusActionPrimary: { backgroundColor: alpha.navy08 },
-  focusActionAmen: { backgroundColor: 'rgba(239,68,68,0.12)' },
-  focusActionSaved: { backgroundColor: alpha.gold18 },
+  focusActionPrimary: { backgroundColor: colors.tealPale, color: colors.teal },
+  focusActionAmen: { backgroundColor: 'rgba(220,79,79,0.12)' },
+  focusActionSaved: { backgroundColor: colors.goldPale },
   feedNavRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -692,40 +703,40 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: alpha.navy08,
+    backgroundColor: alpha.ink08,
   },
   progressDots: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, flex: 1, justifyContent: 'center' },
-  progressDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: alpha.navy12 },
-  progressDotActive: { width: 20, backgroundColor: colors.gold },
+  progressDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.surface3 },
+  progressDotActive: { width: 24, borderRadius: 4, backgroundColor: colors.teal },
   emptyFeedCard: { marginBottom: spacing.lg, alignItems: 'center', paddingVertical: spacing.xxl },
   searchOverlay: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 50,
-    backgroundColor: colors.screen,
+    backgroundColor: colors.surface,
     paddingTop: spacing.sm,
     paddingHorizontal: spacing.lg,
   },
   searchHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.lg },
-  searchCloseBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: alpha.navy08 },
+  searchCloseBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: alpha.ink08 },
   searchInput: {
     flex: 1,
     height: 44,
-    borderRadius: radii.lg,
+    borderRadius: radii.sm,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.white,
     paddingHorizontal: spacing.md,
     fontFamily: fonts.sans,
     fontSize: 15,
-    color: colors.textPrimary,
+    color: colors.ink,
   },
   searchResult: {
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  searchResultTitle: { fontFamily: fonts.sansSemiBold, fontSize: 15, color: colors.textPrimary, marginBottom: spacing.xs },
-  searchHint: { color: colors.textMuted, textAlign: 'center', marginTop: spacing.xxl },
+  searchResultTitle: { fontFamily: fonts.sansSemiBold, fontSize: 15, color: colors.ink, marginBottom: spacing.xs },
+  searchHint: { color: colors.ink3, textAlign: 'center', marginTop: spacing.xxl },
   composeOverlay: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 60,
@@ -734,24 +745,49 @@ const styles = StyleSheet.create({
   },
   composeSheet: {
     backgroundColor: colors.surface,
-    borderTopLeftRadius: radii.xxl,
-    borderTopRightRadius: radii.xxl,
+    borderTopLeftRadius: radii.xl,
+    borderTopRightRadius: radii.xl,
     padding: spacing.xl,
     paddingBottom: spacing.tabBar,
     ...shadow.card,
   },
   composeHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.lg },
+  composeLabel: { marginTop: spacing.md, marginBottom: spacing.sm },
+  composeSegments: { marginBottom: spacing.md },
   composeInput: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: radii.lg,
+    borderRadius: radii.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     fontFamily: fonts.sans,
     fontSize: 15,
-    color: colors.textPrimary,
+    color: colors.ink,
     marginBottom: spacing.md,
   },
   composeBodyInput: { minHeight: 120, textAlignVertical: 'top' },
   composeCounter: { textAlign: 'right', marginBottom: spacing.md },
+  answeredBadge: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: radii.pill,
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    marginBottom: spacing.md,
+  },
+  answeredText: { color: '#16A34A', fontFamily: fonts.sansSemiBold, fontSize: 10.5 },
+  focusVerse: {
+    marginTop: spacing.md,
+    color: colors.teal,
+    fontFamily: fonts.sansSemiBold,
+    fontSize: 12,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  feedNavText: { color: colors.ink3 },
 });

@@ -49,7 +49,7 @@ export default function NotificationsScreen({ user, onBack }) {
       onPress={() => markRead(item.id)}
       style={({ pressed }) => [styles.itemWrap, pressed && styles.pressed]}
     >
-      <GlassCard style={[styles.notifCard, !item.read && styles.notifUnread]}>
+      <View style={[styles.notifCard, !item.read && styles.notifUnread]}>
         <View style={styles.notifRow}>
           <View style={[styles.dot, item.read ? styles.dotRead : styles.dotUnread]} />
           <View style={styles.notifContent}>
@@ -59,7 +59,7 @@ export default function NotificationsScreen({ user, onBack }) {
             </BodyText>
           </View>
         </View>
-      </GlassCard>
+      </View>
     </Pressable>
   );
 
@@ -104,14 +104,21 @@ const styles = StyleSheet.create({
   listHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
   markAllButton: { minHeight: 36, paddingHorizontal: spacing.md },
   itemWrap: { marginBottom: spacing.xs },
-  notifCard: { marginBottom: 0, paddingVertical: spacing.lg },
+  notifCard: {
+    backgroundColor: colors.white,
+    borderRadius: radii.lg,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
   notifUnread: { borderColor: alpha.gold30, backgroundColor: alpha.gold18 },
   notifRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
   dot: { width: 10, height: 10, borderRadius: radii.pill, marginTop: 6 },
   dotUnread: { backgroundColor: colors.gold },
-  dotRead: { backgroundColor: alpha.navy16 },
+  dotRead: { backgroundColor: alpha.ink16 },
   notifContent: { flex: 1 },
-  notifText: { color: colors.textPrimary },
+  notifText: { color: colors.ink },
   notifTime: { marginTop: spacing.xs },
   pressed: { opacity: 0.92 },
 });

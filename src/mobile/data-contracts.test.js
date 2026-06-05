@@ -50,6 +50,8 @@ describe('data contracts', () => {
     expect(source.default).toMatch(/export function useTestimonies/);
     expect(source.default).toMatch(/export async function addPrayer/);
     expect(source.default).toMatch(/export async function updatePrayer/);
+    expect(source.default).toMatch(/category/);
+    expect(source.default).toMatch(/scriptureRef/);
     expect(source.default).toMatch(/export async function deletePrayer/);
     expect(source.default).toMatch(/export async function markAnswered/);
     expect(source.default).toMatch(/export async function addTestimony/);
