@@ -36,6 +36,7 @@ import GuideDetailScreen from '../src/mobile/screens/GuideDetailScreen';
 import HelpCenterScreen from '../src/mobile/screens/HelpCenterScreen';
 import HomeScreen from '../src/mobile/screens/HomeScreen';
 import LessonReaderScreen from '../src/mobile/screens/LessonReaderScreen';
+import LeaderboardScreen from '../src/mobile/screens/LeaderboardScreen';
 import MyPrayersScreen from '../src/mobile/screens/MyPrayersScreen';
 import MyStatsScreen from '../src/mobile/screens/MyStatsScreen';
 import NotificationSettingsScreen from '../src/mobile/screens/NotificationSettingsScreen';
@@ -61,7 +62,7 @@ import CopyrightScreen from '../src/mobile/screens/CopyrightScreen';
 import WelcomeScreen from '../src/mobile/screens/WelcomeScreen';
 
 const AUTH_ROUTES = ['splash', 'welcome', 'reminderSetup', 'stayConnected', 'signIn', 'createAccount', 'resetPassword'];
-const MAIN_TAB_ROUTES = ['home', 'discover', 'create', 'praise', 'profile'];
+const MAIN_TAB_ROUTES = ['home', 'leaderboard', 'myStats', 'profile'];
 
 export default function MobileApp() {
   const { user, loading, registering, signIn, register, completePendingRegistration, signOut, resetPassword, deleteAccount } = useAuth();
@@ -188,6 +189,7 @@ function renderScreen({ screen, params, user, suspended, suspendedReason, signIn
     case 'discover': return <DiscoverScreen onOpenPrayer={(p) => goFn('detail', { prayer: p })} />;
     case 'create': return <CreatePrayerScreen user={user} />;
     case 'praise': return <PraiseScreen onOpenTestimony={(t) => goFn('praiseDetail', { testimony: t })} />;
+    case 'leaderboard': return <LeaderboardScreen user={user} onBack={() => backFn('home')} />;
     case 'myStats': return <MyStatsScreen user={user} go={goFn} onBack={() => backFn('profile')} />;
     case 'profile': return <ProfileScreen user={user} signOut={signOut} go={goFn} />;
     case 'detail': return params.prayer
@@ -202,7 +204,7 @@ function renderScreen({ screen, params, user, suspended, suspendedReason, signIn
       : <PlaceholderScreen screen="Prayer unavailable" onBack={() => backFn('myPrayers')} />;
     case 'prayerStopwatch': return <PrayerStopwatchScreen prayerId={params.prayerId} title={params.title} user={user} onBack={() => backFn('myStats')} onDone={() => backFn('myStats')} />;
     case 'answeredPrayers': return <AnsweredPrayersScreen user={user} onOpenPrayer={(p) => goFn('detail', { prayer: p })} onBack={() => backFn('profile')} />;
-    case 'settings': return <SettingsScreen go={goFn} deleteAccount={deleteAccount} onBack={() => backFn('profile')} />;
+    case 'settings': return <SettingsScreen user={user} go={goFn} deleteAccount={deleteAccount} onBack={() => backFn('profile')} />;
     case 'editProfile': return <EditProfileScreen user={user} onBack={() => backFn('profile')} onDone={() => backFn('profile')} />;
     case 'notifications': return <NotificationsScreen user={user} onBack={() => backFn('profile')} />;
     case 'notificationSettings': return <NotificationSettingsScreen user={user} onBack={() => backFn('settings')} />;

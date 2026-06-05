@@ -23,22 +23,29 @@ import {
   normalizeEngagementDays,
 } from './spiritual-engagement.js';
 import {
+  awardBookmarkXp,
   awardPrayActionXp,
+  awardProfileUpdateXp,
   awardTestimonyXp,
   backfillGamificationXp,
   buildGamificationSummary,
+  buildLeaderboard,
   createPrayerSessionRecord,
   deleteUserGamificationSummary,
   deleteUserXpEvents,
+  getGamificationPreferences,
   recordPrayerAnswered,
   recordPrayerCreated,
   resolveUserTimeZone,
+  updateGamificationPreferences,
   updateGamificationTimeZone,
+  buildXpPayload,
 } from './gamification.js';
 import {
   dayKeyInTimeZone,
   isoWeekKeyFromDayKey,
 } from '../shared/gamificationLogic.js';
+import { XP_AWARDS } from '../shared/gamificationConstants.js';
 import { uploadMyAvatar, serveAvatar } from './avatars.js';
 import {
   bookmarkCalendarDate,
@@ -163,7 +170,16 @@ async function handleApi(request, env, url, requestId) {
     await checkNotSuspended(env, user.uid);
     const body = await parseJsonBody(request);
     const result = await updateMyProfile(env, user, body, firestoreApi);
-    return json(result.body, result.status);
+    if (result.status >= 400) return json(result.body, result.status);
+    const xpResult = await awardProfileUpdateXp(gamificationFirestore, env, {
+      uid: user.uid,
+      timeZone: body.timeZone || null,
+      now: new Date(),
+    });
+    return json({
+      ...result.body,
+      xp: buildXpPayload(xpResult, XP_AWARDS.profileUpdate),
+    }, result.status);
   }
 
   match = url.pathname.match(/^\/api\/me\/avatar$/);
@@ -353,6 +369,31 @@ async function handleApi(request, env, url, requestId) {
     return json(result);
   }
 
+  match = url.pathname.match(/^\/api\/gamification\/preferences$/);
+  if (match && request.method === 'GET') {
+    await checkNotSuspended(env, user.uid);
+    const preferences = await getGamificationPreferences(gamificationFirestore, env, user.uid);
+    return json({ preferences });
+  }
+  if (match && request.method === 'POST') {
+    await checkNotSuspended(env, user.uid);
+    const preferences = await updateGamificationPreferences(gamificationFirestore, env, user.uid, body);
+    return json({ ok: true, preferences });
+  }
+
+  match = url.pathname.match(/^\/api\/gamification\/leaderboard$/);
+  if (match && request.method === 'GET') {
+    await checkNotSuspended(env, user.uid);
+    const result = await buildLeaderboard(
+      gamificationFirestore,
+      env,
+      user.uid,
+      url.searchParams.get('scope'),
+      url.searchParams.get('limit'),
+    );
+    return json(result);
+  }
+
   match = url.pathname.match(/^\/api\/prayer-sessions$/);
   if (match && request.method === 'POST') {
     await checkNotSuspended(env, user.uid);
@@ -533,7 +574,7 @@ function knownApiPath(pathname) {
     /^\/api\/notification-settings$/,
     /^\/api\/account(?:\/bootstrap-owner|\/complete-registration|\/resend-guardian-approval)?$/,
     /^\/api\/devices\/register$/,
-    /^\/api\/gamification\/(?:summary|timezone|backfill)$/,
+    /^\/api\/gamification\/(?:summary|timezone|backfill|preferences|leaderboard)$/,
     /^\/api\/prayer-sessions$/,
     /^\/api\/prayers(?:\/[^/]+(?:\/update|\/mark-answered|\/pray)?)?$/,
     /^\/api\/testimonies(?:\/[^/]+(?:\/update|\/react)?)?$/,
@@ -1178,13 +1219,36 @@ async function getPrayerBookmark(env, user, prayerId) {
 
 async function savePrayerBookmark(env, user, prayerId) {
   if (!(await canAccessPrayer(env, prayerId, user))) return json({ error: 'Prayer not found' }, 404);
+  const name = docName(env, 'prayerBookmarks', `${user.uid}_${prayerId}`);
+  const existing = await getDocument(env, name);
+  if (existing.exists) {
+    return json({
+      ok: true,
+      prayerId,
+      duplicate: true,
+      xp: buildXpPayload({ awarded: false, duplicate: true }, XP_AWARDS.bookmarkPrayer),
+    });
+  }
   await firestoreCommit(env, [{
     update: {
-      name: docName(env, 'prayerBookmarks', `${user.uid}_${prayerId}`),
+      name,
       fields: toFirestoreFields({ ownerUid: user.uid, prayerId, createdAt: new Date().toISOString() }),
     },
-  }]);
-  return json({ ok: true, prayerId });
+    currentDocument: { exists: false },
+  }], { allowAlreadyExists: true });
+  const timeZone = await resolveUserTimeZone(gamificationFirestore, env, user.uid, null);
+  const xp = await awardBookmarkXp(gamificationFirestore, env, {
+    uid: user.uid,
+    prayerId,
+    timeZone,
+    now: new Date(),
+  });
+  return json({
+    ok: true,
+    prayerId,
+    duplicate: false,
+    xp: buildXpPayload(xp, XP_AWARDS.bookmarkPrayer),
+  });
 }
 
 async function deletePrayerBookmark(env, user, prayerId) {
@@ -1292,7 +1356,16 @@ async function prayForRequest(env, user, prayerId) {
       : `${user.uid}_${dayKey}`;
   const prayDoc = docName(env, 'prayers', prayerId, 'prays', prayDocId);
   const existingPray = await getDocument(env, prayDoc);
-  if (existingPray.exists) return json({ ok: true, duplicate: true, dayKey, weekKey, prayerLimit });
+  if (existingPray.exists) {
+    return json({
+      ok: true,
+      duplicate: true,
+      dayKey,
+      weekKey,
+      prayerLimit,
+      xp: buildXpPayload({ awarded: false, duplicate: true }, XP_AWARDS.prayAction),
+    });
+  }
   await enforceCooldown(env, user.uid, 'pray', 1);
 
   const writes = [
@@ -1356,7 +1429,16 @@ async function prayForRequest(env, user, prayerId) {
       await incrementPrayerPrayedCount(env, prayerId, now);
     },
   });
-  if (result.alreadyExists) return json({ ok: true, duplicate: true, dayKey, weekKey, prayerLimit });
+  if (result.alreadyExists) {
+    return json({
+      ok: true,
+      duplicate: true,
+      dayKey,
+      weekKey,
+      prayerLimit,
+      xp: buildXpPayload({ awarded: false, duplicate: true }, XP_AWARDS.prayAction),
+    });
+  }
 
   if (notifyAllowed) {
     await invalidateUserNotificationStream(env, data.authorUid);
@@ -1384,6 +1466,7 @@ async function prayForRequest(env, user, prayerId) {
     prayerLimit,
     xpAwarded: xp.awarded,
     bonuses: xp.bonuses || [],
+    xp: buildXpPayload(xp, XP_AWARDS.prayAction),
   });
 }
 
@@ -2625,3 +2708,27 @@ function base64UrlBytes(bytes) {
   });
   return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
+  match = url.pathname.match(/^\/api\/gamification\/preferences$/);
+  if (match && request.method === 'GET') {
+    await checkNotSuspended(env, user.uid);
+    const preferences = await getGamificationPreferences(gamificationFirestore, env, user.uid);
+    return json({ preferences });
+  }
+  if (match && request.method === 'POST') {
+    await checkNotSuspended(env, user.uid);
+    const preferences = await updateGamificationPreferences(gamificationFirestore, env, user.uid, body);
+    return json({ ok: true, preferences });
+  }
+
+  match = url.pathname.match(/^\/api\/gamification\/leaderboard$/);
+  if (match && request.method === 'GET') {
+    await checkNotSuspended(env, user.uid);
+    const result = await buildLeaderboard(
+      gamificationFirestore,
+      env,
+      user.uid,
+      url.searchParams.get('scope'),
+      url.searchParams.get('limit'),
+    );
+    return json(result);
+  }

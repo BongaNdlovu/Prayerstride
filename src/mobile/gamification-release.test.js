@@ -12,6 +12,14 @@ describe('gamification release hardening', () => {
     expect(source.default).toMatch(/StreakCalendar/);
   });
 
+  it('LeaderboardScreen uses authoritative leaderboard and preference hooks', async () => {
+    const source = await import('./screens/LeaderboardScreen.jsx?raw');
+    expect(source.default).toMatch(/useLeaderboard/);
+    expect(source.default).toMatch(/useGamificationPreferences/);
+    expect(source.default).toMatch(/Show Me on Leaderboard/);
+    expect(source.default).not.toMatch(/LEADERBOARD_DATA/);
+  });
+
   it('DailyChallengeScreen uses server summary with loading and retry states', async () => {
     const source = await import('./screens/DailyChallengeScreen.jsx?raw');
     expect(source.default).toMatch(/useGamification/);

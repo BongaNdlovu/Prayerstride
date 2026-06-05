@@ -9,6 +9,8 @@ export const XP_AWARDS = {
   testimony: 50,
   dailyChallenge: 100,
   streak7: 150,
+  bookmarkPrayer: 3,
+  profileUpdate: 10,
 };
 
 export const XP_EVENT_TYPES = {
@@ -17,6 +19,8 @@ export const XP_EVENT_TYPES = {
   testimony: 'testimony',
   dailyChallenge: 'daily_challenge',
   streak7: 'streak_7',
+  bookmarkPrayer: 'bookmark_prayer',
+  profileUpdate: 'profile_update',
 };
 
 export const BADGE_DEFS = [
@@ -61,6 +65,48 @@ export const BADGE_DEFS = [
     description: 'Log two hundred fifty prayer sessions.',
     total: 250,
     metric: 'sessions',
+  },
+  {
+    id: 'compassion-helper',
+    name: 'Compassion Helper',
+    description: 'Pray for twenty different requests.',
+    total: 20,
+    metric: 'peoplePrayedFor',
+  },
+  {
+    id: 'faithful-minutes',
+    name: 'Faithful Minutes',
+    description: 'Spend one hundred twenty minutes in prayer.',
+    total: 120,
+    metric: 'minutes',
+  },
+  {
+    id: 'night-watch',
+    name: 'Night Watch',
+    description: 'Complete five prayer sessions after 10 PM.',
+    total: 5,
+    metric: 'nightSessions',
+  },
+  {
+    id: 'steadfast-hour',
+    name: 'Steadfast Hour',
+    description: 'Complete four sessions of fifteen minutes or longer.',
+    total: 4,
+    metric: 'longSessions',
+  },
+  {
+    id: 'keeper-of-requests',
+    name: 'Keeper of Requests',
+    description: 'Save ten prayer requests to return to later.',
+    total: 10,
+    metric: 'bookmarks',
+  },
+  {
+    id: 'testimony-voice',
+    name: 'Testimony Voice',
+    description: 'Share three testimonies.',
+    total: 3,
+    metric: 'testimonies',
   },
 ];
 

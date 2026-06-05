@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from 'react';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
@@ -10,16 +11,18 @@ import Animated, {
 import {
   Award,
   Bell,
+  BookOpen,
   ChevronRight,
   Flame,
   Map,
   Sparkles,
   Target,
   Timer,
+  Trophy,
   Zap,
 } from 'lucide-react-native';
-import { alpha, colors, fonts, spacing } from '../theme';
-import { DAILY_PRAY_GOAL, XP_AWARDS } from '../gamification';
+import { alpha, colors, fonts, radii, spacing } from '../theme';
+import { DAILY_PRAY_GOAL, XP_AWARDS, XP_PER_LEVEL } from '../gamification';
 import { auth } from '../firebase';
 import { usePrayers } from '../usePrayerData';
 import { filterBlockedItems, useBlocks } from '../useBlocks';
@@ -34,11 +37,35 @@ import AsyncState from '../components/AsyncState';
 import ProgressRing from '../components/ProgressRing';
 import StreakCalendar from '../components/StreakCalendar';
 
+const DAILY_VERSES = [
+  {
+    text: 'God is our refuge and strength, a very present help in trouble.',
+    ref: 'Psalm 46:1',
+  },
+  {
+    text: 'Pray without ceasing, give thanks in all circumstances.',
+    ref: '1 Thessalonians 5:17-18',
+  },
+  {
+    text: 'The prayer of a righteous person has great power as it is working.',
+    ref: 'James 5:16',
+  },
+];
+
 function greeting() {
   const hour = new Date().getHours();
   if (hour < 12) return 'Good morning';
   if (hour < 17) return 'Good afternoon';
   return 'Good evening';
+}
+
+function dailyVerse() {
+  const day = Math.floor(Date.now() / 86400000);
+  return DAILY_VERSES[day % DAILY_VERSES.length];
+}
+
+function formatXP(value) {
+  return Math.max(0, Number(value) || 0).toLocaleString();
 }
 
 function PrayerSessionButton({ onPress }) {
@@ -59,6 +86,50 @@ function PrayerSessionButton({ onPress }) {
     <Animated.View style={[styles.sessionPulse, animatedStyle]}>
       <PrimaryButton label="Have a Prayer Session" icon={Timer} onPress={onPress} />
     </Animated.View>
+  );
+}
+
+function XPProgressPanel({ summary, onOpenDevotions }) {
+  const levelInfo = summary.levelInfo;
+  const progressPct = Math.round(Math.min(Math.max(levelInfo.progress || 0, 0), 1) * 100);
+  const xpIntoLevel = Number(levelInfo.xpIntoLevel || 0);
+  const xpToNextLevel = Number(levelInfo.xpToNextLevel || XP_PER_LEVEL);
+  const verse = dailyVerse();
+
+  return (
+    <View style={styles.progressStack}>
+      <GlassCard style={styles.xpPanel}>
+        <View style={styles.xpTopRow}>
+          <View style={styles.levelPill}>
+            <Sparkles size={13} color={colors.gold} />
+            <BodyText variant="caption" style={styles.levelPillText}>
+              Level {levelInfo.level} - {summary.journey.title}
+            </BodyText>
+          </View>
+          <BodyText variant="caption" style={styles.xpLabel}>
+            {formatXP(xpIntoLevel)} / {formatXP(XP_PER_LEVEL)} XP
+          </BodyText>
+        </View>
+        <View style={styles.xpTrack}>
+          <View style={[styles.xpFill, { width: `${progressPct}%` }]} />
+        </View>
+        <View style={styles.xpMetaRow}>
+          <BodyText variant="caption">{formatXP(xpToNextLevel)} XP to Level {levelInfo.level + 1}</BodyText>
+          <BodyText variant="caption" style={styles.todayXp}>+{formatXP(summary.todayXP)} today</BodyText>
+        </View>
+      </GlassCard>
+
+      <Pressable onPress={onOpenDevotions} accessibilityRole="button" accessibilityLabel="Open devotions">
+        <LinearGradient colors={[colors.navyMid, colors.navyDeep]} style={styles.verseCard}>
+          <View style={styles.verseLabelRow}>
+            <BookOpen size={13} color={colors.goldLight} />
+            <BodyText variant="caption" style={styles.verseLabel}>Today's Verse</BodyText>
+          </View>
+          <Heading level="h4" style={styles.verseText}>{verse.text}</Heading>
+          <BodyText variant="caption" style={styles.verseRef}>{verse.ref}</BodyText>
+        </LinearGradient>
+      </Pressable>
+    </View>
   );
 }
 
@@ -97,12 +168,19 @@ export default function HomeScreen({ onOpenPrayer, go }) {
           <BodyText variant="caption" style={styles.greeting}>{greeting()}</BodyText>
           <Heading level="h2" style={styles.headline}>Who can you carry in prayer today?</Heading>
         </View>
-        <Pressable onPress={() => go('notifications')} style={styles.bellBtn}>
-          <Bell size={20} color={colors.navy} />
-        </Pressable>
+        <View style={styles.headerActions}>
+          <Pressable onPress={() => go('achievements')} style={styles.headerIconBtn} accessibilityRole="button" accessibilityLabel="Badges">
+            <Trophy size={19} color={colors.navy} />
+          </Pressable>
+          <Pressable onPress={() => go('notifications')} style={styles.headerIconBtn} accessibilityRole="button" accessibilityLabel="Notifications">
+            <Bell size={20} color={colors.navy} />
+          </Pressable>
+        </View>
       </View>
 
       <AsyncState loading={listLoading} error={listError} onRetry={retry}>
+        <XPProgressPanel summary={gamified} onOpenDevotions={() => go('devotions')} />
+
         <GlassCard style={styles.streakCard}>
           <View style={styles.streakHeader}>
             <View style={styles.streakCopy}>
@@ -217,7 +295,44 @@ const styles = StyleSheet.create({
   topBar: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: spacing.lg, paddingTop: spacing.sm },
   greeting: { color: colors.gold, marginBottom: spacing.xs, fontFamily: fonts.sansSemiBold, letterSpacing: 1 },
   headline: { fontSize: 26, lineHeight: 32, maxWidth: 280 },
-  bellBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: alpha.navy08 },
+  headerActions: { flexDirection: 'row', gap: spacing.sm },
+  headerIconBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: alpha.navy08 },
+  progressStack: { gap: spacing.md, marginBottom: spacing.lg },
+  xpPanel: { padding: spacing.lg },
+  xpTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
+  levelPill: {
+    flex: 1,
+    minHeight: 30,
+    borderRadius: radii.pill,
+    backgroundColor: alpha.gold18,
+    paddingHorizontal: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  levelPillText: { flex: 1, color: colors.navy, fontFamily: fonts.sansSemiBold },
+  xpLabel: { color: colors.textSecondary, fontFamily: fonts.sansSemiBold },
+  xpTrack: {
+    height: 8,
+    borderRadius: 4,
+    overflow: 'hidden',
+    backgroundColor: alpha.navy10,
+    marginTop: spacing.md,
+  },
+  xpFill: { height: 8, borderRadius: 4, backgroundColor: colors.gold },
+  xpMetaRow: { marginTop: spacing.sm, flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md },
+  todayXp: { color: colors.gold, fontFamily: fonts.sansSemiBold },
+  verseCard: {
+    minHeight: 150,
+    borderRadius: radii.xxl,
+    padding: spacing.xl,
+    overflow: 'hidden',
+    justifyContent: 'space-between',
+  },
+  verseLabelRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.md },
+  verseLabel: { color: colors.goldLight, fontFamily: fonts.sansExtraBold, letterSpacing: 1.6, textTransform: 'uppercase' },
+  verseText: { color: colors.white, fontSize: 19, lineHeight: 28 },
+  verseRef: { marginTop: spacing.md, color: colors.emerald, fontFamily: fonts.sansSemiBold },
   streakCard: { marginBottom: spacing.lg },
   streakHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.lg, marginBottom: spacing.sm },
   streakCopy: { flex: 1 },

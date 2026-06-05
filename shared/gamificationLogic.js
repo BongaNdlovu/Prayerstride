@@ -53,6 +53,10 @@ export function isoWeekKeyFromDayKey(dayKey) {
   return isoWeekKey(`${dayKey}T12:00:00.000Z`);
 }
 
+export function monthKeyFromDayKey(dayKey) {
+  return String(dayKey || '').slice(0, 7);
+}
+
 export function isoWeekKey(isoDate) {
   const date = new Date(isoDate);
   if (Number.isNaN(date.getTime())) throw new Error('Invalid date');
@@ -157,8 +161,16 @@ export function buildBadgeMetrics({
   myTestimonies = [],
   streak = 0,
   timeZone = 'UTC',
+  peoplePrayedFor = 0,
+  bookmarks = 0,
 }) {
   const answeredPrayers = myPrayers.filter((prayer) => prayer.status === 'answered').length;
+  const totalMinutes = (sessions || []).reduce((sum, session) => sum + Math.floor(Number(session?.seconds || 0) / 60), 0);
+  const nightSessions = (sessions || []).filter((session) => {
+    const date = parseTimestamp(session?.createdAt);
+    return date && hourInTimeZone(date, timeZone) >= 22;
+  }).length;
+  const longSessions = (sessions || []).filter((session) => Number(session?.seconds || 0) >= 15 * 60).length;
 
   return {
     prayers: myPrayers.length,
@@ -167,6 +179,11 @@ export function buildBadgeMetrics({
     earlySessions: countEarlySessions(sessions, timeZone),
     answeredPrayers,
     testimonies: myTestimonies.length,
+    peoplePrayedFor,
+    minutes: totalMinutes,
+    bookmarks,
+    nightSessions,
+    longSessions,
   };
 }
 
@@ -212,14 +229,18 @@ export function prayActionPrayerIdsForDay(events, dayKey) {
 
 export function summarizeXpEvents(events, timeZone = 'UTC', today = new Date()) {
   const todayKey = dayKeyInTimeZone(today, timeZone);
+  const currentMonthKey = monthKeyFromDayKey(todayKey);
   let totalXP = 0;
   let todayXP = 0;
+  let monthXP = 0;
   let dailyPrayCount = 0;
   let dailyChallengeComplete = false;
 
   for (const event of events) {
     const points = Number(event.points || 0);
     totalXP += points;
+    const eventMonthKey = event.monthKey || monthKeyFromDayKey(event.dayKey || '');
+    if (eventMonthKey === currentMonthKey) monthXP += points;
     if (event.dayKey === todayKey) {
       todayXP += points;
       if (event.type === 'pray_action') dailyPrayCount += 1;
@@ -230,6 +251,7 @@ export function summarizeXpEvents(events, timeZone = 'UTC', today = new Date()) 
   return {
     totalXP,
     todayXP,
+    monthXP,
     dailyPrayCount,
     dailyChallengeComplete,
     dailyGoalProgress: Math.min(dailyPrayCount / DAILY_PRAY_GOAL, 1),
@@ -245,6 +267,7 @@ export function buildGamificationSummaryFromData({
   myPrayers = [],
   myTestimonies = [],
   peoplePrayedFor = 0,
+  bookmarks = 0,
   timeZone = 'UTC',
   today = new Date(),
 }) {
@@ -261,6 +284,8 @@ export function buildGamificationSummaryFromData({
     myTestimonies,
     streak,
     timeZone: tz,
+    peoplePrayedFor,
+    bookmarks,
   });
   const badges = computeBadges(badgeMetrics);
   const todayKey = dayKeyInTimeZone(today, tz);

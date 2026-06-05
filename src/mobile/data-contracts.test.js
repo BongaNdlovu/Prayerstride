@@ -25,6 +25,9 @@ describe('data contracts', () => {
     expect(source.default).toMatch(/export function getAdminReports/);
     expect(source.default).toMatch(/export function getAdminUsers/);
     expect(source.default).toMatch(/export function getGamificationSummary/);
+    expect(source.default).toMatch(/export function getGamificationPreferences/);
+    expect(source.default).toMatch(/export function updateGamificationPreferences/);
+    expect(source.default).toMatch(/export function getGamificationLeaderboard/);
     expect(source.default).toMatch(/export function createPrayerSession/);
     expect(source.default).toMatch(/export function backfillGamification/);
     expect(source.default).not.toMatch(/createEncouragement/);
@@ -84,6 +87,15 @@ describe('data contracts', () => {
     const source = await import('./useNotificationSettings.js?raw');
     expect(source.default).toMatch(/export function useNotificationSettings/);
     expect(source.default).toMatch(/export async function updateNotificationSettings/);
+  });
+
+  it('gamification preferences and leaderboard hooks export expected functions', async () => {
+    const preferences = await import('./useGamificationPreferences.js?raw');
+    const leaderboard = await import('./useLeaderboard.js?raw');
+    expect(preferences.default).toMatch(/export function useGamificationPreferences/);
+    expect(preferences.default).toMatch(/export async function updateGamificationPreferences/);
+    expect(leaderboard.default).toMatch(/export function useLeaderboard/);
+    expect(leaderboard.default).toMatch(/getGamificationLeaderboard/);
   });
 
   it('useCalendarEvents exports real calendar contract helpers', async () => {

@@ -462,6 +462,24 @@ export function getGamificationSummary(timeZone = getDeviceTimeZone()) {
   return apiFetch(`/api/gamification/summary${query}`);
 }
 
+export function getGamificationPreferences() {
+  return apiFetch('/api/gamification/preferences');
+}
+
+export function updateGamificationPreferences(patch) {
+  return apiFetch('/api/gamification/preferences', {
+    method: 'POST',
+    body: JSON.stringify(patch),
+  });
+}
+
+export function getGamificationLeaderboard(scope = 'weekly', limit = 25) {
+  const params = new URLSearchParams();
+  params.set('scope', scope);
+  params.set('limit', String(limit));
+  return apiFetch(`/api/gamification/leaderboard?${params.toString()}`);
+}
+
 export function updateGamificationTimeZone(timeZone) {
   return apiFetch('/api/gamification/timezone', {
     method: 'POST',

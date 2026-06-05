@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { ChevronRight } from 'lucide-react-native';
 import { alpha, colors, fonts, sharedStyles, spacing } from '../theme';
+import { useGamificationPreferences, updateGamificationPreferences } from '../useGamificationPreferences';
 import ScreenScaffold from '../components/ScreenScaffold';
 import AppHeader from '../components/AppHeader';
 import GlassCard from '../components/GlassCard';
 import PrimaryButton from '../components/PrimaryButton';
 import BodyText from '../components/BodyText';
+import ToggleRow from '../components/ToggleRow';
 import { getErrorMessage } from '../errors';
 
 const ITEMS = [
@@ -19,10 +21,24 @@ const ITEMS = [
   { label: 'Support / Donation', route: 'support' },
 ];
 
-export default function SettingsScreen({ go, deleteAccount, onBack }) {
+export default function SettingsScreen({ user, go, deleteAccount, onBack }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
+  const {
+    preferences,
+    loading: preferencesLoading,
+    setPreferences,
+  } = useGamificationPreferences(user?.uid, Boolean(user?.uid));
+
+  const savePreference = async (key, value) => {
+    try {
+      const next = await updateGamificationPreferences(user?.uid, { [key]: value });
+      setPreferences(next);
+    } catch (error) {
+      Alert.alert('Could not update preference', getErrorMessage(error));
+    }
+  };
 
   const deleteAccountFlow = () => {
     Alert.alert('Delete Account', 'This action cannot be undone. All your data will be permanently removed.', [
@@ -63,6 +79,39 @@ export default function SettingsScreen({ go, deleteAccount, onBack }) {
           </Pressable>
         ))}
       </GlassCard>
+      <GlassCard style={styles.preferencesCard}>
+        <ToggleRow
+          label="Show on Leaderboard"
+          subtext="Appear in public prayer rankings only when enabled."
+          value={preferences.leaderboardVisible === true}
+          onToggle={(value) => savePreference('leaderboardVisible', value)}
+        />
+        <ToggleRow
+          label="Dark Mode"
+          subtext="Use the darker prayer surfaces from the gamified experience."
+          value={preferences.darkModeEnabled === true}
+          onToggle={(value) => savePreference('darkModeEnabled', value)}
+        />
+        <ToggleRow
+          label="Sound and Haptics"
+          subtext="Play tactile prayer feedback and milestone cues."
+          value={preferences.soundHapticsEnabled !== false}
+          onToggle={(value) => savePreference('soundHapticsEnabled', value)}
+        />
+        <ToggleRow
+          label="XP Notifications"
+          subtext="Show XP gain feedback when actions earn progress."
+          value={preferences.xpNotificationsEnabled !== false}
+          onToggle={(value) => savePreference('xpNotificationsEnabled', value)}
+        />
+        <ToggleRow
+          label="Streak Reminders"
+          subtext="Keep reminders active to protect your prayer streak."
+          value={preferences.streakRemindersEnabled !== false}
+          onToggle={(value) => savePreference('streakRemindersEnabled', value)}
+          style={styles.preferenceLast}
+        />
+      </GlassCard>
       {confirmingDelete ? (
         <GlassCard style={styles.deleteCard}>
           <BodyText variant="label" style={styles.deleteLabel}>Confirm with your password</BodyText>
@@ -80,7 +129,12 @@ export default function SettingsScreen({ go, deleteAccount, onBack }) {
           </Pressable>
         </GlassCard>
       ) : (
-        <PrimaryButton label="Delete Account" onPress={deleteAccountFlow} variant="ghost" style={styles.deleteButton} />
+        <PrimaryButton
+          label={preferencesLoading ? 'Loading Preferences...' : 'Delete Account'}
+          onPress={deleteAccountFlow}
+          variant="ghost"
+          style={styles.deleteButton}
+        />
       )}
     </ScreenScaffold>
   );
@@ -88,6 +142,7 @@ export default function SettingsScreen({ go, deleteAccount, onBack }) {
 
 const styles = StyleSheet.create({
   menuCard: { paddingVertical: spacing.sm },
+  preferencesCard: { marginTop: spacing.lg, paddingVertical: spacing.sm },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -97,6 +152,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   menuItemLast: { borderBottomWidth: 0 },
+  preferenceLast: { borderBottomWidth: 0 },
   deleteButton: { marginTop: spacing.xl, borderColor: alpha.gold30 },
   deleteCard: { marginTop: spacing.xl, gap: spacing.md },
   deleteLabel: { color: colors.gold },

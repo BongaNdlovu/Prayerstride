@@ -3,7 +3,14 @@ import { StyleSheet, View } from 'react-native';
 import { alpha, colors } from '../theme';
 import LogoMark from './LogoMark';
 
-export default function ProgressRing({ progress = 0, size = 100, strokeWidth = 6, children, accent = colors.gold }) {
+export default function ProgressRing({
+  progress = 0,
+  size = 100,
+  strokeWidth = 6,
+  children,
+  accent = colors.gold,
+  trackColor = alpha.navy12,
+}) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const clamped = Math.min(Math.max(progress, 0), 1);
@@ -17,7 +24,7 @@ export default function ProgressRing({ progress = 0, size = 100, strokeWidth = 6
           cx={center}
           cy={center}
           r={radius}
-          stroke={alpha.navy12}
+          stroke={trackColor}
           strokeWidth={strokeWidth}
           fill="none"
         />

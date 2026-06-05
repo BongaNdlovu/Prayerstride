@@ -4,6 +4,7 @@ const staticScreens = [
   'AnnouncementsScreen',
   'DevotionsScreen',
   'GuideDetailScreen',
+  'LeaderboardScreen',
   'LessonReaderScreen',
   'CalendarScreen',
   'RemindersScreen',
@@ -51,6 +52,7 @@ describe('static feature screens', () => {
       'DevotionsScreen',
       'GuideDetailScreen',
       'HomeScreen',
+      'LeaderboardScreen',
       'LessonReaderScreen',
       'RemindersScreen',
     ];
