@@ -99,11 +99,16 @@ function calculateStreakFromDayKeys(dayKeys, todayKey) {
 }
 
 function emptyStoredSummary(uid, timeZone, dayKey, nowIso) {
+  const weekKey = isoWeekKeyFromDayKey(dayKey);
+  const monthKey = monthKeyFromDayKey(dayKey);
   return {
     uid,
     timeZone,
     dayKey,
+    weekKey,
+    monthKey,
     totalXP: 0,
+    weekXP: 0,
     monthXP: 0,
     todayXP: 0,
     dailyPrayCount: 0,
@@ -129,6 +134,8 @@ function emptyStoredSummary(uid, timeZone, dayKey, nowIso) {
 function normalizeStoredSummary(stored, uid, timeZone, now = new Date()) {
   const tz = resolveTimeZone(timeZone || stored?.timeZone);
   const todayKey = dayKeyInTimeZone(now, tz);
+  const currentWeekKey = isoWeekKeyFromDayKey(todayKey);
+  const currentMonthKey = monthKeyFromDayKey(todayKey);
   const nowIso = now.toISOString ? now.toISOString() : new Date(now).toISOString();
   const base = {
     ...emptyStoredSummary(uid, tz, todayKey, nowIso),
@@ -136,8 +143,12 @@ function normalizeStoredSummary(stored, uid, timeZone, now = new Date()) {
     uid,
     timeZone: tz,
   };
+  const storedDayKey = base.dayKey || todayKey;
+  const storedWeekKey = base.weekKey || isoWeekKeyFromDayKey(storedDayKey);
+  const storedMonthKey = base.monthKey || monthKeyFromDayKey(storedDayKey);
   base.totalXP = safeNumber(base.totalXP);
-  base.monthXP = safeNumber(base.monthXP);
+  base.weekXP = storedWeekKey === currentWeekKey ? safeNumber(base.weekXP) : 0;
+  base.monthXP = storedMonthKey === currentMonthKey ? safeNumber(base.monthXP) : 0;
   base.todayXP = base.dayKey === todayKey ? safeNumber(base.todayXP) : 0;
   base.dailyPrayCount = base.dayKey === todayKey ? safeNumber(base.dailyPrayCount) : 0;
   base.dailyChallengeComplete = base.dayKey === todayKey ? Boolean(base.dailyChallengeComplete) : false;
@@ -157,6 +168,8 @@ function normalizeStoredSummary(stored, uid, timeZone, now = new Date()) {
     .sort()
     .slice(-MAX_ACTIVE_DAY_KEYS);
   base.dayKey = todayKey;
+  base.weekKey = currentWeekKey;
+  base.monthKey = currentMonthKey;
   base.updatedAt = base.updatedAt || nowIso;
   return base;
 }
@@ -188,6 +201,7 @@ function publicSummaryFromStored(stored, uid, requestedTimeZone, today = new Dat
     dailyChallengeGoal: DAILY_CHALLENGE_GOAL,
     dailyPrayGoal: DAILY_PRAY_GOAL,
     todayXP: normalized.todayXP,
+    weekXP: normalized.weekXP,
     monthXP: normalized.monthXP,
     totalXP: normalized.totalXP,
     levelInfo,
@@ -214,6 +228,7 @@ function addXp(summary, points) {
   const safePoints = safeNumber(points);
   summary.totalXP += safePoints;
   summary.todayXP += safePoints;
+  summary.weekXP += safePoints;
   summary.monthXP += safePoints;
 }
 
@@ -579,7 +594,7 @@ export async function buildLeaderboard(fs, env, uid, scope = 'weekly', limit = L
     },
   }]);
 
-  const scoreField = effectiveScope === 'monthly' ? 'monthXP' : 'totalXP';
+  const scoreField = effectiveScope === 'weekly' ? 'weekXP' : effectiveScope === 'monthly' ? 'monthXP' : 'totalXP';
   const rows = summaries.map((doc) => {
     const data = fs.fromFirestoreFields(doc.fields || {});
     const normalized = normalizeStoredSummary(data, data.uid || doc.name.split('/').pop(), data.timeZone, new Date());
@@ -616,10 +631,11 @@ export async function buildLeaderboard(fs, env, uid, scope = 'weekly', limit = L
 
   const ranked = rows.map((row, index) => ({ ...row, rank: index + 1 }));
   const limited = ranked.slice(0, safeLimit);
-  const profiles = await Promise.all(limited.map(async (row) => {
+  const profiles = [];
+  for (const row of limited) {
     const profile = await fs.getUserProfile(env, row.uid);
-    return [row.uid, profile];
-  }));
+    profiles.push([row.uid, profile]);
+  }
   const profileMap = new Map(profiles);
   const meEntry = ranked.find((row) => row.uid === uid) || null;
   const meProfile = uid ? await fs.getUserProfile(env, uid) : null;

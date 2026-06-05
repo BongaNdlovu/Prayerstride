@@ -16,13 +16,11 @@ describe('prayer flow', () => {
     expect(source.default).toMatch(/usePrayers/);
   });
 
-  it('HomeScreen offers a slowly pulsing direct prayer session action', async () => {
+  it('HomeScreen opens prayer stopwatch from the focused feed card', async () => {
     const source = await import('./screens/HomeScreen.jsx?raw');
-    expect(source.default).toMatch(/Have a Prayer Session/);
-    expect(source.default).toMatch(/go\('prayerStopwatch'\)/);
-    expect(source.default).toMatch(/withRepeat/);
-    expect(source.default).toMatch(/duration:\s*2400/);
-    expect(source.default).toMatch(/1\.025/);
+    expect(source.default).toMatch(/PrayerFocusCard/);
+    expect(source.default).toMatch(/go\('prayerStopwatch', \{ prayerId: currentPrayer\.id, title: currentPrayer\.title \}\)/);
+    expect(source.default).toMatch(/accessibilityLabel="Start prayer timer"/);
   });
 
   it('DiscoverScreen imports usePrayers', async () => {

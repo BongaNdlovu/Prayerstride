@@ -60,6 +60,7 @@ import TermsOfServiceScreen from '../src/mobile/screens/TermsOfServiceScreen';
 import AboutScreen from '../src/mobile/screens/AboutScreen';
 import CopyrightScreen from '../src/mobile/screens/CopyrightScreen';
 import WelcomeScreen from '../src/mobile/screens/WelcomeScreen';
+import { AppFeedbackProvider } from '../src/mobile/AppFeedbackProvider';
 
 const AUTH_ROUTES = ['splash', 'welcome', 'reminderSetup', 'stayConnected', 'signIn', 'createAccount', 'resetPassword'];
 const MAIN_TAB_ROUTES = ['home', 'leaderboard', 'myStats', 'profile'];
@@ -147,8 +148,10 @@ export default function MobileApp() {
 
   return (
     <SafeAreaView style={styles.shell}>
-      <View style={styles.appBody}>{content}</View>
-      {isMainTab && <BottomTabs active={screen} onChange={handleTabChange} />}
+      <AppFeedbackProvider>
+        <View style={styles.appBody}>{content}</View>
+        {isMainTab && <BottomTabs active={screen} onChange={handleTabChange} />}
+      </AppFeedbackProvider>
     </SafeAreaView>
   );
 }

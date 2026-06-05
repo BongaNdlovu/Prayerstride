@@ -7,6 +7,7 @@ describe('data contracts', () => {
     expect(source.default).toMatch(/export function registerDevice/);
     expect(source.default).toMatch(/export function buildNotificationStreamUrl/);
     expect(source.default).toMatch(/export function prayForRequest/);
+    expect(source.default).toMatch(/export function bookmarkPrayer/);
     expect(source.default).toMatch(/export function reactToTestimony/);
     expect(source.default).toMatch(/export function adminDeleteContent/);
     expect(source.default).toMatch(/export function adminSuspendUser/);

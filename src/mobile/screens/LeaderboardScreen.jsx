@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Lock, Trophy } from 'lucide-react-native';
 import { alpha, colors, fonts, radii, spacing } from '../theme';
 import { useLeaderboard } from '../useLeaderboard';
@@ -26,6 +26,50 @@ function TabButton({ item, active, onPress }) {
   );
 }
 
+function LeaderboardPodium({ rows }) {
+  if (!rows.length) return null;
+  return (
+    <View style={styles.podium}>
+      {rows.map((row) => (
+        <View key={row.uid} style={[styles.podiumCol, row.rank === 1 && styles.podiumColFirst]}>
+          <View style={styles.podiumAvatar}>
+            <BodyText variant="label">{row.displayName?.slice(0, 1) || 'P'}</BodyText>
+          </View>
+          <BodyText variant="label" numberOfLines={1} style={styles.podiumName}>{row.displayName}</BodyText>
+          <BodyText variant="caption">{row.scopeXP} XP</BodyText>
+          <View style={[styles.podiumBlock, row.rank === 1 && styles.podiumBlockFirst]}>
+            <Text style={styles.podiumRank}>{row.rank}</Text>
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function CurrentUserRank({ me, scopeLabel, resetAt }) {
+  if (!me) return null;
+  return (
+    <GlassCard style={styles.meCard}>
+      <View style={styles.meRow}>
+        <View style={styles.meCopy}>
+          <Heading level="eyebrow">Your Rank</Heading>
+          <Heading level="h4">{me.rank ? `#${me.rank}` : 'Unranked'}</Heading>
+          <BodyText variant="small">{me.scopeXP} XP · Level {me.level}</BodyText>
+          {scopeLabel ? (
+            <BodyText variant="caption" style={styles.scopeCopy}>{scopeLabel} scope</BodyText>
+          ) : null}
+          {resetAt ? (
+            <BodyText variant="caption" style={styles.resetCopy}>Resets {resetAt}</BodyText>
+          ) : null}
+        </View>
+        <View style={styles.summaryBadge}>
+          <Trophy size={18} color={colors.gold} />
+        </View>
+      </View>
+    </GlassCard>
+  );
+}
+
 export default function LeaderboardScreen({ user, onBack }) {
   const [scope, setScope] = useState('weekly');
   const [saving, setSaving] = useState(false);
@@ -39,6 +83,11 @@ export default function LeaderboardScreen({ user, onBack }) {
   } = useGamificationPreferences(user?.uid, Boolean(user?.uid));
 
   const hidden = preferences.leaderboardVisible !== true;
+  const topThree = leaderboard.rows.slice(0, 3);
+  const remainingRows = leaderboard.rows.slice(3);
+  const podiumOrder = [topThree[1], topThree[0], topThree[2]].filter(Boolean);
+  const scopeLabel = TABS.find((item) => item.key === scope)?.label;
+
   const retryAll = () => {
     retry();
     retryPrefs();
@@ -77,32 +126,16 @@ export default function LeaderboardScreen({ user, onBack }) {
           </GlassCard>
         ) : null}
 
-        <GlassCard style={styles.summaryCard}>
-          <View style={styles.summaryRow}>
-            <View>
-              <Heading level="eyebrow">Current Scope</Heading>
-              <Heading level="h4">{TABS.find((item) => item.key === scope)?.label}</Heading>
-            </View>
-            <View style={styles.summaryBadge}>
-              <Trophy size={18} color={colors.gold} />
-            </View>
-          </View>
-          {leaderboard.resetAt ? (
-            <BodyText variant="caption" style={styles.resetCopy}>Resets {leaderboard.resetAt}</BodyText>
-          ) : null}
-          {leaderboard.me ? (
-            <BodyText variant="small" style={styles.meCopy}>
-              Your rank: {leaderboard.me.rank || 'Unranked'} · {leaderboard.me.scopeXP} XP
-            </BodyText>
-          ) : null}
-        </GlassCard>
+        <LeaderboardPodium rows={podiumOrder} />
+
+        <CurrentUserRank me={leaderboard.me} scopeLabel={scopeLabel} resetAt={leaderboard.resetAt} />
 
         <FlatList
-          data={leaderboard.rows}
+          data={remainingRows}
           keyExtractor={(item) => item.uid}
           scrollEnabled={false}
           contentContainerStyle={styles.list}
-          ListEmptyComponent={(
+          ListEmptyComponent={leaderboard.rows.length ? null : (
             <GlassCard style={styles.emptyCard}>
               <BodyText variant="small" style={styles.emptyCopy}>No public rankings yet for this scope.</BodyText>
             </GlassCard>
@@ -117,6 +150,7 @@ export default function LeaderboardScreen({ user, onBack }) {
                   <Heading level="h4" style={styles.rowName}>{item.displayName}</Heading>
                   <BodyText variant="caption">
                     Level {item.level} · {item.streak} day streak · {item.badgesEarned} badges
+                    {item.change != null ? ` · ${item.change > 0 ? '+' : ''}${item.change}` : ''}
                   </BodyText>
                 </View>
                 <Heading level="h4" style={styles.rowPoints}>{item.scopeXP}</Heading>
@@ -157,8 +191,46 @@ const styles = StyleSheet.create({
   hiddenTitle: { textAlign: 'center' },
   hiddenCopy: { textAlign: 'center', marginTop: spacing.sm },
   hiddenButton: { marginTop: spacing.lg, alignSelf: 'stretch' },
-  summaryCard: { marginBottom: spacing.lg },
-  summaryRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  podium: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
+    paddingHorizontal: spacing.sm,
+  },
+  podiumCol: { flex: 1, alignItems: 'center', gap: spacing.xs },
+  podiumColFirst: { marginBottom: spacing.lg },
+  podiumAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: alpha.navy08,
+    marginBottom: spacing.xs,
+  },
+  podiumName: { textAlign: 'center', maxWidth: '100%' },
+  podiumBlock: {
+    width: '100%',
+    height: 56,
+    borderTopLeftRadius: radii.md,
+    borderTopRightRadius: radii.md,
+    backgroundColor: alpha.navy10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: spacing.sm,
+  },
+  podiumBlockFirst: {
+    height: 72,
+    backgroundColor: alpha.gold18,
+  },
+  podiumRank: { fontFamily: fonts.sansExtraBold, fontSize: 18, color: colors.navy },
+  meCard: { marginBottom: spacing.lg },
+  meRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  meCopy: { flex: 1 },
+  scopeCopy: { marginTop: spacing.xs },
+  resetCopy: { marginTop: spacing.xs },
   summaryBadge: {
     width: 40,
     height: 40,
@@ -167,8 +239,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: alpha.gold18,
   },
-  resetCopy: { marginTop: spacing.sm },
-  meCopy: { marginTop: spacing.xs },
   list: { gap: spacing.md, paddingBottom: spacing.tabBar },
   emptyCard: { alignItems: 'center' },
   emptyCopy: { textAlign: 'center' },

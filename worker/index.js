@@ -2708,27 +2708,3 @@ function base64UrlBytes(bytes) {
   });
   return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
-  match = url.pathname.match(/^\/api\/gamification\/preferences$/);
-  if (match && request.method === 'GET') {
-    await checkNotSuspended(env, user.uid);
-    const preferences = await getGamificationPreferences(gamificationFirestore, env, user.uid);
-    return json({ preferences });
-  }
-  if (match && request.method === 'POST') {
-    await checkNotSuspended(env, user.uid);
-    const preferences = await updateGamificationPreferences(gamificationFirestore, env, user.uid, body);
-    return json({ ok: true, preferences });
-  }
-
-  match = url.pathname.match(/^\/api\/gamification\/leaderboard$/);
-  if (match && request.method === 'GET') {
-    await checkNotSuspended(env, user.uid);
-    const result = await buildLeaderboard(
-      gamificationFirestore,
-      env,
-      user.uid,
-      url.searchParams.get('scope'),
-      url.searchParams.get('limit'),
-    );
-    return json(result);
-  }

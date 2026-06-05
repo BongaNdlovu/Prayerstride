@@ -7,6 +7,7 @@ function createFs() {
       uid: 'user-visible-1',
       leaderboardVisible: true,
       totalXP: 400,
+      weekXP: 20,
       monthXP: 80,
       prayersCreated: 2,
       prayerSessions: 4,
@@ -23,6 +24,7 @@ function createFs() {
       uid: 'user-visible-2',
       leaderboardVisible: true,
       totalXP: 250,
+      weekXP: 90,
       monthXP: 120,
       prayersCreated: 1,
       prayerSessions: 2,
@@ -39,6 +41,7 @@ function createFs() {
       uid: 'user-hidden',
       leaderboardVisible: false,
       totalXP: 999,
+      weekXP: 999,
       monthXP: 999,
       prayersCreated: 8,
       prayerSessions: 8,
@@ -89,5 +92,11 @@ describe('leaderboard', () => {
     const result = await buildLeaderboard(createFs(), {}, 'user-visible-1', 'monthly', 10);
     expect(result.rows[0].uid).toBe('user-visible-2');
     expect(result.rows[0].scopeXP).toBe(120);
+  });
+
+  it('sorts weekly scope by weekXP', async () => {
+    const result = await buildLeaderboard(createFs(), {}, 'user-visible-1', 'weekly', 10);
+    expect(result.rows[0].uid).toBe('user-visible-2');
+    expect(result.rows[0].scopeXP).toBe(90);
   });
 });

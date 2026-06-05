@@ -80,4 +80,16 @@ describe('static feature screens', () => {
     expect(source.default).toMatch(/onPress=\{\(\) => onOpenTestimony\?\.\(testimony\)\}/);
     expect(source.default).not.toMatch(/<Pressable key=\{testimony\.id\}/);
   });
+
+  it('AppFeedbackProvider is mounted in app shell', async () => {
+    const app = await import('../../app/index.jsx?raw');
+    expect(app.default).toMatch(/AppFeedbackProvider/);
+  });
+
+  it('AppFeedbackProvider exports without browser APIs', async () => {
+    const source = await import('./AppFeedbackProvider.jsx?raw');
+    expect(source.default).toMatch(/export function AppFeedbackProvider/);
+    expect(source.default).not.toMatch(/document\./);
+    expect(source.default).not.toMatch(/window\./);
+  });
 });
