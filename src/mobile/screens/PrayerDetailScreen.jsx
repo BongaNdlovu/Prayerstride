@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   Bookmark,
@@ -7,11 +7,12 @@ import {
   MoreHorizontal,
   Users,
 } from 'lucide-react-native';
-import { alpha, colors, fonts, radii, spacing } from '../theme';
+import { alpha, colors, fonts, radii, sharedStyles, spacing } from '../theme';
 import { bookmarkPrayer, getPrayerBookmark, prayForRequest, unbookmarkPrayer } from '../api';
 import { bumpGamificationRefresh } from '../gamificationRefresh';
-import { markAnswered } from '../usePrayerData';
+import { deletePrayer, markAnswered, updatePrayer } from '../usePrayerData';
 import { prayedButtonLabel, prayedStorageKey } from '../prayerLimit';
+import { PRAYER_PRIVACY_OPTIONS, PRAYER_FREQUENCY_OPTIONS } from '../prayerFormOptions';
 import { submitReport } from '../useReports';
 import { formatFirestoreDate } from '../sessionStats';
 import ScreenScaffold from '../components/ScreenScaffold';
@@ -56,6 +57,16 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
   const [bookmarked, setBookmarked] = useState(false);
   const [showActions, setShowActions] = useState(false);
   const prayingRef = useRef(false);
+  const [editing, setEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editBody, setEditBody] = useState('');
+  const [editScriptureRef, setEditScriptureRef] = useState('');
+  const [editCategory, setEditCategory] = useState('');
+  const [editPrivacy, setEditPrivacy] = useState('community');
+  const [editPrayerLimit, setEditPrayerLimit] = useState('daily');
+  const [editUrgent, setEditUrgent] = useState(false);
+  const [editAllowShare, setEditAllowShare] = useState(true);
+  const [editBusy, setEditBusy] = useState(false);
 
   useEffect(() => {
     if (!prayer?.id) return;
@@ -182,13 +193,126 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
     if (go) go('timer', { prayerId: prayer.id, title: prayer.title });
   };
 
+  const handleEditOpen = () => {
+    setEditTitle(prayer.title || '');
+    setEditBody(prayer.body || '');
+    setEditScriptureRef(prayer.scriptureRef || '');
+    setEditCategory(prayer.category || '');
+    setEditPrivacy(prayer.privacy || 'community');
+    setEditPrayerLimit(prayer.prayerLimit || 'daily');
+    setEditUrgent(Boolean(prayer.urgent));
+    setEditAllowShare(prayer.allowShare !== false);
+    setEditing(true);
+    setShowActions(false);
+  };
+
+  const handleEditSubmit = async () => {
+    const trimmedBody = editBody.trim();
+    if (!trimmedBody) {
+      Alert.alert('Body required', 'Please write something for your prayer request.');
+      return;
+    }
+    setEditBusy(true);
+    try {
+      await updatePrayer(prayer.id, {
+        title: editTitle,
+        body: trimmedBody,
+        scriptureRef: editScriptureRef,
+        category: editCategory || null,
+        privacy: editPrivacy || 'community',
+        prayerLimit: editPrayerLimit || 'daily',
+        urgent: editUrgent,
+        allowShare: editAllowShare,
+      });
+      setEditing(false);
+      if (onRefresh) onRefresh();
+    } catch (error) {
+      Alert.alert('Could not update prayer', getErrorMessage(error));
+    } finally {
+      setEditBusy(false);
+    }
+  };
+
+  const handleDelete = () => {
+    Alert.alert(
+      'Delete Prayer',
+      'This cannot be undone. Are you sure?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deletePrayer(prayer.id);
+              if (onRefresh) onRefresh();
+              if (onBack) onBack();
+            } catch (error) {
+              Alert.alert('Could not delete prayer', getErrorMessage(error));
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const prayLabel = isOwner
     ? 'Your Request'
     : prayedButtonLabel(prayer.prayerLimit || 'daily', prayed);
 
   return (
     <ScreenScaffold pageContent>
-      <AppHeader onBack={onBack} title="Prayer Request" />
+      {editing ? (
+        <>
+          <AppHeader onBack={() => setEditing(false)} title="Edit Prayer" />
+          <BodyText variant="label" style={styles.editLabel}>Title</BodyText>
+          <TextInput value={editTitle} onChangeText={setEditTitle} style={styles.editInput} placeholderTextColor={colors.ink3} />
+          <BodyText variant="label" style={styles.editLabel}>Body</BodyText>
+          <TextInput value={editBody} onChangeText={setEditBody} multiline style={[styles.editInput, styles.editTextarea]} placeholderTextColor={colors.ink3} />
+          <BodyText variant="label" style={styles.editLabel}>Scripture Reference</BodyText>
+          <TextInput value={editScriptureRef} onChangeText={setEditScriptureRef} style={styles.editInput} placeholderTextColor={colors.ink3} />
+          <BodyText variant="label" style={styles.editLabel}>Category</BodyText>
+          <TextInput value={editCategory} onChangeText={setEditCategory} style={styles.editInput} placeholderTextColor={colors.ink3} placeholder="e.g. Healing, Family, Guidance" />
+          <BodyText variant="label" style={styles.editLabel}>Privacy</BodyText>
+          <View style={styles.editChipRow}>
+            {PRAYER_PRIVACY_OPTIONS.map((opt) => (
+              <Pressable
+                key={opt.value}
+                onPress={() => setEditPrivacy(opt.value)}
+                style={[styles.editChip, editPrivacy === opt.value && styles.editChipActive]}
+              >
+                <Text style={[styles.editChipText, editPrivacy === opt.value && styles.editChipTextActive]}>{opt.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+          <BodyText variant="label" style={styles.editLabel}>Prayer Frequency</BodyText>
+          <View style={styles.editChipRow}>
+            {PRAYER_FREQUENCY_OPTIONS.map((opt) => (
+              <Pressable
+                key={opt.value}
+                onPress={() => setEditPrayerLimit(opt.value)}
+                style={[styles.editChip, editPrayerLimit === opt.value && styles.editChipActive]}
+              >
+                <Text style={[styles.editChipText, editPrayerLimit === opt.value && styles.editChipTextActive]}>{opt.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+          <Pressable onPress={() => setEditUrgent(!editUrgent)} style={styles.editToggle}>
+            <BodyText variant="label">Urgent</BodyText>
+            <View style={[styles.editToggleIndicator, editUrgent && styles.editToggleOn]} />
+          </Pressable>
+          <Pressable onPress={() => setEditAllowShare(!editAllowShare)} style={styles.editToggle}>
+            <BodyText variant="label">Allow sharing</BodyText>
+            <View style={[styles.editToggleIndicator, editAllowShare && styles.editToggleOn]} />
+          </Pressable>
+          <PrimaryButton label={editBusy ? 'Saving...' : 'Save Changes'} onPress={handleEditSubmit} busy={editBusy} style={styles.editSaveBtn} />
+          <Pressable onPress={() => setEditing(false)} style={styles.editCancelBtn}>
+            <BodyText variant="label" style={styles.editCancelText}>Cancel</BodyText>
+          </Pressable>
+        </>
+      ) : (
+        <>
+          <AppHeader onBack={onBack} title="Prayer Request" />
 
       <View style={styles.tagRow}>
         {prayer.urgent ? <Tag label="Urgent" tone="urgent" /> : null}
@@ -249,16 +373,18 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
               <Pressable onPress={handleMarkAnswered} style={styles.moreActionButton}>
                 <BodyText variant="label">Mark Answered</BodyText>
               </Pressable>
-              {go ? (
-                <Pressable onPress={() => go('editRequest', { prayer })} style={[styles.moreActionButton, styles.moreActionLast]}>
-                  <BodyText variant="label">Edit</BodyText>
-                </Pressable>
-              ) : null}
+              <Pressable onPress={handleEditOpen} style={styles.moreActionButton}>
+                <BodyText variant="label">Edit</BodyText>
+              </Pressable>
+              <Pressable onPress={handleDelete} style={[styles.moreActionButton, styles.moreActionLast]}>
+                <BodyText variant="label" style={{ color: colors.urgent }}>Delete</BodyText>
+              </Pressable>
             </>
           ) : null}
         </GlassCard>
       ) : null}
-
+        </>
+      )}
     </ScreenScaffold>
   );
 }
@@ -311,4 +437,43 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   moreActionLast: { borderBottomWidth: 0 },
+  editLabel: { color: colors.gold, marginTop: spacing.md, marginBottom: spacing.xs },
+  editInput: {
+    ...sharedStyles.input,
+    color: colors.ink,
+    fontFamily: fonts.sans,
+    marginBottom: spacing.sm,
+  },
+  editTextarea: { minHeight: 100, textAlignVertical: 'top' },
+  editSaveBtn: { marginTop: spacing.lg },
+  editCancelBtn: { alignSelf: 'center', marginTop: spacing.md },
+  editCancelText: { color: colors.gold },
+  editChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: spacing.xs },
+  editChip: {
+    borderRadius: radii.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs + 2,
+    backgroundColor: alpha.navy10,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  editChipActive: { borderColor: colors.gold, backgroundColor: alpha.gold22 },
+  editChipText: { fontFamily: fonts.sansSemiBold, fontSize: 12, color: colors.textSecondary },
+  editChipTextActive: { color: colors.gold },
+  editToggle: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  editToggleIndicator: {
+    width: 40,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: alpha.navy20,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  editToggleOn: { backgroundColor: colors.gold, borderColor: colors.gold },
 });

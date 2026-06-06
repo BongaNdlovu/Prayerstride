@@ -127,17 +127,17 @@ export async function addPrayer(data, user) {
 
 export async function updatePrayer(prayerId, data) {
   if (!prayerId) throw new Error('Missing prayer request.');
-  await apiUpdatePrayer(prayerId, {
-    title: data.title,
-    body: data.body || data.text,
-    category: data.category || null,
-    scriptureRef: data.scriptureRef?.trim() || null,
-    isAnonymous: Boolean(data.isAnonymous ?? data.anonymous),
-    privacy: data.privacy || 'community',
-    prayerLimit: data.prayerLimit || 'daily',
-    urgent: Boolean(data.urgent ?? data.urgency),
-    allowShare: data.allowShare !== false,
-  });
+  const payload = {};
+  if ('title' in data) payload.title = data.title;
+  if ('body' in data || 'text' in data) payload.body = data.body || data.text;
+  if ('category' in data) payload.category = data.category || null;
+  if ('scriptureRef' in data) payload.scriptureRef = data.scriptureRef?.trim() || null;
+  if ('isAnonymous' in data || 'anonymous' in data) payload.isAnonymous = Boolean(data.isAnonymous ?? data.anonymous);
+  if ('privacy' in data) payload.privacy = data.privacy || 'community';
+  if ('prayerLimit' in data) payload.prayerLimit = data.prayerLimit || 'daily';
+  if ('urgent' in data || 'urgency' in data) payload.urgent = Boolean(data.urgent ?? data.urgency);
+  if ('allowShare' in data) payload.allowShare = data.allowShare !== false;
+  await apiUpdatePrayer(prayerId, payload);
 }
 
 export async function deletePrayer(prayerId) {

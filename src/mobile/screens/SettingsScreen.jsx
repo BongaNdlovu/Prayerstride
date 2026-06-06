@@ -18,7 +18,6 @@ const ITEMS = [
   { label: 'Terms of Service', route: 'termsOfService' },
   { label: 'Legal & Copyright', route: 'copyright' },
   { label: 'Help Center', route: 'helpCenter' },
-  { label: 'Support / Donation', route: 'support' },
 ];
 
 export default function SettingsScreen({ user, go, deleteAccount, onBack }) {
