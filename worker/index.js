@@ -77,6 +77,7 @@ import { getDevotions, getStudyGuide, getStudyGuideLesson } from './content-read
 import { getMyPrayerSessions } from './prayer-sessions-read.js';
 import { getPrayersFeed } from './prayers-read.js';
 import { deletePushTokenById, listPushTokensForUid, upsertPushToken } from './db/push-tokens-repository.js';
+import { deleteUserMirrorData } from './db/account-deletion-repository.js';
 import { getTestimoniesFeed } from './testimonies-read.js';
 import { invalidateUserNotificationStream } from './notification-stream.js';
 import { avatarUrlForUid, getMyProfile, updateMyProfile } from './profile.js';
@@ -191,6 +192,7 @@ async function handleApi(request, env, url, requestId) {
 
   match = url.pathname.match(/^\/api\/prayers$/);
   if (match && request.method === 'GET') {
+    await checkNotSuspended(env, user.uid);
     const result = await getPrayersFeed(env, user, url, firestoreApi, requireAdmin);
     return json(result.body, result.status);
   }
@@ -278,12 +280,14 @@ async function handleApi(request, env, url, requestId) {
 
   match = url.pathname.match(/^\/api\/testimonies$/);
   if (match && request.method === 'GET') {
+    await checkNotSuspended(env, user.uid);
     const result = await getTestimoniesFeed(env, url, firestoreApi);
     return json(result.body, result.status);
   }
 
   match = url.pathname.match(/^\/api\/announcements$/);
   if (match && request.method === 'GET') {
+    await checkNotSuspended(env, user.uid);
     const isAdmin = await userIsAdmin(env, user);
     const result = await getAnnouncementsFeed(env, url, firestoreApi, isAdmin);
     return json(result.body, result.status);
@@ -291,12 +295,14 @@ async function handleApi(request, env, url, requestId) {
 
   match = url.pathname.match(/^\/api\/devotions$/);
   if (match && request.method === 'GET') {
+    await checkNotSuspended(env, user.uid);
     const result = await getDevotions(env, firestoreApi);
     return json(result.body, result.status);
   }
 
   match = url.pathname.match(/^\/api\/study-guides\/([^/]+)\/lessons\/([^/]+)$/);
   if (match && request.method === 'GET') {
+    await checkNotSuspended(env, user.uid);
     const result = await getStudyGuideLesson(
       env,
       decodeURIComponent(match[1]),
@@ -308,12 +314,14 @@ async function handleApi(request, env, url, requestId) {
 
   match = url.pathname.match(/^\/api\/study-guides\/([^/]+)\/lessons$/);
   if (match && request.method === 'GET') {
+    await checkNotSuspended(env, user.uid);
     const result = await getStudyGuideLesson(env, decodeURIComponent(match[1]), null, firestoreApi);
     return json(result.body, result.status);
   }
 
   match = url.pathname.match(/^\/api\/study-guides\/([^/]+)$/);
   if (match && request.method === 'GET') {
+    await checkNotSuspended(env, user.uid);
     const result = await getStudyGuide(env, decodeURIComponent(match[1]), firestoreApi);
     return json(result.body, result.status);
   }
@@ -1273,10 +1281,13 @@ async function deletePrayerBookmark(env, user, prayerId) {
 }
 
 async function submitReport(env, user, body) {
-  if (!body.targetId || !['prayer', 'testimony', 'user'].includes(body.targetType) || !body.reason) {
+  const targetId = body.targetId != null ? String(body.targetId).trim() : '';
+  if (!targetId || targetId.length > 160 || targetId.includes('/') || !['prayer', 'testimony', 'user'].includes(body.targetType) || !body.reason) {
     return json({ error: 'Missing or invalid report details' }, 400);
   }
-  const reportId = `${user.uid}_${body.targetType}_${body.targetId}`;
+  const targetExists = await reportTargetExists(env, body.targetType, targetId);
+  if (!targetExists) return json({ error: 'Report target not found' }, 404);
+  const reportId = `${user.uid}_${body.targetType}_${targetId}`;
   const existing = await getDocument(env, docName(env, 'reports', reportId));
   if (existing.exists) return json({ ok: true, duplicate: true, reportId });
   await enforceCooldown(env, user.uid, 'report', 5);
@@ -1284,7 +1295,7 @@ async function submitReport(env, user, body) {
     update: {
       name: docName(env, 'reports', reportId),
       fields: toFirestoreFields({
-        targetId: String(body.targetId).slice(0, 160),
+        targetId: targetId.slice(0, 160),
         targetType: body.targetType,
         reason: String(body.reason).slice(0, 800),
         reportedByUid: user.uid,
@@ -1295,6 +1306,18 @@ async function submitReport(env, user, body) {
     currentDocument: { exists: false },
   }], { allowAlreadyExists: true });
   return json({ ok: true, reportId });
+}
+
+async function reportTargetExists(env, targetType, targetId) {
+  const collectionMap = {
+    prayer: 'prayers',
+    testimony: 'testimonies',
+    user: 'users',
+  };
+  const collection = collectionMap[targetType];
+  if (!collection) return false;
+  const target = await getDocument(env, docName(env, collection, targetId));
+  return target.exists;
 }
 
 async function unblockUser(env, user, blockedUid) {
@@ -1827,6 +1850,7 @@ async function deleteUserData(env, uid, options = {}) {
   try {
     const writes = await collectUserDeletionWrites(env, uid);
     await commitInChunks(env, writes);
+    await deleteUserMirrorData(env, uid);
     try {
       await deleteStoragePrefix(env, `avatars/${uid}/`);
     } catch (storageError) {
@@ -2204,10 +2228,7 @@ async function sendFcm(env, token, payload) {
 
 async function verifyFirebaseUser(request, env) {
   const authHeader = request.headers.get('Authorization') || '';
-  let idToken = authHeader.replace(/^Bearer\s+/i, '');
-  if (!idToken) {
-    idToken = new URL(request.url).searchParams.get('access_token') || '';
-  }
+  const idToken = authHeader.replace(/^Bearer\s+/i, '');
   if (!idToken) {
     throw Object.assign(new Error('Missing Firebase ID token'), {
       status: 401,

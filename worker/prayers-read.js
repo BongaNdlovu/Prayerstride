@@ -123,7 +123,7 @@ function buildD1Query(scope, userUid, status, category, urgentOnly, cursor, limi
 }
 
 async function listPrayersFromD1(env, options) {
-  if (!env.DB) return [];
+  if (!env.DB) return null;
   const { sql, binds } = buildD1Query(
     options.scope,
     options.userUid,
@@ -213,6 +213,30 @@ async function listPrayersFromFirestore(env, firestoreApi, options) {
   return items.slice(0, options.limit + 1);
 }
 
+function mergePrayers(primaryItems = [], fallbackItems = [], options) {
+  const byId = new Map();
+  for (const item of fallbackItems) byId.set(item.id, item);
+  for (const item of primaryItems) byId.set(item.id, item);
+
+  let items = Array.from(byId.values());
+  if (options.urgentOnly) items = items.filter((item) => item.urgent);
+  if (options.category) items = items.filter((item) => categoryMatches(item, options.category));
+  if (options.cursor) {
+    const cursorAt = options.cursor.createdAt;
+    const cursorId = options.cursor.id;
+    items = items.filter((item) => (
+      String(item.createdAt) < cursorAt
+      || (String(item.createdAt) === cursorAt && String(item.id) < cursorId)
+    ));
+  }
+  return items
+    .sort((a, b) => {
+      const byCreated = String(b.createdAt || '').localeCompare(String(a.createdAt || ''));
+      return byCreated || String(b.id || '').localeCompare(String(a.id || ''));
+    })
+    .slice(0, options.limit + 1);
+}
+
 export async function getPrayersFeed(env, user, url, firestoreApi, requireAdmin) {
   const params = url.searchParams;
   const scope = params.get('scope') || 'feed';
@@ -240,10 +264,11 @@ export async function getPrayersFeed(env, user, url, firestoreApi, requireAdmin)
     limit,
   };
 
-  let items = await listPrayersFromD1(env, options);
-  if (!items.length) {
-    items = await listPrayersFromFirestore(env, firestoreApi, options);
-  }
+  const d1Items = await listPrayersFromD1(env, options);
+  const firestoreItems = await listPrayersFromFirestore(env, firestoreApi, options);
+  const items = d1Items == null
+    ? firestoreItems
+    : mergePrayers(firestoreItems, d1Items, options);
 
   const hasMore = items.length > limit;
   const page = hasMore ? items.slice(0, limit) : items;

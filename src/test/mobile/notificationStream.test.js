@@ -5,8 +5,10 @@ const wsInstances = [];
 class MockWebSocket {
   static OPEN = 1;
 
-  constructor(url) {
+  constructor(url, protocols, options) {
     this.url = url;
+    this.protocols = protocols;
+    this.options = options;
     this.readyState = 0;
     wsInstances.push(this);
     queueMicrotask(() => {
@@ -24,7 +26,8 @@ class MockWebSocket {
 }
 
 vi.mock('../../mobile/api.js', () => ({
-  buildNotificationStreamUrl: (token) => (token ? 'wss://example.test/stream' : null),
+  buildNotificationStreamUrl: () => 'wss://example.test/stream',
+  buildNotificationStreamOptions: (token) => ({ headers: { Authorization: `Bearer ${token}` } }),
 }));
 
 describe('notificationStream reconnect safety', () => {
@@ -95,5 +98,15 @@ describe('notificationStream reconnect safety', () => {
     getIdToken.mockClear();
     await vi.advanceTimersByTimeAsync(4000);
     expect(getIdToken).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens the socket without putting the token in the URL', async () => {
+    const { connectNotificationStream } = await import('../../mobile/notificationStream.js');
+
+    connectNotificationStream(vi.fn(async () => 'token'));
+    await vi.runOnlyPendingTimersAsync();
+
+    expect(wsInstances[0].url).toBe('wss://example.test/stream');
+    expect(wsInstances[0].options.headers.Authorization).toBe('Bearer token');
   });
 });

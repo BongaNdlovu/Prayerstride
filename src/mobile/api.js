@@ -279,16 +279,18 @@ export function registerDevice(payload) {
   });
 }
 
-export function buildNotificationStreamUrl(idToken) {
+export function buildNotificationStreamUrl() {
   if (isMockDataEnabled()) return null;
   const base = API_URL.replace(/\/$/, '');
-  if (!base || !idToken) return null;
+  if (!base) return null;
   const wsBase = base.replace(/^http/i, (scheme) => (
     scheme.toLowerCase() === 'https' ? 'wss' : 'ws'
   ));
-  const url = new URL(`${wsBase}/api/me/notifications/stream`);
-  url.searchParams.set('access_token', idToken);
-  return url.toString();
+  return `${wsBase}/api/me/notifications/stream`;
+}
+
+export function buildNotificationStreamOptions(idToken) {
+  return idToken ? { headers: { Authorization: `Bearer ${idToken}` } } : undefined;
 }
 
 export function createPrayer(payload) {

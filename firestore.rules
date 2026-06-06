@@ -251,7 +251,7 @@ service cloud.firestore {
     }
 
     match /prayers/{prayerId} {
-      allow read: if canReadPrayerData(resource.data);
+      allow read: if notSuspended() && canReadPrayerData(resource.data);
       allow create, update, delete: if false;
 
       match /prays/{uid} {
@@ -261,11 +261,11 @@ service cloud.firestore {
     }
 
     match /testimonies/{testimonyId} {
-      allow read: if signedIn();
+      allow read: if notSuspended();
       allow create, update, delete: if false;
 
       match /reactions/{reactionId} {
-        allow read: if signedIn();
+        allow read: if notSuspended();
         allow write: if false;
       }
     }
@@ -350,22 +350,22 @@ service cloud.firestore {
     }
 
     match /announcements/{announcementId} {
-      allow read: if signedIn()
+      allow read: if notSuspended()
         && (resource.data.status == "active" || isAdmin());
       allow create, update, delete: if false;
     }
 
     match /devotions/{devotionId} {
-      allow read: if signedIn() && resource.data.status == "active";
+      allow read: if notSuspended() && resource.data.status == "active";
       allow write: if false;
     }
 
     match /studyGuides/{guideId} {
-      allow read: if signedIn() && resource.data.status == "active";
+      allow read: if notSuspended() && resource.data.status == "active";
       allow write: if false;
 
       match /lessons/{lessonId} {
-        allow read: if signedIn() && resource.data.status == "active";
+        allow read: if notSuspended() && resource.data.status == "active";
         allow write: if false;
       }
     }

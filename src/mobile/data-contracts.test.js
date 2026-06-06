@@ -152,7 +152,8 @@ describe('data contracts', () => {
     const api = await import('./api.js?raw');
     const gate = await import('./NotificationStreamGate.jsx?raw');
     const stream = await import('./notificationStream.js?raw');
-    expect(api.default).toMatch(/access_token/);
+    expect(api.default).not.toMatch(/access_token/);
+    expect(api.default).toMatch(/Authorization/);
     expect(gate.default).toMatch(/connectNotificationStream/);
     expect(stream.default).toMatch(/buildNotificationStreamUrl/);
     expect(stream.default).toMatch(/type === 'invalidate'/);

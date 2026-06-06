@@ -43,10 +43,13 @@ async function listNotificationsFromFirestore(env, user, firestoreApi) {
 }
 
 export async function getMyNotifications(env, user, firestoreApi) {
-  let notifications = await listNotificationsForRecipient(env, user.uid);
-  if (notifications == null || notifications.length === 0) {
-    notifications = await listNotificationsFromFirestore(env, user, firestoreApi);
-  }
+  const d1Notifications = await listNotificationsForRecipient(env, user.uid);
+  const firestoreNotifications = await listNotificationsFromFirestore(env, user, firestoreApi);
+  const byId = new Map();
+  for (const notification of d1Notifications || []) byId.set(notification.id, notification);
+  for (const notification of firestoreNotifications) byId.set(notification.id, notification);
+  const notifications = Array.from(byId.values())
+    .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
   return { status: 200, body: { notifications } };
 }
 

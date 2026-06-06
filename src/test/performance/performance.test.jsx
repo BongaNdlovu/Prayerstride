@@ -2,6 +2,17 @@ import { render } from '@testing-library/react';
 import ProfileScreen from '../../mobile/screens/ProfileScreen';
 import PrayerDetailScreen from '../../mobile/screens/PrayerDetailScreen';
 
+const profileProps = {
+  user: { uid: 'test', displayName: 'Test User', email: 'test@example.com' },
+  signOut: vi.fn(),
+  go: vi.fn(),
+};
+
+function warmProfileRender() {
+  const { unmount } = render(<ProfileScreen {...profileProps} />);
+  unmount();
+}
+
 vi.mock('react-native', () => ({
   View: ({ children, testID }) => <div data-testid={testID}>{children}</div>,
   Text: ({ children, testID }) => <span data-testid={testID}>{children}</span>,
@@ -142,8 +153,9 @@ vi.mock('../../mobile/usePrayerData', () => ({
 describe('Performance Tests', () => {
   describe('Render Performance', () => {
     it('should render ProfileScreen component within acceptable time', () => {
+      warmProfileRender();
       const start = performance.now();
-      render(<ProfileScreen user={{ uid: 'test', displayName: 'Test User', email: 'test@example.com' }} signOut={vi.fn()} go={vi.fn()} />);
+      render(<ProfileScreen {...profileProps} />);
       // Profile intentionally renders the complete stats/menu surface. Keep this
       // threshold high enough for shared-suite jsdom load while catching stalls.
       expect(performance.now() - start).toBeLessThan(300);

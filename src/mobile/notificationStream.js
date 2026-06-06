@@ -1,4 +1,4 @@
-import { buildNotificationStreamUrl } from './api';
+import { buildNotificationStreamOptions, buildNotificationStreamUrl } from './api';
 
 const listeners = new Set();
 let socket = null;
@@ -47,14 +47,14 @@ export function connectNotificationStream(getIdToken) {
     if (generation !== connectGeneration) return;
     const token = await getIdToken();
     if (generation !== connectGeneration) return;
-    const url = buildNotificationStreamUrl(token);
+    const url = buildNotificationStreamUrl();
     if (!url) {
       reconnectBackoffMs = Math.min(reconnectBackoffMs * 2, MAX_RECONNECT_MS);
       scheduleReconnect();
       return;
     }
 
-    const ws = new WebSocket(url);
+    const ws = new WebSocket(url, undefined, buildNotificationStreamOptions(token));
     socket = ws;
 
     ws.onopen = () => {
