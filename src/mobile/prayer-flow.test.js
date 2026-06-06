@@ -14,7 +14,7 @@ describe('prayer flow', () => {
   it('HomeScreen opens prayer stopwatch from the focused feed card', async () => {
     const source = await import('./screens/HomeScreen.jsx?raw');
     expect(source.default).toMatch(/PrayerFocusCard/);
-    expect(source.default).toMatch(/go\('timer', \{ prayerId: currentPrayer\.id, title: currentPrayer\.title \}\)/);
+    expect(source.default).toMatch(/go\('timer', \{ prayerId: currentPrayer\.id, title: currentPrayer\.title, prayer: currentPrayer \}\)/);
     expect(source.default).toMatch(/accessibilityLabel="Start prayer timer"/);
   });
 

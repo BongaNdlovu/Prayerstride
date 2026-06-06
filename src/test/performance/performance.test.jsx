@@ -33,7 +33,7 @@ vi.mock('lucide-react-native', () => {
   };
   const names = [
     'Award', 'BarChart3', 'Bell', 'BookOpen', 'Bookmark', 'Calendar', 'Camera', 'ChevronLeft', 'ChevronRight',
-    'Clock', 'Eye', 'EyeOff', 'Filter', 'Flame', 'Heart', 'Lock', 'Mail', 'Megaphone', 'Moon',
+    'Clock', 'Eye', 'EyeOff', 'Filter', 'Flame', 'Footprints', 'Heart', 'Lock', 'Mail', 'Megaphone', 'Moon',
     'MoreHorizontal', 'Plus', 'Search', 'Send', 'Settings', 'ShieldAlert', 'Sparkles',
     'Star', 'Sun', 'Sunrise', 'Timer', 'Trophy', 'User', 'Users', 'X', 'Zap',
   ];
