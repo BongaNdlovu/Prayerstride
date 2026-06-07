@@ -9,8 +9,10 @@ import {
 
 describe('age registration helpers', () => {
   it('parses valid ISO dates', () => {
-    expect(parseDateOfBirth('2008-05-31')).toBe('2008-05-31');
-    expect(parseDateOfBirth('2008-13-01')).toBeNull();
+    const today = new Date('2026-06-06T12:00:00Z');
+    expect(parseDateOfBirth('2008-05-31', today)).toBe('2008-05-31');
+    expect(parseDateOfBirth('2008-13-01', today)).toBeNull();
+    expect(parseDateOfBirth('2026-06-07', today)).toBeNull();
   });
 
   it('assigns age bands for 18+ policy', () => {

@@ -46,6 +46,7 @@ describe('security hardening', () => {
     expect(source.default).toMatch(/if \(userDoc\.exists\) addDelete\(userDoc\.name\)/);
     expect(source.default).toMatch(/String\(message\)\.includes\('USER_NOT_FOUND'\)/);
     expect(source.default).toMatch(/!targetUser\.exists && !existingDeletionJob\.exists/);
+    expect(source.default).toMatch(/isFreshInProgressDeletion\(job\)/);
   });
 
   it('rejects whitespace-only prayer creation in the worker', async () => {
@@ -54,5 +55,22 @@ describe('security hardening', () => {
     expect(source.default).toMatch(/const prayerBody = body\.body != null \? String\(body\.body\)\.trim\(\) : ''/);
     expect(source.default).toMatch(/const derivedTitle = title \|\| prayerBody\.split/);
     expect(source.default).toMatch(/if \(!derivedTitle \|\| !prayerBody\) return json\(\{ error: 'Missing title or body' \}, 400\)/);
+  });
+
+  it('does not emit a default CORS origin for no-origin requests', async () => {
+    const source = await import('../../worker/index.js?raw');
+    expect(source.default).toMatch(/let resolvedOrigin = ''/);
+    expect(source.default).toMatch(/next\.headers\.set\('Vary', 'Origin'\)/);
+  });
+
+  it('keeps POPIA and emergency disclaimers in legal copy', async () => {
+    const terms = await import('./screens/TermsOfServiceScreen.jsx?raw');
+    const privacy = await import('./screens/PrivacyPolicyScreen.jsx?raw');
+    const hosted = await import('../../worker/legal-pages.js?raw');
+    expect(terms.default).toMatch(/Terms and Conditions/);
+    expect(terms.default).toMatch(/Do not use PrayerStride for emergencies/);
+    expect(privacy.default).toMatch(/Protection of Personal Information Act, 2013 \(POPIA\)/);
+    expect(privacy.default).toMatch(/Information Regulator/);
+    expect(hosted.default).toMatch(/inforegulator\.org\.za/);
   });
 });

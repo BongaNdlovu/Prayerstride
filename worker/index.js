@@ -46,6 +46,11 @@ import {
   isoWeekKeyFromDayKey,
 } from '../shared/gamificationLogic.js';
 import { XP_AWARDS } from '../shared/gamificationConstants.js';
+import {
+  isFreshInProgressDeletion,
+  isCreateOnlyDuplicateCommit,
+  resolvePrivacyFields,
+} from './worker-utils.js';
 import { uploadMyAvatar, serveAvatar } from './avatars.js';
 import {
   bookmarkCalendarDate,
@@ -87,8 +92,8 @@ export { AdminEventStream } from './durable-objects/AdminEventStream.js';
 
 const FIREBASE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const FIREBASE_SCOPE = 'https://www.googleapis.com/auth/datastore https://www.googleapis.com/auth/firebase.messaging https://www.googleapis.com/auth/identitytoolkit https://www.googleapis.com/auth/devstorage.read_write';
-const CURRENT_TERMS_VERSION = '2026-05-31';
-const CURRENT_PRIVACY_VERSION = '2026-05-31';
+const CURRENT_TERMS_VERSION = '2026-06-06';
+const CURRENT_PRIVACY_VERSION = '2026-06-06';
 const RATE_LIMIT_COMMIT_ATTEMPTS = 3;
 
 export default {
@@ -612,7 +617,7 @@ async function completeRegistration(env, user, body) {
   if (body.termsAccepted !== true
     || body.termsVersion !== CURRENT_TERMS_VERSION
     || body.privacyVersion !== CURRENT_PRIVACY_VERSION) {
-    return json({ error: 'Accept the current Terms of Service and Privacy Policy to create an account.' }, 400);
+    return json({ error: 'Accept the current Terms and Conditions and Privacy Policy to create an account.' }, 400);
   }
 
   const dateOfBirth = parseDateOfBirth(body.dateOfBirth);
@@ -940,10 +945,9 @@ async function createPrayer(env, user, body) {
     updatedAt: now,
     prayedCount: 0,
     status: 'active',
-    privacy: body.privacy === 'private' ? 'private' : 'community',
+    ...resolvePrivacyFields(body.privacy, body.allowShare),
     prayerLimit,
     urgent: Boolean(body.urgent ?? body.urgency),
-    allowShare: body.allowShare !== false,
   };
 
   await commitFirestoreWithD1(env, firestoreApi, {
@@ -995,10 +999,13 @@ async function updatePrayer(env, user, prayerId, body) {
     scriptureRef,
     authorName: resolveAuthorName(profile, user, isAnonymous),
     isAnonymous,
-    privacy: body.privacy != null ? (body.privacy === 'private' ? 'private' : 'community') : (data.privacy || 'community'),
+    ...(body.privacy != null
+      ? resolvePrivacyFields(body.privacy, body.allowShare)
+      : (data.privacy === 'private' && data.allowShare === false
+        ? { privacy: 'private', allowShare: false }
+        : { privacy: data.privacy || 'community', allowShare: data.allowShare !== false })),
     prayerLimit,
     urgent: body.urgent != null ? Boolean(body.urgent ?? body.urgency) : Boolean(data.urgent),
-    allowShare: body.allowShare != null ? body.allowShare !== false : data.allowShare !== false,
     updatedAt: now,
   };
 
@@ -1022,6 +1029,9 @@ async function updatePrayer(env, user, prayerId, body) {
 async function markPrayerAnswered(env, user, prayerId) {
   const { contentDoc, data } = await loadAuthorContent(env, 'prayers', prayerId, user);
   const alreadyAnswered = data.status === 'answered';
+  if (alreadyAnswered) {
+    return json({ ok: true, prayerId, alreadyAnswered: true });
+  }
   const answeredFields = {
     ...data,
     status: 'answered',
@@ -1040,9 +1050,7 @@ async function markPrayerAnswered(env, user, prayerId) {
     }],
     syncD1: () => upsertPrayer(env, prayerRowFromFirestore(prayerId, answeredFields)),
   });
-  if (!alreadyAnswered) {
-    await recordPrayerAnswered(gamificationFirestore, env, user.uid, null);
-  }
+  await recordPrayerAnswered(gamificationFirestore, env, user.uid, null);
   return json({ ok: true, prayerId });
 }
 
@@ -1107,16 +1115,18 @@ async function createTestimony(env, user, body) {
     if (prayerData.authorUid !== user.uid && !(await userIsAdmin(env, user))) {
       return json({ error: 'You can only link your own prayer requests.' }, 403);
     }
-    writes.push({
-      update: {
-        name: prayerDoc.name,
-        fields: toFirestoreFields({
-          ...prayerData,
-          status: 'answered',
-          updatedAt: now,
-        }),
-      },
-    });
+    if (!linkedPrayerWasAnswered) {
+      writes.push({
+        update: {
+          name: prayerDoc.name,
+          fields: toFirestoreFields({
+            ...prayerData,
+            status: 'answered',
+            updatedAt: now,
+          }),
+        },
+      });
+    }
   }
 
   await firestoreCommit(env, writes);
@@ -1253,13 +1263,21 @@ async function savePrayerBookmark(env, user, prayerId) {
       xp: buildXpPayload({ awarded: false, duplicate: true }, XP_AWARDS.bookmarkPrayer),
     });
   }
-  await firestoreCommit(env, [{
+  const result = await firestoreCommit(env, [{
     update: {
       name,
       fields: toFirestoreFields({ ownerUid: user.uid, prayerId, createdAt: new Date().toISOString() }),
     },
     currentDocument: { exists: false },
   }], { allowAlreadyExists: true });
+  if (result.alreadyExists) {
+    return json({
+      ok: true,
+      prayerId,
+      duplicate: true,
+      xp: buildXpPayload({ awarded: false, duplicate: true }, XP_AWARDS.bookmarkPrayer),
+    });
+  }
   const timeZone = await resolveUserTimeZone(gamificationFirestore, env, user.uid, null);
   const xp = await awardBookmarkXp(gamificationFirestore, env, {
     uid: user.uid,
@@ -1291,7 +1309,7 @@ async function submitReport(env, user, body) {
   const existing = await getDocument(env, docName(env, 'reports', reportId));
   if (existing.exists) return json({ ok: true, duplicate: true, reportId });
   await enforceCooldown(env, user.uid, 'report', 5);
-  await firestoreCommit(env, [{
+  const result = await firestoreCommit(env, [{
     update: {
       name: docName(env, 'reports', reportId),
       fields: toFirestoreFields({
@@ -1305,6 +1323,7 @@ async function submitReport(env, user, body) {
     },
     currentDocument: { exists: false },
   }], { allowAlreadyExists: true });
+  if (result.alreadyExists) return json({ ok: true, duplicate: true, reportId });
   return json({ ok: true, reportId });
 }
 
@@ -1383,6 +1402,10 @@ async function prayForRequest(env, user, prayerId) {
   if (data.authorUid === user.uid) {
     return json({ error: 'You cannot pray for your own prayer request.' }, 403);
   }
+  const actorBlockedByRecipient = await recipientBlockedActor(env, data.authorUid, user.uid);
+  if (actorBlockedByRecipient) {
+    return json({ error: 'You cannot interact with this prayer request.' }, 403);
+  }
   const now = new Date().toISOString();
   const timeZone = await resolveUserTimeZone(gamificationFirestore, env, user.uid, null);
   const dayKey = dayKeyInTimeZone(new Date(now), timeZone);
@@ -1437,7 +1460,7 @@ async function prayForRequest(env, user, prayerId) {
   const notifyAllowed = data.authorUid
     && data.authorUid !== user.uid
     && prefs.prayerActivity !== false
-    && !(await recipientBlockedActor(env, data.authorUid, user.uid));
+    && !actorBlockedByRecipient;
   if (notifyAllowed) {
     writes.push(notificationWrite(env, data.authorUid, {
       type: 'prayer_prayed',
@@ -1519,6 +1542,13 @@ async function reactToTestimony(env, user, testimonyId, reaction) {
   if (!testimony.exists) return json({ error: 'Testimony not found' }, 404);
 
   const data = fromFirestoreFields(testimony.fields);
+  if (data.authorUid === user.uid) {
+    return json({ error: 'You cannot react to your own testimony.' }, 403);
+  }
+  const actorBlockedByRecipient = await recipientBlockedActor(env, data.authorUid, user.uid);
+  if (actorBlockedByRecipient) {
+    return json({ error: 'You cannot interact with this testimony.' }, 403);
+  }
   const now = new Date().toISOString();
   const reactionDoc = docName(env, 'testimonies', testimonyId, 'reactions', `${user.uid}_${reaction}`);
   const message = reaction === 'amen' ? 'Someone said Amen to your testimony.' : 'Someone praised God for your testimony.';
@@ -1553,7 +1583,7 @@ async function reactToTestimony(env, user, testimonyId, reaction) {
   const notifyAllowed = data.authorUid
     && data.authorUid !== user.uid
     && prefs.testimonyReactions !== false
-    && !(await recipientBlockedActor(env, data.authorUid, user.uid));
+    && !actorBlockedByRecipient;
   if (notifyAllowed) {
     writes.push(notificationWrite(env, data.authorUid, {
       type: 'testimony_reaction',
@@ -1620,6 +1650,7 @@ async function adminSuspendUser(env, user, body) {
           suspendedReason: reason,
           suspendedAt: new Date().toISOString(),
           suspendedBy: user.uid,
+          updatedAt: new Date().toISOString(),
         }),
       },
     },
@@ -1660,6 +1691,7 @@ async function adminUnsuspendUser(env, user, body) {
       }),
     },
   }]);
+  await invalidateUserNotificationStream(env, body.targetUid);
   return json({ ok: true });
 }
 
@@ -1829,6 +1861,9 @@ async function deleteUserData(env, uid, options = {}) {
   if (existing.exists) {
     const job = fromFirestoreFields(existing.fields);
     if (job.status === 'complete') return json({ ok: true, alreadyDeleted: true });
+    if (isFreshInProgressDeletion(job)) {
+      return json({ ok: true, inProgress: true });
+    }
   }
 
   const now = new Date().toISOString();
@@ -1841,8 +1876,8 @@ async function deleteUserData(env, uid, options = {}) {
         status: 'in_progress',
         startedAt: existing.exists ? fromFirestoreFields(existing.fields).startedAt || now : now,
         updatedAt: now,
-        attempts: priorAttempts + 1,
-        lastError: null,
+          attempts: priorAttempts + 1,
+          lastError: null,
       }),
     },
   }]);
@@ -1884,7 +1919,7 @@ async function deleteUserData(env, uid, options = {}) {
           status: 'failed',
           updatedAt: new Date().toISOString(),
           lastError: error.message,
-          attempts: priorAttempts + 1,
+          attempts: (fromFirestoreFields(existing.fields || {}).attempts || priorAttempts) + 1,
         }),
       },
     }]);
@@ -2305,9 +2340,7 @@ async function firestoreCommit(env, writes, options = {}) {
   });
   const result = await response.json();
   if (!response.ok) {
-    if (options.allowAlreadyExists && result.error?.status === 'ALREADY_EXISTS') {
-      return { alreadyExists: true };
-    }
+    if (isCreateOnlyDuplicateCommit(result, writes, options)) return { alreadyExists: true };
     if (result.error?.status === 'FAILED_PRECONDITION') {
       return { preconditionFailed: true };
     }
@@ -2486,19 +2519,18 @@ async function enforceCooldown(env, uid, action, seconds) {
   const precondition = current.exists
     ? { updateTime: current.updateTime }
     : { exists: false };
-  await firestoreCommit(env, [{
+  const result = await firestoreCommit(env, [{
     update: {
       name,
       fields: toFirestoreFields({ uid, action, updatedAt: now.toISOString() }),
     },
-  }], { precondition }).then((result) => {
-    if (result.preconditionFailed) {
-      throw Object.assign(new Error('Please wait a moment before trying again.'), {
-        status: 429,
-        publicMessage: 'Please wait a moment before trying again.',
-      });
-    }
-  });
+  }], { precondition });
+  if (result.preconditionFailed) {
+    throw Object.assign(new Error('Please wait a moment before trying again.'), {
+      status: 429,
+      publicMessage: 'Please wait a moment before trying again.',
+    });
+  }
 }
 
 async function enforceGlobalRateLimit(env, request, requestId) {
@@ -2707,7 +2739,7 @@ function withCors(response, env, request) {
     || origin.startsWith('http://127.0.0.1:')
     || origin.startsWith('http://10.')
     || origin.startsWith('http://192.168.');
-  let resolvedOrigin = origin ? '' : allowedOrigins[0];
+  let resolvedOrigin = '';
   if (origin && allowedOrigins.includes(origin)) {
     resolvedOrigin = origin;
   } else if (allowDevOrigins && isDevOrigin && origin) {

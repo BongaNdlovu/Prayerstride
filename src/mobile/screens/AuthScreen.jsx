@@ -68,7 +68,7 @@ export default function AuthScreen({ mode: initialMode, onSignIn, onRegister, on
       return;
     }
     if (mode === 'register' && !agreed) {
-      Alert.alert('Terms required', 'Please agree to the Terms of Service and Privacy Policy.');
+      Alert.alert('Terms required', 'Please agree to the Terms and Conditions and Privacy Policy.');
       return;
     }
     if (mode === 'register') {
@@ -204,7 +204,7 @@ export default function AuthScreen({ mode: initialMode, onSignIn, onRegister, on
               <BodyText variant="small" style={styles.checkText}>
                 I agree to the{' '}
                 <Pressable onPress={() => openLegalUrl(TERMS_URL)}>
-                  <BodyText variant="small" style={styles.linkInline}>Terms of Service</BodyText>
+                  <BodyText variant="small" style={styles.linkInline}>Terms and Conditions</BodyText>
                 </Pressable>
                 {' '}and{' '}
                 <Pressable onPress={() => openLegalUrl(PRIVACY_URL)}>

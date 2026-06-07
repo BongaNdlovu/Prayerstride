@@ -11,6 +11,7 @@ import {
   uploadAvatarFile,
 } from '../avatarUpload';
 import { updateMyProfile } from '../api';
+import { isMockDataEnabled } from '../mockData';
 import { clearCachedProfile } from '../profileCache';
 import { alpha, colors, fonts, sharedStyles, spacing } from '../theme';
 import { useAuth } from '../AuthProvider';
@@ -77,6 +78,12 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
     setBusy(true);
     try {
       const asset = result.assets[0];
+      if (isMockDataEnabled()) {
+        await updateMyProfile({ photoURL: asset.uri });
+        if (user?.uid) clearCachedProfile(user.uid);
+        if (mountedRef.current) setPhotoURL(asset.uri);
+        return;
+      }
       uploadControllerRef.current?.abort();
       const controller = new AbortController();
       uploadControllerRef.current = controller;
@@ -120,16 +127,18 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
       if (user?.uid) {
         clearCachedProfile(user.uid);
       }
-      try {
-        await updateProfile(auth.currentUser, {
-          displayName: savedProfile?.displayName || name.trim(),
-          photoURL: savedProfile?.photoURL || photoURL || null,
-        });
-      } catch (error) {
-        await updateMyProfile(previousProfile).catch((rollbackError) => {
-          logError('Profile rollback failed', rollbackError);
-        });
-        throw error;
+      if (auth.currentUser) {
+        try {
+          await updateProfile(auth.currentUser, {
+            displayName: savedProfile?.displayName || name.trim(),
+            photoURL: savedProfile?.photoURL || photoURL || null,
+          });
+        } catch (error) {
+          await updateMyProfile(previousProfile).catch((rollbackError) => {
+            logError('Profile rollback failed', rollbackError);
+          });
+          throw error;
+        }
       }
       if (onDone) onDone();
       Alert.alert('Profile updated', 'Your profile has been saved.');

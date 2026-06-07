@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Footprints, Home, Trophy, User } from 'lucide-react-native';
-import { alpha, colors, fonts, spacing } from '../theme';
+import { alpha, colors, fonts, onDark, spacing } from '../theme';
+import { useAppTheme } from '../AppThemeProvider';
 
 const tabs = [
   { key: 'home', label: 'Feed', icon: Home },
@@ -15,6 +16,10 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
     backgroundColor: 'rgba(250,250,248,0.92)',
     paddingBottom: spacing.lg + 8,
+  },
+  shellDark: {
+    borderTopColor: onDark.border,
+    backgroundColor: 'rgba(13,27,42,0.94)',
   },
   tabs: {
     flexDirection: 'row',
@@ -35,13 +40,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   tabStrideWrapActive: { backgroundColor: colors.night },
+  tabStrideWrapDark: { backgroundColor: colors.night3 },
   tabLabel: { fontFamily: fonts.sansSemiBold, fontSize: 10, color: colors.ink3 },
   tabLabelActive: { color: colors.ink },
+  tabLabelDark: { color: onDark.textMuted },
+  tabLabelActiveDark: { color: onDark.text },
 });
 
 export default function BottomTabs({ active, onChange }) {
+  const { darkMode } = useAppTheme();
   return (
-    <View style={styles.shell}>
+    <View style={[styles.shell, darkMode && styles.shellDark]}>
       <View style={styles.tabs}>
         {tabs.map(({ key, label, icon: Icon }) => {
           const selected = key === active;
@@ -50,15 +59,15 @@ export default function BottomTabs({ active, onChange }) {
           return (
             <Pressable key={key} onPress={() => onChange(key, {})} style={styles.tabItem} accessibilityRole="button" accessibilityLabel={label}>
               {isStride ? (
-                <View style={[styles.tabStrideWrap, selected && styles.tabStrideWrapActive]}>
-                  <Icon size={14} color={selected ? colors.goldLight : colors.ink3} />
+                <View style={[styles.tabStrideWrap, darkMode && styles.tabStrideWrapDark, selected && styles.tabStrideWrapActive]}>
+                  <Icon size={14} color={selected ? colors.goldLight : darkMode ? onDark.textMuted : colors.ink3} />
                 </View>
               ) : (
                 <View style={[styles.tabIcon, selected && styles.tabIconActive]}>
-                  <Icon size={19} color={selected ? colors.ink : colors.ink3} />
+                  <Icon size={19} color={selected ? (darkMode ? colors.goldLight : colors.ink) : (darkMode ? onDark.textMuted : colors.ink3)} />
                 </View>
               )}
-              <Text style={[styles.tabLabel, selected && styles.tabLabelActive]}>{label}</Text>
+              <Text style={[styles.tabLabel, darkMode && styles.tabLabelDark, selected && styles.tabLabelActive, selected && darkMode && styles.tabLabelActiveDark]}>{label}</Text>
             </Pressable>
           );
         })}

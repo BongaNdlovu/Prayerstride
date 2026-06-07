@@ -191,6 +191,11 @@ function publicSummaryFromStored(stored, uid, requestedTimeZone, today = new Dat
     earlySessions: normalized.earlySessions,
     answeredPrayers: normalized.answeredPrayers,
     testimonies: normalized.testimonies,
+    peoplePrayedFor: normalized.prayersCarried,
+    minutes: normalized.prayerMinutes,
+    bookmarks: normalized.bookmarksCreated,
+    nightSessions: normalized.nightSessions,
+    longSessions: normalized.longSessions,
   });
 
   return {

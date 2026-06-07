@@ -1,6 +1,6 @@
 /** Age helpers for 18+ registration. Users under 18 cannot access the app. */
 
-export function parseDateOfBirth(value) {
+export function parseDateOfBirth(value, today = new Date()) {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value.trim())) {
     return null;
   }
@@ -13,6 +13,9 @@ export function parseDateOfBirth(value) {
   ) {
     return null;
   }
+  const now = today instanceof Date ? today : new Date(today);
+  const todayUtc = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  if (date.getTime() > todayUtc) return null;
   return value.trim();
 }
 

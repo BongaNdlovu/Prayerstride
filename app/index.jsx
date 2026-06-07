@@ -46,6 +46,8 @@ import AboutScreen from '../src/mobile/screens/AboutScreen';
 import CopyrightScreen from '../src/mobile/screens/CopyrightScreen';
 import WelcomeScreen from '../src/mobile/screens/WelcomeScreen';
 import { AppFeedbackProvider } from '../src/mobile/AppFeedbackProvider';
+import { AppThemeProvider } from '../src/mobile/AppThemeProvider';
+import { useGamificationPreferences } from '../src/mobile/useGamificationPreferences';
 
 const AUTH_ROUTES = ['splash', 'welcome', 'reminderSetup', 'stayConnected', 'signIn', 'createAccount', 'resetPassword'];
 const MAIN_TAB_ROUTES = ['home', 'leaderboard', 'stride', 'profile'];
@@ -63,6 +65,7 @@ export default function MobileApp() {
     retry: retryAccount,
   } = useSuspendedStatus(user);
   const waitingForAccountProfile = Boolean(user && profileUid !== user.uid);
+  const { preferences: appPreferences } = useGamificationPreferences(user?.uid, Boolean(user?.uid));
 
   useEffect(() => {
     if (!user) return;
@@ -132,11 +135,13 @@ export default function MobileApp() {
   });
 
   return (
-    <SafeAreaView style={styles.shell}>
-      <AppFeedbackProvider>
-        <View style={styles.appBody}>{content}</View>
+    <SafeAreaView style={[styles.shell, appPreferences.darkModeEnabled === true && styles.shellDark]}>
+      <AppThemeProvider darkMode={appPreferences.darkModeEnabled === true}>
+      <AppFeedbackProvider soundHapticsEnabled={appPreferences.soundHapticsEnabled !== false}>
+        <View style={[styles.appBody, appPreferences.darkModeEnabled === true && styles.appBodyDark]}>{content}</View>
         {isMainTab && <BottomTabs active={screen} onChange={handleTabChange} />}
       </AppFeedbackProvider>
+      </AppThemeProvider>
     </SafeAreaView>
   );
 }
@@ -234,7 +239,9 @@ function Centered({ label }) {
 
 const styles = StyleSheet.create({
   shell: { flex: 1, backgroundColor: colors.surface },
+  shellDark: { backgroundColor: colors.night },
   appBody: { flex: 1, backgroundColor: colors.surface },
+  appBodyDark: { backgroundColor: colors.night },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
   centeredText: { marginTop: spacing.md, color: colors.textPrimary, fontWeight: '700' },
   accountError: { flex: 1, justifyContent: 'center', padding: spacing.xxl },

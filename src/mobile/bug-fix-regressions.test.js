@@ -8,7 +8,7 @@ describe('bug fix regressions — batch 1 and 2', () => {
     const nullReturnIndex = source.default.indexOf('if (!prayer) return null');
     expect(hooksIndex).toBeGreaterThan(-1);
     expect(nullReturnIndex).toBeGreaterThan(hooksIndex);
-    expect(source.default).toMatch(/prayingRef\.current/);
+    expect(source.default).toMatch(/handleTimer\(\)/);
     expect(source.default).toMatch(/prayer\?\.id/);
   });
 
@@ -52,17 +52,10 @@ describe('bug fix regressions — batch 1 and 2', () => {
     expect(source.default).not.toMatch(/2h ago/);
   });
 
-  it('TestimonyCard uses relative timestamps instead of hardcoded text', async () => {
-    const source = await import('./components/TestimonyCard.jsx?raw');
-    expect(source.default).toMatch(/formatRelativeFirestoreDate/);
-    expect(source.default).not.toMatch(/2h ago/);
-  });
-
-  it('HomeScreen submits answered-prayer updates before marking the prayer answered', async () => {
+  it('HomeScreen marks answered prayers without creating testimony records', async () => {
     const source = await import('./screens/HomeScreen.jsx?raw');
-    expect(source.default).toMatch(/await addTestimony/);
+    expect(source.default).not.toMatch(/await addTestimony/);
     expect(source.default).toMatch(/await markAnswered\(updatePrayer\.id\)/);
-    expect(source.default.indexOf('await addTestimony')).toBeLessThan(source.default.indexOf('await markAnswered(updatePrayer.id)'));
   });
 
   it('PrimaryButton supports subdued secondary variant', async () => {

@@ -16,8 +16,8 @@ const TOPICS = [
     body: 'Tap the Create tab to share a prayer request. Include a title and details so others know how to pray.',
   },
   {
-    title: 'Testimonies',
-    body: 'When a prayer is answered, share a testimony to encourage the community and praise God.',
+    title: 'Answered Prayers',
+    body: 'When a prayer is answered, mark it answered so your request list stays current.',
   },
   {
     title: 'Notifications',

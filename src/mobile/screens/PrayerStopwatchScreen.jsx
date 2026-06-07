@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -10,9 +12,11 @@ import Animated, {
 import { ArrowLeft, CheckCircle, Pause, Play, RotateCcw, Timer } from 'lucide-react-native';
 import { colors, fonts, radii, sharedStyles, spacing, typography } from '../theme';
 import { XP_AWARDS } from '../gamification';
+import { prayForRequest } from '../api';
 import { addPrayer } from '../usePrayerData';
 import { addPrayerSession } from '../usePrayerSessions';
 import { bumpGamificationRefresh } from '../gamificationRefresh';
+import { prayedStorageKey } from '../prayerLimit';
 import ScreenScaffold from '../components/ScreenScaffold';
 import GlassCard from '../components/GlassCard';
 import BodyText from '../components/BodyText';
@@ -28,6 +32,7 @@ const TIMER_PRESETS = [
 ];
 
 const MILESTONE_MINUTES = [5, 10, 15];
+const MIN_GENUINE_PRAYER_SECONDS = 15;
 
 function formatTime(totalSeconds) {
   const h = Math.floor(totalSeconds / 3600);
@@ -46,6 +51,8 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, pr
   const intervalRef = useRef(null);
   const loggingRef = useRef(false);
   const pulse = useSharedValue(1);
+  const drift = useSharedValue(0);
+  const shimmer = useSharedValue(0);
   const isDirectPrivateSession = !prayerId;
   const sessionTitle = prayerTitle || privateTitle.trim() || 'Private prayer session';
   const prayerAuthor = prayer?.authorName || prayer?.name || 'Community member';
@@ -61,6 +68,19 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, pr
   const timerStatus = running ? 'Praying now...' : seconds ? 'Paused' : 'Ready when you are';
   const activeIcon = running ? Pause : Play;
   const actionLabel = running ? 'Pause' : seconds ? 'Resume' : 'Start';
+
+  useEffect(() => {
+    drift.value = withRepeat(
+      withTiming(1, { duration: 9000, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true,
+    );
+    shimmer.value = withRepeat(
+      withTiming(1, { duration: 6200, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true,
+    );
+  }, [drift, shimmer]);
 
   useEffect(() => {
     if (running) {
@@ -95,6 +115,28 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, pr
   const ringStyle = useAnimatedStyle(() => ({
     transform: [{ scale: pulse.value }],
   }));
+  const glowStyle = useAnimatedStyle(() => ({
+    opacity: 0.72 + shimmer.value * 0.18,
+    transform: [
+      { translateY: drift.value * 26 - 13 },
+      { translateX: shimmer.value * 18 - 9 },
+      { scale: 1 + shimmer.value * 0.04 },
+    ],
+  }));
+  const secondaryGlowStyle = useAnimatedStyle(() => ({
+    opacity: 0.28 + drift.value * 0.18,
+    transform: [
+      { translateY: shimmer.value * -34 + 17 },
+      { translateX: drift.value * -20 + 10 },
+      { scale: 1.04 - shimmer.value * 0.05 },
+    ],
+  }));
+  const particleDriftStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: drift.value * -22 + 11 }],
+  }));
+  const particleFloatStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: shimmer.value * 18 - 9 }, { translateX: drift.value * 10 - 5 }],
+  }));
 
   const startPause = () => {
     const next = !running;
@@ -112,6 +154,10 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, pr
     if (loggingRef.current) return;
     if (!seconds) {
       Alert.alert('No time recorded', 'Start the timer before logging prayer time.');
+      return;
+    }
+    if (!isDirectPrivateSession && seconds < MIN_GENUINE_PRAYER_SECONDS) {
+      Alert.alert('More time needed', 'Spend at least 15 seconds in prayer before marking this request prayed.');
       return;
     }
     if (isDirectPrivateSession && !privateTitle.trim()) {
@@ -134,6 +180,11 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, pr
       }
 
       await addPrayerSession({ prayerId: sessionPrayerId, title: sessionTitle, seconds }, user);
+      if (!isDirectPrivateSession) {
+        const result = await prayForRequest(sessionPrayerId);
+        const limit = result.prayerLimit || prayer?.prayerLimit || 'daily';
+        await AsyncStorage.setItem(prayedStorageKey(sessionPrayerId, limit), 'true');
+      }
       bumpGamificationRefresh();
       setSeconds(0);
       setPrivateTitle('');
@@ -153,11 +204,15 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, pr
 
   return (
     <ScreenScaffold pageContent style={styles.screen} contentStyle={styles.content}>
-      <View style={styles.timerGlow} />
+      <LinearGradient colors={[colors.night, colors.night2, '#07111F']} style={StyleSheet.absoluteFillObject} />
+      <Animated.View style={[styles.timerGlow, glowStyle]} />
+      <Animated.View style={[styles.timerGlowSecondary, secondaryGlowStyle]} />
+      <View style={styles.horizonGlow} />
       <View style={styles.timerNoise} />
-      <View style={styles.particleOne} />
-      <View style={styles.particleTwo} />
-      <View style={styles.particleThree} />
+      <Animated.View style={[styles.particleOne, particleDriftStyle]} />
+      <Animated.View style={[styles.particleTwo, particleFloatStyle]} />
+      <Animated.View style={[styles.particleThree, particleDriftStyle]} />
+      <Animated.View style={[styles.particleFour, particleFloatStyle]} />
 
       <View style={styles.timerHeader}>
         <Pressable onPress={onBack} style={styles.timerBack} accessibilityRole="button" accessibilityLabel="Back">
@@ -197,7 +252,7 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, pr
         </View>
       )}
 
-      <View style={styles.timerPanel}>
+      <LinearGradient colors={['rgba(255,255,255,0.12)', 'rgba(255,255,255,0.055)']} style={styles.timerPanel}>
         <View style={styles.panelHeader}>
           <View style={styles.panelIcon}>
             <Timer size={24} color={colors.goldLight} />
@@ -280,7 +335,7 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, pr
             <PrimaryButton label="Log Prayer" onPress={logPrayer} busy={busy} disabled={busy} style={styles.logBtn} />
           </View>
         ) : null}
-      </View>
+      </LinearGradient>
     </ScreenScaffold>
   );
 }
@@ -290,12 +345,30 @@ const styles = StyleSheet.create({
   content: { paddingBottom: spacing.tabBar },
   timerGlow: {
     position: 'absolute',
-    top: -80,
+    top: -96,
     alignSelf: 'center',
-    width: 320,
-    height: 320,
-    borderRadius: 160,
-    backgroundColor: 'rgba(42,140,126,0.16)',
+    width: 360,
+    height: 360,
+    borderRadius: 180,
+    backgroundColor: 'rgba(42,140,126,0.24)',
+  },
+  timerGlowSecondary: {
+    position: 'absolute',
+    top: 150,
+    right: -110,
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    backgroundColor: 'rgba(184,146,74,0.18)',
+  },
+  horizonGlow: {
+    position: 'absolute',
+    left: -40,
+    right: -40,
+    bottom: 130,
+    height: 130,
+    borderRadius: 80,
+    backgroundColor: 'rgba(255,255,255,0.035)',
   },
   timerNoise: {
     ...StyleSheet.absoluteFillObject,
@@ -327,6 +400,15 @@ const styles = StyleSheet.create({
     height: 5,
     borderRadius: 3,
     backgroundColor: 'rgba(255,255,255,0.24)',
+  },
+  particleFour: {
+    position: 'absolute',
+    top: 306,
+    right: 104,
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: 'rgba(212,170,106,0.28)',
   },
   timerHeader: {
     flexDirection: 'row',
@@ -393,9 +475,8 @@ const styles = StyleSheet.create({
   timerPanel: {
     borderRadius: radii.xl,
     padding: spacing.xl,
-    backgroundColor: colors.night2,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
+    borderColor: 'rgba(255,255,255,0.16)',
     overflow: 'hidden',
   },
   panelHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.lg },

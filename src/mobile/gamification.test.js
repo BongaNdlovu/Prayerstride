@@ -8,12 +8,13 @@ import {
 import {
   buildGamificationSummaryFromData,
   computeBadges,
+  formatBadgeProgress,
   journeyStageForLevel,
   levelFromXP,
   summarizeXpEvents,
   xpLevelProgress,
 } from '../../shared/gamificationLogic.js';
-import { recordDailyPrayAction } from './gamification';
+import { formatBadgeProgress as formatBadgeProgressForMobile, recordDailyPrayAction } from './gamification';
 
 describe('gamification', () => {
   it('deduplicates daily pray actions within the same local day', () => {
@@ -100,6 +101,18 @@ describe('gamification', () => {
     expect(badges.find((badge) => badge.id === 'answered-prayer')?.state).toBe('locked');
     expect(badges.find((badge) => badge.id === 'compassion-helper')?.state).toBe('locked');
     expect(BADGE_DEFS.length).toBeGreaterThan(6);
+  });
+
+  it('formats badge progress for the mobile badge tile path', () => {
+    const badges = computeBadges({
+      prayers: 1,
+      streak: 3,
+      sessions: 0,
+    });
+
+    expect(formatBadgeProgress(badges.find((badge) => badge.id === 'first-prayer'))).toBe('Earned');
+    expect(formatBadgeProgressForMobile(badges.find((badge) => badge.id === 'streak-7'))).toBe('3 / 7');
+    expect(formatBadgeProgressForMobile(badges.find((badge) => badge.id === 'faithful-heart'))).toBe('0 / 100');
   });
 
   it('buildGamificationSummaryFromData exposes weekly completion and streak data', () => {

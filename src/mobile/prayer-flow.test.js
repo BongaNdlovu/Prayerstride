@@ -1,9 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
 describe('prayer flow', () => {
-  it('PrayerDetailScreen imports pray API helper', async () => {
+  it('PrayerDetailScreen routes prayed actions through the timer', async () => {
     const source = await import('./screens/PrayerDetailScreen.jsx?raw');
-    expect(source.default).toMatch(/prayForRequest/);
+    expect(source.default).not.toMatch(/prayForRequest/);
+    expect(source.default).toMatch(/handleTimer\(\)/);
+  });
+
+  it('PrayerStopwatchScreen records the pray action after a genuine timed session', async () => {
+    const source = await import('./screens/PrayerStopwatchScreen.jsx?raw');
+    expect(source.default).toMatch(/MIN_GENUINE_PRAYER_SECONDS/);
+    expect(source.default).toMatch(/prayForRequest\(sessionPrayerId\)/);
   });
 
   it('HomeScreen imports usePrayers', async () => {

@@ -1,3 +1,5 @@
+import { computeBadges } from '../../shared/gamificationLogic.js';
+
 const TRUE_VALUES = new Set(['1', 'true', 'yes', 'on', 'mock']);
 const MOCK_BASE_URL = 'https://mock.prayerstride.local';
 
@@ -458,12 +460,19 @@ function buildSummary(state) {
     ],
     activeDayIndexes: [0, 1, 2, 3, 4, 5],
     currentDayIndex: nowDate().getDay(),
-    badges: [
-      { id: 'first-prayer', title: 'First Prayer', description: 'Prayed for someone.', state: 'earned' },
-      { id: 'three-day-streak', title: 'Three Day Streak', description: 'Prayed three days in a row.', state: 'earned' },
-      { id: 'encourager', title: 'Encourager', description: 'Shared a testimony.', state: 'earned' },
-      { id: 'sabbath-walker', title: 'Sabbath Walker', description: 'Keep praying through the week.', state: 'locked' },
-    ],
+    badges: computeBadges({
+      prayers: state.prayers.filter((item) => item.authorUid === state.profile.uid).length,
+      streak: 6,
+      sessions: state.sessions.length,
+      earlySessions: state.sessions.filter((item) => new Date(item.createdAt).getHours() < 8).length,
+      answeredPrayers: answered,
+      testimonies: state.testimonies.filter((item) => item.authorUid === state.profile.uid).length,
+      peoplePrayedFor,
+      minutes: Math.floor(totalSeconds / 60),
+      bookmarks: state.bookmarkedPrayerIds.size,
+      nightSessions: state.sessions.filter((item) => new Date(item.createdAt).getHours() >= 22).length,
+      longSessions: state.sessions.filter((item) => Number(item.seconds || 0) >= 15 * 60).length,
+    }),
     prayedTodayIds: Array.from(state.prayedPrayerIds),
     impact: {
       prayerSessions: state.sessions.length,
@@ -526,6 +535,18 @@ function updateReport(state, reportId, status) {
   return { ok: true, reportId, status };
 }
 
+function removeMockUser(state, targetUid) {
+  state.users = state.users.filter((item) => item.uid !== targetUid && item.id !== targetUid);
+  state.prayers = state.prayers.filter((item) => item.authorUid !== targetUid);
+  state.testimonies = state.testimonies.filter((item) => item.authorUid !== targetUid);
+  state.sessions = state.sessions.filter((item) => item.authorUid !== targetUid);
+  state.calendarEvents = state.calendarEvents.filter((item) => item.ownerUid !== targetUid);
+  state.calendarBookmarks = state.calendarBookmarks.filter((item) => item.ownerUid !== targetUid);
+  state.notifications = state.notifications.filter((item) => item.recipientUid !== targetUid && item.actorUid !== targetUid);
+  state.reports = state.reports.filter((item) => item.reportedByUid !== targetUid && item.targetId !== targetUid);
+  state.blockedUids.delete(targetUid);
+}
+
 function applyAnnouncementMap(state, mapper) {
   state.announcements = state.announcements.map(mapper);
 }
@@ -555,7 +576,10 @@ export async function mockApiFetch(path, options = {}, user) {
   if (pathname === '/api/account/bootstrap-owner') return clone({ ok: true, profile: state.profile });
   if (pathname === '/api/account/complete-registration') return clone({ ok: true, profile: state.profile });
   if (pathname === '/api/account/resend-guardian-approval') return clone({ ok: true });
-  if (pathname === '/api/account' && method === 'DELETE') return clone({ ok: true });
+  if (pathname === '/api/account' && method === 'DELETE') {
+    removeMockUser(state, state.profile.uid);
+    return clone({ ok: true });
+  }
   if (pathname === '/api/devices/register') return clone({ ok: true });
 
   if (pathname === '/api/calendar-events' && method === 'GET') {
@@ -908,23 +932,39 @@ export async function mockApiFetch(path, options = {}, user) {
     return clone({ ok: true });
   }
   if (pathname === '/api/admin/suspend-user' && method === 'POST') {
+    const now = nowDate().toISOString();
     state.users = state.users.map((item) => (
       item.uid === body.targetUid || item.id === body.targetUid
-        ? { ...item, suspended: true, suspendedReason: body.reason || 'Mock suspension' }
+        ? {
+          ...item,
+          suspended: true,
+          suspendedReason: body.reason || 'Mock suspension',
+          suspendedAt: now,
+          suspendedBy: state.profile.uid,
+          updatedAt: now,
+        }
         : item
     ));
     return clone({ ok: true });
   }
   if (pathname === '/api/admin/unsuspend-user' && method === 'POST') {
+    const now = nowDate().toISOString();
     state.users = state.users.map((item) => (
       item.uid === body.targetUid || item.id === body.targetUid
-        ? { ...item, suspended: false, suspendedReason: '' }
+        ? {
+          ...item,
+          suspended: false,
+          suspendedReason: '',
+          suspendedAt: null,
+          suspendedBy: null,
+          updatedAt: now,
+        }
         : item
     ));
     return clone({ ok: true });
   }
   if (pathname === '/api/admin/delete-account' && method === 'POST') {
-    state.users = state.users.filter((item) => item.uid !== body.targetUid && item.id !== body.targetUid);
+    removeMockUser(state, body.targetUid);
     return clone({ ok: true });
   }
   if (pathname === '/api/admin/spiritual-engagement') return clone(analytics());

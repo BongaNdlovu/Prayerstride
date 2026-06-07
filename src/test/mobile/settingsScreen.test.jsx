@@ -11,7 +11,7 @@ const MENU_LABELS = [
   'Notification Settings',
   'About PrayerStride',
   'Privacy Policy',
-  'Terms of Service',
+  'Terms and Conditions',
   'Legal & Copyright',
   'Help Center',
 ];

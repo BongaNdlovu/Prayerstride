@@ -13,23 +13,29 @@ export function serializeLesson(id, data) {
 }
 
 export async function getDevotions(env, firestoreApi) {
-  const docs = await firestoreApi.runCollectionQuery(
-    env,
-    'devotions',
-    [{
-      fieldFilter: {
-        field: { fieldPath: 'status' },
-        op: 'EQUAL',
-        value: { stringValue: 'active' },
-      },
-    }],
-    [{ field: { fieldPath: 'order' }, direction: 'ASCENDING' }],
-  );
+  let docs;
+  try {
+    docs = await firestoreApi.runCollectionQuery(
+      env,
+      'devotions',
+      [{
+        fieldFilter: {
+          field: { fieldPath: 'status' },
+          op: 'EQUAL',
+          value: { stringValue: 'active' },
+        },
+      }],
+      [{ field: { fieldPath: 'order' }, direction: 'ASCENDING' }],
+    );
+  } catch {
+    docs = (await firestoreApi.listDocuments(env, firestoreApi.docName(env, 'devotions')))
+      .filter((doc) => firestoreApi.fromFirestoreFields(doc.fields || {}).status === 'active');
+  }
 
   const devotions = docs.map((doc) => {
     const id = doc.name.split('/').pop();
     return serializeDevotion(id, firestoreApi.fromFirestoreFields(doc.fields));
-  });
+  }).sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
 
   return { status: 200, body: { devotions } };
 }
@@ -55,10 +61,15 @@ export async function getStudyGuideLesson(env, guideId, lessonId, firestoreApi) 
     return { status: 200, body: { lesson } };
   }
 
-  const docs = await firestoreApi.listDocuments(
-    env,
-    firestoreApi.docName(env, 'studyGuides', guideId, 'lessons'),
-  );
+  let docs;
+  try {
+    docs = await firestoreApi.listDocuments(
+      env,
+      firestoreApi.docName(env, 'studyGuides', guideId, 'lessons'),
+    );
+  } catch {
+    docs = [];
+  }
 
   const lessons = docs
     .map((doc) => {

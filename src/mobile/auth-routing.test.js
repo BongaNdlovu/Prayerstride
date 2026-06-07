@@ -43,6 +43,13 @@ describe('auth routing', () => {
     expect(source.default).toMatch(/Terms required/);
   });
 
+  it('mock data mode enters with a local demo admin user', async () => {
+    const source = await import('./AuthProvider.jsx?raw');
+    expect(source.default).toMatch(/isMockDataEnabled/);
+    expect(source.default).toMatch(/uid: 'demo-admin'/);
+    expect(source.default).toMatch(/setUser\(MOCK_USER\)/);
+  });
+
   it('signed-out user on authenticated route goes to splash', () => {
     expect(getRouteForSignedOutUser('home')).toBe('splash');
     expect(getRouteForSignedOutUser('profile')).toBe('splash');

@@ -26,6 +26,13 @@ describe('avatar upload errors', () => {
       .toMatch(/2 MB/i);
   });
 
+  it('does not label local photo read failures as internet problems', () => {
+    expect(getUploadErrorMessage({ code: 'avatar/read-failed' }))
+      .toMatch(/selected photo/i);
+    expect(getUploadErrorMessage({ code: 'avatar/read-failed' }))
+      .not.toMatch(/internet connection/i);
+  });
+
   it('explains when Firebase Storage is disabled by the project plan', () => {
     expect(getUploadErrorMessage({
       message: 'Cloud Storage for Firebase no longer supports Firebase projects that are on the no-cost Spark pricing plan. Please upgrade to the pay-as-you-go Blaze pricing plan.',
@@ -43,5 +50,37 @@ describe('avatar upload errors', () => {
     expect(prepared.type).toBe(AVATAR_CONTENT_TYPE);
     expect(prepared.blob.type).toBe(AVATAR_CONTENT_TYPE);
     expect(prepared.blob.size).toBeGreaterThan(0);
+  });
+
+  it('falls back to XMLHttpRequest when React Native fetch cannot read a local file URI', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => {
+      throw new TypeError('Network request failed');
+    }));
+    vi.stubGlobal('XMLHttpRequest', class {
+      open = vi.fn();
+
+      send = vi.fn(() => {
+        this.response = new Blob(['avatar-bytes'], { type: 'image/jpeg' });
+        this.onload();
+      });
+    });
+
+    const prepared = await prepareAvatarBlob('file://source.png');
+
+    expect(prepared.uri).toBe('file://mock-avatar.jpg');
+    expect(prepared.type).toBe(AVATAR_CONTENT_TYPE);
+    expect(prepared.blob.size).toBeGreaterThan(0);
+  });
+
+  it('does not read local gallery files before upload on React Native', async () => {
+    const previousNavigator = global.navigator;
+    vi.stubGlobal('navigator', { ...previousNavigator, product: 'ReactNative' });
+    const fetchSpy = vi.fn();
+    vi.stubGlobal('fetch', fetchSpy);
+
+    const prepared = await prepareAvatarBlob('file://source.png');
+
+    expect(prepared).toEqual({ uri: 'file://mock-avatar.jpg', type: AVATAR_CONTENT_TYPE });
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 });

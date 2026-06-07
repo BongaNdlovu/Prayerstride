@@ -3,7 +3,7 @@ import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, TextInput, V
 import { alpha, colors, fonts, sharedStyles, spacing } from '../theme';
 import { useReports, resolveReport, dismissReport } from '../useReports';
 import { useUsers } from '../useUsers';
-import { usePrayers, useTestimonies } from '../usePrayerData';
+import { usePrayers } from '../usePrayerData';
 import { useIsAdmin } from '../useIsAdmin';
 import { adminArchiveAnnouncement, adminCreateAnnouncement, adminDeleteContent, adminDeleteAccount, adminSuspendUser, adminUnsuspendUser, adminUpdateAnnouncement, getSpiritualEngagementMetrics } from '../api';
 import { useAnnouncements } from '../useAnnouncements';
@@ -24,14 +24,24 @@ const ANNOUNCEMENT_CATEGORIES = ['events', 'prayer', 'updates'];
 
 export default function AdminDashboardScreen({ user, go, onBack }) {
   const { isAdmin, loading: adminLoading, error: adminError } = useIsAdmin(user);
-  const { reports, loading: reportsLoading, error: reportsError } = useReports(user, true);
-  const { users, loading: usersLoading, error: usersError } = useUsers(user, true);
-  const { prayers, loading: prayersLoading, error: prayersError } = usePrayers(isAdmin, { includeAll: isAdmin });
-  const { testimonies, loading: testimoniesLoading, error: testimoniesError } = useTestimonies(isAdmin);
-  const { announcements, loading: announcementsLoading, error: announcementsError } = useAnnouncements(isAdmin, { includeArchived: true, user });
+  const { reports, loading: reportsLoading, error: reportsError, retry: retryReports } = useReports(user, true);
+  const { users, loading: usersLoading, error: usersError, retry: retryUsers } = useUsers(user, true);
+  const { prayers, loading: prayersLoading, error: prayersError, retry: retryPrayers } = usePrayers(isAdmin, { includeAll: isAdmin });
+  const { announcements, loading: announcementsLoading, error: announcementsError, retry: retryAnnouncements } = useAnnouncements(isAdmin, { includeArchived: true, user });
   const [tab, setTab] = useState('Overview');
-  const dataLoading = reportsLoading || usersLoading || prayersLoading || testimoniesLoading || announcementsLoading;
-  const dataError = reportsError || usersError || prayersError || testimoniesError || announcementsError;
+  const dataLoading = reportsLoading || usersLoading || prayersLoading || announcementsLoading;
+  const dataError = reportsError || usersError || prayersError || announcementsError;
+  const refreshAdminData = useCallback(() => {
+    retryReports();
+    retryUsers();
+    retryPrayers();
+    retryAnnouncements();
+  }, [retryReports, retryUsers, retryPrayers, retryAnnouncements]);
+  const refreshAfter = useCallback(async (action) => {
+    const result = await action();
+    refreshAdminData();
+    return result;
+  }, [refreshAdminData]);
 
   if (adminLoading) {
     return (
@@ -62,11 +72,11 @@ export default function AdminDashboardScreen({ user, go, onBack }) {
       <AppHeader title="Admin Console" subtitle="Manage reports, members, and content." onBack={onBack} />
       <PillTabs tabs={TABS} active={tab} onChange={setTab} style={styles.tabs} />
       <AsyncState loading={dataLoading} error={dataError}>
-        {tab === 'Overview' && <OverviewStats users={users} prayers={prayers} reports={reports} testimonies={testimonies} />}
-        {tab === 'Reports' && <ReportsList reports={reports} go={go} onResolve={resolveReport} onDismiss={dismissReport} />}
-        {tab === 'Members' && <MembersList users={users} currentUid={user?.uid} onSuspend={adminSuspendUser} onUnsuspend={adminUnsuspendUser} onDelete={adminDeleteAccount} />}
-        {tab === 'Content' && <ContentList prayers={prayers} testimonies={testimonies} onDelete={adminDeleteContent} />}
-        {tab === 'Announcements' && <AnnouncementsAdminList announcements={announcements} />}
+        {tab === 'Overview' && <OverviewStats users={users} prayers={prayers} reports={reports} />}
+        {tab === 'Reports' && <ReportsList reports={reports} go={go} onResolve={(id) => refreshAfter(() => resolveReport(id))} onDismiss={(id) => refreshAfter(() => dismissReport(id))} />}
+        {tab === 'Members' && <MembersList users={users} currentUid={user?.uid} onSuspend={(uid, reason) => refreshAfter(() => adminSuspendUser(uid, reason))} onUnsuspend={(uid) => refreshAfter(() => adminUnsuspendUser(uid))} onDelete={(uid) => refreshAfter(() => adminDeleteAccount(uid))} />}
+        {tab === 'Content' && <ContentList prayers={prayers} onDelete={(id, type) => refreshAfter(() => adminDeleteContent(id, type))} />}
+        {tab === 'Announcements' && <AnnouncementsAdminList announcements={announcements} onChanged={refreshAdminData} />}
         {tab === 'Analytics' && <AnalyticsPanel user={user} />}
       </AsyncState>
     </ScreenScaffold>
@@ -150,6 +160,7 @@ function AnalyticsPanel({ user }) {
   const m = metrics.metrics;
   const chartActivity = m.activityByDay?.slice(-14) || [];
   const maxActivityCount = Math.max(...chartActivity.map((entry) => entry.count), 1);
+  const totalActivity = chartActivity.reduce((sum, entry) => sum + Number(entry.count || 0), 0);
   const retentionValue = metrics.windowTooShortForRetention ? '-' : `${m.retentionRate}%`;
 
   return (
@@ -180,18 +191,34 @@ function AnalyticsPanel({ user }) {
 
       {chartActivity.length > 0 ? (
         <GlassCard style={styles.chartCard}>
-          <BodyText variant="caption" style={styles.chartTitle}>Request Activity (latest 14 active days)</BodyText>
-          <View style={styles.chartBars}>
-            {chartActivity.map((entry) => {
-              const height = Math.max(4, (entry.count / maxActivityCount) * 80);
-              return (
-                <View key={entry.day} style={styles.barWrap}>
-                  <BodyText variant="caption" style={styles.barValue}>{entry.count}</BodyText>
-                  <View style={[styles.bar, { height }]} />
-                  <BodyText variant="caption" style={styles.barLabel}>{entry.day.slice(5)}</BodyText>
-                </View>
-              );
-            })}
+          <View style={styles.chartHeaderRow}>
+            <View>
+              <Heading level="h4" style={styles.chartHeading}>Prayer Activity</Heading>
+              <BodyText variant="caption" style={styles.chartTitle}>Latest 14 days</BodyText>
+            </View>
+            <View style={styles.chartSummary}>
+              <BodyText variant="label">{totalActivity}</BodyText>
+              <BodyText variant="caption">total</BodyText>
+            </View>
+          </View>
+          <View style={styles.chartFrame}>
+            <View style={styles.chartYAxis}>
+              <BodyText variant="caption" style={styles.axisLabel}>{maxActivityCount}</BodyText>
+              <BodyText variant="caption" style={styles.axisLabel}>{Math.round(maxActivityCount / 2)}</BodyText>
+              <BodyText variant="caption" style={styles.axisLabel}>0</BodyText>
+            </View>
+            <View style={styles.chartBars}>
+              {chartActivity.map((entry) => {
+                const height = Math.max(6, (entry.count / maxActivityCount) * 96);
+                return (
+                  <View key={entry.day} style={styles.barWrap}>
+                    <BodyText variant="caption" style={styles.barValue}>{entry.count}</BodyText>
+                    <View style={[styles.bar, { height }]} />
+                    <BodyText variant="caption" style={styles.barLabel}>{entry.day.slice(5)}</BodyText>
+                  </View>
+                );
+              })}
+            </View>
           </View>
         </GlassCard>
       ) : null}
@@ -199,14 +226,14 @@ function AnalyticsPanel({ user }) {
   );
 }
 
-function OverviewStats({ users, prayers, reports, testimonies }) {
+function OverviewStats({ users, prayers, reports }) {
   return (
     <View style={styles.section}>
       <View style={styles.statsGrid}>
         <StatCard value={String(users.length)} label="Users" style={styles.adminStatCard} />
         <StatCard value={String(prayers.length)} label="Prayers" style={styles.adminStatCard} />
         <StatCard value={String(reports.filter((r) => r.status === 'pending').length)} label="Open Reports" style={styles.adminStatCard} />
-        <StatCard value={String(testimonies.length)} label="Testimonies" style={styles.adminStatCard} />
+        <StatCard value={String(prayers.filter((p) => p.status === 'answered').length)} label="Answered Prayers" style={styles.adminStatCard} />
       </View>
     </View>
   );
@@ -288,7 +315,7 @@ function MembersList({ users, currentUid, onSuspend, onUnsuspend, onDelete }) {
   );
 }
 
-function AnnouncementsAdminList({ announcements }) {
+function AnnouncementsAdminList({ announcements, onChanged }) {
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [category, setCategory] = useState('events');
@@ -328,6 +355,7 @@ function AnnouncementsAdminList({ announcements }) {
       setCategory('events');
       setStartsAt(new Date().toISOString());
       setEditingId(null);
+      onChanged?.();
       Alert.alert('Saved', 'Announcement saved.');
     } catch (error) {
       Alert.alert('Could not save', getErrorMessage(error));
@@ -340,6 +368,7 @@ function AnnouncementsAdminList({ announcements }) {
     try {
       await adminArchiveAnnouncement(announcementId);
       if (editingId === announcementId) setEditingId(null);
+      onChanged?.();
     } catch (error) {
       Alert.alert('Could not archive', getErrorMessage(error));
     }
@@ -388,10 +417,9 @@ function AnnouncementsAdminList({ announcements }) {
   );
 }
 
-function ContentList({ prayers, testimonies, onDelete }) {
+function ContentList({ prayers, onDelete }) {
   const allContent = [
     ...prayers.map((p) => ({ ...p, contentType: 'prayer' })),
-    ...testimonies.map((t) => ({ ...t, contentType: 'testimony' })),
   ];
 
   return (
@@ -449,10 +477,16 @@ const styles = StyleSheet.create({
   retryButton: { alignSelf: 'center' },
   sectionSubtitle: { marginBottom: spacing.lg },
   chartCard: { marginTop: spacing.md },
-  chartTitle: { marginBottom: spacing.md },
-  chartBars: { flexDirection: 'row', alignItems: 'flex-end', gap: 3, minHeight: 110 },
-  barWrap: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 2 },
-  barValue: { fontSize: 9, fontFamily: fonts.sansBold },
-  bar: { width: '100%', maxWidth: 20, borderRadius: 4, backgroundColor: colors.gold, minHeight: 2 },
-  barLabel: { fontSize: 8, marginTop: 2 },
+  chartHeaderRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md, marginBottom: spacing.md },
+  chartHeading: { fontSize: 18, lineHeight: 23 },
+  chartTitle: { color: colors.ink3 },
+  chartSummary: { alignItems: 'flex-end' },
+  chartFrame: { flexDirection: 'row', alignItems: 'stretch', gap: spacing.sm },
+  chartYAxis: { width: 22, height: 132, justifyContent: 'space-between', alignItems: 'flex-end', paddingBottom: 18 },
+  axisLabel: { fontSize: 9, color: colors.ink4 },
+  chartBars: { flex: 1, flexDirection: 'row', alignItems: 'flex-end', gap: 4, minHeight: 132, borderBottomWidth: 1, borderBottomColor: colors.border },
+  barWrap: { flex: 1, minWidth: 12, alignItems: 'center', justifyContent: 'flex-end', gap: 2 },
+  barValue: { fontSize: 9, fontFamily: fonts.sansBold, color: colors.ink3 },
+  bar: { width: '100%', maxWidth: 18, borderRadius: 5, backgroundColor: colors.gold, minHeight: 3 },
+  barLabel: { fontSize: 8, marginTop: 2, color: colors.ink4 },
 });

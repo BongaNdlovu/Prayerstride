@@ -65,7 +65,7 @@ export default function NotificationsScreen({ user, onBack }) {
 
   return (
     <ScreenScaffold scroll={false} pageContent style={styles.screen}>
-      <AppHeader title="Notifications" subtitle="Stay up to date with prayer and praise." onBack={onBack} centered showLogo />
+      <AppHeader title="Notifications" subtitle="Stay up to date with prayer activity." onBack={onBack} centered showLogo />
       <AsyncState loading={loading} error={error} onRetry={retry}>
         {notifications.length === 0 && !loading ? (
           <EmptyState label="No notifications." />

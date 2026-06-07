@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, Vibration, View } from 'react-native';
 import Animated, { FadeInUp, FadeOutDown } from 'react-native-reanimated';
 import { colors, fonts, radii, shadow, spacing } from './theme';
 
@@ -45,17 +45,23 @@ function Celebration() {
   );
 }
 
-export function AppFeedbackProvider({ children }) {
+function cue(pattern) {
+  Vibration?.vibrate?.(pattern);
+}
+
+export function AppFeedbackProvider({ children, soundHapticsEnabled = true }) {
   const [toast, setToast] = useState(null);
   const [celebrationKey, setCelebrationKey] = useState(0);
 
   const api = useMemo(() => {
     const showToast = (next) => {
+      if (soundHapticsEnabled) cue(18);
       const id = Date.now();
       setToast({ id, tone: 'default', ...next });
       setTimeout(() => setToast((current) => (current?.id === id ? null : current)), 2800);
     };
     const celebrate = () => {
+      if (soundHapticsEnabled) cue([0, 25, 40, 35]);
       setCelebrationKey((key) => key + 1);
     };
     const showXp = (xp, fallbackMessage = 'Progress saved') => {
@@ -68,7 +74,7 @@ export function AppFeedbackProvider({ children }) {
       showToast({ tone: 'gold', message: `+${xp.points} XP.${bonus}` });
     };
     return { showToast, showXp, celebrate };
-  }, []);
+  }, [soundHapticsEnabled]);
 
   return (
     <FeedbackContext.Provider value={api}>

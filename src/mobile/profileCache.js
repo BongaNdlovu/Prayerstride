@@ -16,5 +16,6 @@ export function setCachedProfile(uid, profile) {
 }
 
 export function clearCachedProfile(uid) {
-  cache.delete(uid);
+  if (uid) cache.delete(uid);
+  else cache.clear();
 }

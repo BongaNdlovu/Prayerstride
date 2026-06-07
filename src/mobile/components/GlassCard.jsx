@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { colors, radii, shadow, spacing } from '../theme';
+import { colors, onDark, radii, shadow, spacing } from '../theme';
+import { useAppTheme } from '../AppThemeProvider';
 
 const styles = StyleSheet.create({
   card: {
@@ -11,10 +12,15 @@ const styles = StyleSheet.create({
     padding: spacing.xl - 2,
     ...shadow.card,
   },
+  cardDark: {
+    backgroundColor: colors.night2,
+    borderColor: onDark.border,
+  },
 });
 
 function GlassCard({ children, style }) {
-  return <View style={[styles.card, style]}>{children}</View>;
+  const { darkMode } = useAppTheme();
+  return <View style={[styles.card, darkMode && styles.cardDark, style]}>{children}</View>;
 }
 
 export default memo(GlassCard);

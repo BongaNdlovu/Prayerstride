@@ -14,15 +14,14 @@ import {
   SendHorizontal,
   Sparkles,
   Timer,
-  Trophy,
   Footprints,
   X,
 } from 'lucide-react-native';
 import { alpha, colors, fonts, radii, shadow, spacing } from '../theme';
 import { XP_PER_LEVEL } from '../gamification';
 import { auth } from '../firebase';
-import { bookmarkPrayer, prayForRequest } from '../api';
-import { addPrayer, addTestimony, markAnswered, usePrayers } from '../usePrayerData';
+import { bookmarkPrayer } from '../api';
+import { addPrayer, deletePrayer, markAnswered, usePrayers } from '../usePrayerData';
 import { filterBlockedItems, useBlocks } from '../useBlocks';
 import { useGamification } from '../useGamification';
 import { useAppFeedback } from '../AppFeedbackProvider';
@@ -37,6 +36,8 @@ import AsyncState from '../components/AsyncState';
 import SegmentedControl from '../components/SegmentedControl';
 
 const PRAYER_CATEGORIES = ['Healing', 'Family', 'Strength', 'Provision', 'Guidance', 'Gratitude'];
+const SWIPE_DISTANCE_THRESHOLD = 36;
+const SWIPE_VELOCITY_THRESHOLD = 0.28;
 
 const DAILY_VERSES = [
   {
@@ -82,6 +83,16 @@ function formatXP(value) {
   return Math.max(0, Number(value) || 0).toLocaleString();
 }
 
+function isIntentionalVerticalSwipe(gesture) {
+  return Math.abs(gesture.dy) > 12 && Math.abs(gesture.dy) > Math.abs(gesture.dx) * 1.35;
+}
+
+function swipeDirection(gesture) {
+  if (gesture.dy <= -SWIPE_DISTANCE_THRESHOLD || gesture.vy <= -SWIPE_VELOCITY_THRESHOLD) return 1;
+  if (gesture.dy >= SWIPE_DISTANCE_THRESHOLD || gesture.vy >= SWIPE_VELOCITY_THRESHOLD) return -1;
+  return 0;
+}
+
 function ProgressDots({ count, activeIndex, onSelect }) {
   if (!count) return null;
   return (
@@ -99,7 +110,7 @@ function ProgressDots({ count, activeIndex, onSelect }) {
   );
 }
 
-function PrayerFocusCard({ prayer, saved, prayed, canUpdate, onPray, onAmen, onSave, onMore, onUpdate }) {
+function PrayerFocusCard({ prayer, saved, prayed, canUpdate, onPray, onAmen, onSave, onMore, onUpdate, onDelete }) {
   const initial = prayer.authorName?.slice(0, 1)?.toUpperCase() || 'P';
   return (
     <View style={styles.focusCard}>
@@ -137,11 +148,16 @@ function PrayerFocusCard({ prayer, saved, prayed, canUpdate, onPray, onAmen, onS
           </View>
           <BodyText variant="caption">Pray</BodyText>
         </Pressable>
-        <Pressable onPress={onAmen} style={styles.focusAction} accessibilityLabel="Say amen">
+        <Pressable
+          onPress={onAmen}
+          disabled={prayed}
+          style={[styles.focusAction, prayed && styles.focusActionLocked]}
+          accessibilityLabel={prayed ? 'Prayer already completed' : 'Complete a timed prayer first'}
+        >
           <View style={[styles.focusActionIcon, prayed && styles.focusActionAmen]}>
             <Heart size={18} color={prayed ? colors.redSoft : colors.ink3} fill={prayed ? colors.redSoft : 'transparent'} />
           </View>
-          <BodyText variant="caption">{prayed ? 'Amen' : 'Amen'}</BodyText>
+          <BodyText variant="caption">{prayed ? 'Prayed' : 'Locked'}</BodyText>
         </Pressable>
         <Pressable onPress={onSave} style={styles.focusAction} accessibilityLabel="Save prayer">
           <View style={[styles.focusActionIcon, saved && styles.focusActionSaved]}>
@@ -150,11 +166,11 @@ function PrayerFocusCard({ prayer, saved, prayed, canUpdate, onPray, onAmen, onS
           <BodyText variant="caption">{saved ? 'Saved' : 'Save'}</BodyText>
         </Pressable>
         {canUpdate ? (
-          <Pressable onPress={onUpdate} style={styles.focusAction} accessibilityLabel="Share prayer update">
+          <Pressable onPress={onUpdate} style={styles.focusAction} accessibilityLabel="Mark prayer answered">
             <View style={styles.focusActionIcon}>
               <PenLine size={18} color={colors.ink3} />
             </View>
-            <BodyText variant="caption">Update</BodyText>
+            <BodyText variant="caption">Answered</BodyText>
           </Pressable>
         ) : (
         <Pressable onPress={onMore} style={styles.focusAction} accessibilityLabel="More options">
@@ -164,17 +180,23 @@ function PrayerFocusCard({ prayer, saved, prayed, canUpdate, onPray, onAmen, onS
           <BodyText variant="caption">More</BodyText>
         </Pressable>
         )}
+        {canUpdate ? (
+          <Pressable onPress={onDelete} style={styles.focusAction} accessibilityLabel="Delete prayer request">
+            <View style={styles.focusActionIcon}>
+              <X size={18} color={colors.redSoft} />
+            </View>
+            <BodyText variant="caption">Delete</BodyText>
+          </Pressable>
+        ) : null}
       </View>
     </View>
   );
 }
 
-function XPProgressPanel({ summary }) {
+function XPProgressPanel({ summary, onAchievements }) {
   const levelInfo = summary.levelInfo;
   const progressPct = Math.round(Math.min(Math.max(levelInfo.progress || 0, 0), 1) * 100);
   const xpIntoLevel = Number(levelInfo.xpIntoLevel || 0);
-  const xpToNextLevel = Number(levelInfo.xpToNextLevel || XP_PER_LEVEL);
-  const verse = dailyVerse();
 
   return (
     <View style={styles.progressStack}>
@@ -193,8 +215,25 @@ function XPProgressPanel({ summary }) {
         <View style={styles.xpTrack}>
           <View style={[styles.xpFill, { width: `${progressPct}%` }]} />
         </View>
+        <Pressable
+          onPress={onAchievements}
+          style={styles.achievementsLink}
+          accessibilityRole="button"
+          accessibilityLabel="Open achievements"
+        >
+          <Sparkles size={13} color={colors.gold} />
+          <BodyText variant="caption" style={styles.achievementsLinkText}>
+            Achievements
+          </BodyText>
+        </Pressable>
       </View>
+    </View>
+  );
+}
 
+function DailyVerseCard() {
+  const verse = dailyVerse();
+  return (
       <LinearGradient colors={[colors.night2, colors.night]} style={styles.verseCard}>
         <View style={styles.verseLabelRow}>
           <BookOpen size={13} color={colors.goldLight} />
@@ -203,13 +242,13 @@ function XPProgressPanel({ summary }) {
         <Heading level="h4" style={styles.verseText}>{verse.text}</Heading>
         <BodyText variant="caption" style={styles.verseRef}>{verse.ref}</BodyText>
       </LinearGradient>
-    </View>
   );
 }
 
 export default function HomeScreen({ user, onOpenPrayer, go }) {
   const feedback = useAppFeedback();
-  const uid = auth.currentUser?.uid;
+  const currentUser = auth.currentUser || user;
+  const uid = currentUser?.uid;
   const { prayers, loading: prayersLoading, error: prayersError, retry: retryPrayers } = usePrayers(true);
   const { blockedUids, loading: blocksLoading, error: blocksError, refresh: retryBlocks } = useBlocks(true);
   const {
@@ -230,6 +269,11 @@ export default function HomeScreen({ user, onOpenPrayer, go }) {
   const [updatePrayer, setUpdatePrayer] = useState(null);
   const [updateBody, setUpdateBody] = useState('');
   const [updateBusy, setUpdateBusy] = useState(false);
+
+  useEffect(() => {
+    if (!Array.isArray(gamified.prayedTodayIds)) return;
+    setPrayedPrayerIds(new Set(gamified.prayedTodayIds));
+  }, [gamified.prayedTodayIds]);
 
   const visiblePrayers = useMemo(
     () => (blocksLoading ? [] : filterBlockedItems(prayers, blockedUids)),
@@ -267,11 +311,18 @@ export default function HomeScreen({ user, onOpenPrayer, go }) {
   goToPrayerIndexRef.current = goToPrayerIndex;
 
   const panResponder = useRef(PanResponder.create({
-    onMoveShouldSetPanResponder: (_event, gesture) => Math.abs(gesture.dy) > 24,
+    onMoveShouldSetPanResponderCapture: (_event, gesture) => isIntentionalVerticalSwipe(gesture),
+    onMoveShouldSetPanResponder: (_event, gesture) => isIntentionalVerticalSwipe(gesture),
+    onPanResponderTerminationRequest: () => false,
     onPanResponderRelease: (_event, gesture) => {
-      if (gesture.dy < -40) goToPrayerIndexRef.current(feedIndexRef.current + 1);
-      if (gesture.dy > 40) goToPrayerIndexRef.current(feedIndexRef.current - 1);
+      const direction = swipeDirection(gesture);
+      if (direction) goToPrayerIndexRef.current(feedIndexRef.current + direction);
     },
+    onPanResponderTerminate: (_event, gesture) => {
+      const direction = swipeDirection(gesture);
+      if (direction) goToPrayerIndexRef.current(feedIndexRef.current + direction);
+    },
+    onShouldBlockNativeResponder: () => true,
   })).current;
 
   useEffect(() => {
@@ -282,18 +333,7 @@ export default function HomeScreen({ user, onOpenPrayer, go }) {
 
   const handleAmen = async (prayer) => {
     if (!prayer?.id || prayedPrayerIds.has(prayer.id)) return;
-    try {
-      const result = await prayForRequest(prayer.id);
-      setPrayedPrayerIds((prev) => {
-        const next = new Set(prev);
-        next.add(prayer.id);
-        return next;
-      });
-      feedback.showXp(result.xp, result.duplicate ? 'Already prayed for this request' : 'Amen recorded');
-      if (!result.duplicate) retryStats();
-    } catch (error) {
-      Alert.alert('Prayer not saved', getErrorMessage(error));
-    }
+    feedback.showToast({ message: 'Use the prayer timer to complete and lock this request.' });
   };
 
   const handleSave = async (prayer) => {
@@ -323,7 +363,7 @@ export default function HomeScreen({ user, onOpenPrayer, go }) {
         prayerLimit: 'daily',
         urgent: false,
         allowShare: true,
-      }, auth.currentUser);
+      }, currentUser);
       setComposeOpen(false);
       setComposeBody('');
       setComposeCategory('Guidance');
@@ -341,17 +381,11 @@ export default function HomeScreen({ user, onOpenPrayer, go }) {
     if (!updatePrayer?.id || !updateBody.trim() || updateBusy) return;
     setUpdateBusy(true);
     try {
-      await addTestimony({
-        title: updatePrayer.title || 'Prayer update',
-        body: updateBody.trim(),
-        prayerId: updatePrayer.id,
-        shared: true,
-      }, auth.currentUser);
       await markAnswered(updatePrayer.id);
       setUpdatePrayer(null);
       setUpdateBody('');
       feedback.celebrate();
-      feedback.showToast({ message: 'Prayer update shared' });
+      feedback.showToast({ message: 'Prayer marked answered' });
       retryPrayers();
       retryStats();
     } catch (error) {
@@ -359,6 +393,27 @@ export default function HomeScreen({ user, onOpenPrayer, go }) {
     } finally {
       setUpdateBusy(false);
     }
+  };
+
+  const handleDeletePrayer = (prayer) => {
+    if (!prayer?.id || prayer.authorUid !== uid) return;
+    Alert.alert('Delete Prayer Request', 'This cannot be undone. Delete this prayer request?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deletePrayer(prayer.id);
+            feedback.showToast({ message: 'Prayer request deleted' });
+            retryPrayers();
+            retryStats();
+          } catch (error) {
+            Alert.alert('Could not delete prayer', getErrorMessage(error));
+          }
+        },
+      },
+    ]);
   };
 
   return (
@@ -377,9 +432,6 @@ export default function HomeScreen({ user, onOpenPrayer, go }) {
           <Pressable onPress={() => setComposeOpen(true)} style={styles.headerIconBtn} accessibilityLabel="Share a prayer">
             <SendHorizontal size={19} color={colors.ink} />
           </Pressable>
-          <Pressable onPress={() => go('achievements')} style={styles.headerIconBtn} accessibilityRole="button" accessibilityLabel="Badges">
-            <Trophy size={19} color={colors.ink} />
-          </Pressable>
           <Pressable onPress={() => go('notifications')} style={styles.headerIconBtn} accessibilityRole="button" accessibilityLabel="Notifications">
             <Bell size={20} color={colors.ink} />
             <View style={styles.notifDot} />
@@ -393,7 +445,7 @@ export default function HomeScreen({ user, onOpenPrayer, go }) {
       </View>
 
       <AsyncState loading={listLoading} error={listError} onRetry={retry}>
-        <XPProgressPanel summary={gamified} />
+        <XPProgressPanel summary={gamified} onAchievements={() => go('achievements')} />
 
         {currentPrayer ? (
           <View style={styles.feedViewport} {...panResponder.panHandlers}>
@@ -410,6 +462,7 @@ export default function HomeScreen({ user, onOpenPrayer, go }) {
                 setUpdatePrayer(currentPrayer);
                 setUpdateBody('');
               }}
+              onDelete={() => handleDeletePrayer(currentPrayer)}
             />
             <View style={styles.feedNavRow}>
               <Pressable
@@ -420,11 +473,14 @@ export default function HomeScreen({ user, onOpenPrayer, go }) {
                 <ArrowUp size={18} color={colors.ink} />
                 <BodyText variant="caption" style={styles.feedNavText}>Prev</BodyText>
               </Pressable>
-              <ProgressDots
-                count={visiblePrayers.length}
-                activeIndex={currentFeedIndex}
-                onSelect={setCurrentFeedIndex}
-              />
+              <View style={styles.feedProgressWrap}>
+                <ProgressDots
+                  count={visiblePrayers.length}
+                  activeIndex={currentFeedIndex}
+                  onSelect={setCurrentFeedIndex}
+                />
+                <BodyText variant="caption" style={styles.swipeHint}>Swipe up / down</BodyText>
+              </View>
               <Pressable
                 onPress={() => goToPrayerIndex(currentFeedIndex + 1)}
                 style={styles.feedNavBtn}
@@ -434,6 +490,7 @@ export default function HomeScreen({ user, onOpenPrayer, go }) {
                 <ArrowDown size={18} color={colors.ink} />
               </Pressable>
             </View>
+            <DailyVerseCard />
           </View>
         ) : (
           <GlassCard style={styles.emptyFeedCard}>
@@ -503,6 +560,8 @@ export default function HomeScreen({ user, onOpenPrayer, go }) {
               value={composeCategory}
               onChange={setComposeCategory}
               style={styles.composeSegments}
+              segmentStyle={styles.composeSegment}
+              labelStyle={styles.composeSegmentLabel}
             />
             <TextInput
               value={composeScriptureRef}
@@ -534,7 +593,7 @@ export default function HomeScreen({ user, onOpenPrayer, go }) {
             <TextInput
               value={updateBody}
               onChangeText={(text) => setUpdateBody(text.slice(0, 280))}
-              placeholder="Share an update or testimony..."
+              placeholder="Share a short answered-prayer note..."
               placeholderTextColor={colors.ink3}
               style={[styles.composeInput, styles.composeBodyInput]}
               multiline
@@ -648,17 +707,26 @@ const styles = StyleSheet.create({
   },
   xpMetaRow: { marginTop: spacing.sm, flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md },
   todayXp: { color: colors.gold, fontFamily: fonts.sansSemiBold },
+  achievementsLink: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+    paddingVertical: 4,
+  },
+  achievementsLinkText: { color: colors.gold, fontFamily: fonts.sansSemiBold },
   verseCard: {
-    minHeight: 150,
-    borderRadius: radii.lg,
-    padding: spacing.xl,
+    minHeight: 96,
+    borderRadius: radii.md,
+    padding: spacing.lg,
     overflow: 'hidden',
     justifyContent: 'space-between',
   },
-  verseLabelRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.md },
-  verseLabel: { color: colors.goldLight, fontFamily: fonts.sansExtraBold, letterSpacing: 1.6, textTransform: 'uppercase' },
-  verseText: { color: colors.white, fontSize: 19, lineHeight: 28 },
-  verseRef: { marginTop: spacing.md, color: colors.tealLight, fontFamily: fonts.sansSemiBold },
+  verseLabelRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.sm },
+  verseLabel: { color: colors.goldLight, fontFamily: fonts.sansExtraBold, letterSpacing: 1.2, textTransform: 'uppercase' },
+  verseText: { color: colors.white, fontSize: 15, lineHeight: 21 },
+  verseRef: { marginTop: spacing.sm, color: colors.tealLight, fontFamily: fonts.sansSemiBold },
   streakCard: { marginBottom: spacing.lg },
   streakHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.lg, marginBottom: spacing.sm },
   streakCopy: { flex: 1 },
@@ -730,12 +798,15 @@ const styles = StyleSheet.create({
   focusText: { lineHeight: 23 },
   focusActions: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-around',
+    gap: spacing.sm,
     paddingTop: spacing.lg,
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
+  focusActionLocked: { opacity: 0.72 },
   focusAction: { alignItems: 'center', gap: spacing.xs },
   focusActionIcon: {
     width: 44,
@@ -763,7 +834,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: alpha.ink08,
   },
-  progressDots: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, flex: 1, justifyContent: 'center' },
+  feedProgressWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2 },
+  progressDots: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, justifyContent: 'center' },
+  swipeHint: { color: colors.ink4, fontSize: 10 },
   progressDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.surface3 },
   progressDotActive: { width: 24, borderRadius: 4, backgroundColor: colors.teal },
   emptyFeedCard: { marginBottom: spacing.lg, alignItems: 'center', paddingVertical: spacing.xxl },
@@ -811,7 +884,25 @@ const styles = StyleSheet.create({
   },
   composeHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.lg },
   composeLabel: { marginTop: spacing.md, marginBottom: spacing.sm },
-  composeSegments: { marginBottom: spacing.md },
+  composeSegments: {
+    flexWrap: 'wrap',
+    marginTop: 0,
+    marginBottom: spacing.md,
+    gap: spacing.sm,
+  },
+  composeSegment: {
+    flexBasis: '30%',
+    flexGrow: 1,
+    minWidth: 88,
+    minHeight: 46,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
+  },
+  composeSegmentLabel: {
+    fontSize: 12,
+    lineHeight: 16,
+    flexShrink: 1,
+  },
   composeInput: {
     borderWidth: 1,
     borderColor: colors.border,

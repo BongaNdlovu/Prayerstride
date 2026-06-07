@@ -18,45 +18,73 @@ import { bootstrapOwner, completeRegistration, deleteOwnAccount } from './api';
 import { PRIVACY_VERSION, TERMS_VERSION } from './legal';
 import { error as logError } from './logger';
 import { toUserFacingError } from './errors';
+import { clearCachedProfile } from './profileCache';
+import { isMockDataEnabled, resetMockDataForTests } from './mockData';
 
 const AuthContext = createContext(null);
 const MIN_PASSWORD_LENGTH = 12;
+const MOCK_USER = {
+  uid: 'demo-admin',
+  displayName: 'Demo Admin',
+  email: 'demo@prayerstride.test',
+  emailVerified: true,
+  photoURL: null,
+  getIdToken: async () => 'mock-token',
+};
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [registering, setRegistering] = useState(false);
   const bootstrappedUidRef = useRef('');
+  const mockMode = isMockDataEnabled();
 
-  useEffect(() => onAuthStateChanged(auth,
-    (nextUser) => {
-      setUser(nextUser);
+  useEffect(() => {
+    if (mockMode) {
+      resetMockDataForTests();
+      setUser(MOCK_USER);
       setLoading(false);
-      if (!nextUser) bootstrappedUidRef.current = '';
-      if (nextUser && bootstrappedUidRef.current !== nextUser.uid) {
-        const uid = nextUser.uid;
-        bootstrapOwner()
-          .then(() => {
-            if (auth.currentUser?.uid === uid) {
-              bootstrappedUidRef.current = uid;
-            }
-          })
-          .catch((error) => {
-            logError('Owner bootstrap failed', error);
-          });
-      }
-    },
-    (error) => {
-      logError('Auth state change error', error);
-      setLoading(false);
-    },
-  ), []);
+      bootstrappedUidRef.current = MOCK_USER.uid;
+      return undefined;
+    }
+
+    return onAuthStateChanged(auth,
+      (nextUser) => {
+        setUser(nextUser);
+        setLoading(false);
+        if (!nextUser) {
+          bootstrappedUidRef.current = '';
+          clearCachedProfile();
+        }
+        if (nextUser && bootstrappedUidRef.current !== nextUser.uid) {
+          const uid = nextUser.uid;
+          bootstrapOwner()
+            .then(() => {
+              if (auth.currentUser?.uid === uid) {
+                bootstrappedUidRef.current = uid;
+              }
+            })
+            .catch((error) => {
+              logError('Owner bootstrap failed', error);
+            });
+        }
+      },
+      (error) => {
+        logError('Auth state change error', error);
+        setLoading(false);
+      },
+    );
+  }, [mockMode]);
 
   const value = useMemo(() => ({
     user,
     loading,
     registering,
     async signIn(email, password) {
+      if (mockMode) {
+        setUser(MOCK_USER);
+        return { user: MOCK_USER };
+      }
       try {
         return await signInWithEmailAndPassword(auth, email, password);
       } catch (error) {
@@ -64,6 +92,10 @@ export function AuthProvider({ children }) {
       }
     },
     async register(email, password, name, profile = {}) {
+      if (mockMode) {
+        setUser(MOCK_USER);
+        return { credential: { user: MOCK_USER }, registration: { ok: true, profile: MOCK_USER } };
+      }
       if (!password || password.length < MIN_PASSWORD_LENGTH) {
         throw new Error(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
       }
@@ -120,6 +152,10 @@ export function AuthProvider({ children }) {
       }
     },
     async completePendingRegistration(profile = {}) {
+      if (mockMode) {
+        setUser(MOCK_USER);
+        return { ok: true, profile: MOCK_USER };
+      }
       setRegistering(true);
       try {
         return await completeRegistration({
@@ -135,9 +171,15 @@ export function AuthProvider({ children }) {
       }
     },
     async signOut() {
+      clearCachedProfile();
+      if (mockMode) {
+        setUser(null);
+        return undefined;
+      }
       return firebaseSignOut(auth);
     },
     async resetPassword(email) {
+      if (mockMode) return undefined;
       try {
         return await sendPasswordResetEmail(auth, email);
       } catch (error) {
@@ -145,6 +187,7 @@ export function AuthProvider({ children }) {
       }
     },
     async changePassword(currentPassword, newPassword) {
+      if (mockMode) return undefined;
       const currentUser = auth.currentUser;
       if (!currentUser?.email) throw new Error('No email is linked to this account.');
       if (!currentPassword || !newPassword) throw new Error('Enter your current and new password.');
@@ -160,6 +203,12 @@ export function AuthProvider({ children }) {
       }
     },
     async deleteAccount(password) {
+      if (mockMode) {
+        resetMockDataForTests();
+        clearCachedProfile();
+        setUser(null);
+        return undefined;
+      }
       const currentUser = auth.currentUser;
       if (!currentUser?.email) throw new Error('No email is linked to this account.');
       if (!password) throw new Error('Enter your password to confirm deletion.');
@@ -173,7 +222,7 @@ export function AuthProvider({ children }) {
         throw toUserFacingError(error, 'Could not delete your account. Please try again.');
       }
     },
-  }), [user, loading, registering]);
+  }), [user, loading, registering, mockMode]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

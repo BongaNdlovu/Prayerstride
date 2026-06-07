@@ -10,7 +10,7 @@ describe('create-edit prayers', () => {
   it('HomeScreen owns prototype prayer compose and answered-update flows', async () => {
     const source = await import('./screens/HomeScreen.jsx?raw');
     expect(source.default).toMatch(/addPrayer/);
-    expect(source.default).toMatch(/addTestimony/);
+    expect(source.default).not.toMatch(/addTestimony/);
     expect(source.default).toMatch(/markAnswered/);
     expect(source.default).toMatch(/PRAYER_CATEGORIES/);
     expect(source.default).toMatch(/composeScriptureRef/);

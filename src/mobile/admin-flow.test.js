@@ -61,6 +61,13 @@ describe('admin flow', () => {
     expect(source.default).toMatch(/export function useSuspendedStatus/);
   });
 
+  it('Suspended status quietly refreshes while the app is open', async () => {
+    const source = await import('./useIsAdmin.js?raw');
+    expect(source.default).toMatch(/SUSPENSION_STATUS_REFRESH_MS/);
+    expect(source.default).toMatch(/setInterval\(\(\) => loadProfile\(true\), pollMs\)/);
+    expect(source.default).toMatch(/useMyProfile\(user, \{ pollMs: SUSPENSION_STATUS_REFRESH_MS \}\)/);
+  });
+
   it('Admin loading and data failures render shared async states before content', async () => {
     const source = await import('./screens/AdminDashboardScreen.jsx?raw');
     expect(source.default).toMatch(/adminLoading/);
@@ -72,6 +79,7 @@ describe('admin flow', () => {
     const dashboard = await import('./screens/AdminDashboardScreen.jsx?raw');
     const details = await import('./screens/ReportDetailsScreen.jsx?raw');
     expect(dashboard.default).toMatch(/runAdminAction/);
+    expect(dashboard.default).toMatch(/refreshAfter/);
     expect(details.default).toMatch(/runReportAction/);
     expect(details.default).not.toMatch(/Alert\.alert\('Error'/);
   });

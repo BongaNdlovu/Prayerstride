@@ -1,10 +1,9 @@
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { Clock, Flame, Footprints, Heart, Send, Users } from 'lucide-react-native';
+import { Clock, Flame, Footprints, Heart, Timer, Users } from 'lucide-react-native';
 import { colors, radii, spacing } from '../theme';
 import { usePrayers } from '../usePrayerData';
 import { usePrayerSessions } from '../usePrayerSessions';
-import { useTestimonies } from '../usePrayerData';
 import {
   buildWeeklyStats,
   calculateStreak,
@@ -26,20 +25,17 @@ const WEEKLY_STREAK_GOAL = 7;
 export default function MyStatsScreen({ user, onBack, go }) {
   const { prayers, loading: prayersLoading, error: prayersError, retry: retryPrayers } = usePrayers(true, { userId: user?.uid });
   const { sessions, totalSeconds, loading: sessionsLoading, error: sessionsError, retry: retrySessions } = usePrayerSessions(user?.uid, true);
-  const { testimonies, loading: testimoniesLoading, error: testimoniesError, retry: retryTestimonies } = useTestimonies(true);
-  const loading = prayersLoading || sessionsLoading || testimoniesLoading;
-  const error = prayersError || sessionsError || testimoniesError;
+  const loading = prayersLoading || sessionsLoading;
+  const error = prayersError || sessionsError;
   const retry = () => {
     retryPrayers();
     retrySessions();
-    retryTestimonies();
   };
   const myPrayers = prayers.filter((p) => p.authorUid === user?.uid);
   const answered = myPrayers.filter((p) => p.status === 'answered');
   const weeklyPrayerData = useMemo(() => buildWeeklyStats(sessions), [sessions]);
   const streak = useMemo(() => calculateStreak(sessions), [sessions]);
   const weeklyTotal = weeklyPrayerData.reduce((sum, item) => sum + item.prayers, 0);
-  const myTestimonies = testimonies.filter((testimony) => testimony.authorUid === user?.uid);
   const streakProgress = Math.min(streak / WEEKLY_STREAK_GOAL, 1);
 
   return (
@@ -80,7 +76,7 @@ export default function MyStatsScreen({ user, onBack, go }) {
         <StatCard icon={Heart} value={`${answered.length}`} label="answered" />
       </View>
       <View style={styles.statsGrid}>
-        <StatCard icon={Send} value={`${myTestimonies.length}`} label="testimonies" />
+        <StatCard icon={Timer} value={`${weeklyTotal}`} label="sessions this week" />
         <StatCard icon={Users} value={`${sessions.length}`} label="prayer sessions" />
       </View>
 
@@ -101,15 +97,15 @@ export default function MyStatsScreen({ user, onBack, go }) {
 
       <Pressable
         onPress={() => go?.('home')}
-        style={({ pressed }) => [styles.testimonyLink, pressed && styles.pressed]}
+        style={({ pressed }) => [styles.strideLink, pressed && styles.pressed]}
         accessibilityRole="button"
       >
-        <GlassCard style={styles.testimonyCard}>
-          <View style={styles.testimonyRow}>
-            <View style={styles.testimonyIcon}>
+        <GlassCard style={styles.strideCard}>
+          <View style={styles.strideRow}>
+            <View style={styles.strideIcon}>
               <Footprints size={20} color={colors.white} />
             </View>
-            <View style={styles.testimonyText}>
+            <View style={styles.strideText}>
               <Heading level="h4">Keep your stride strong.</Heading>
               <BodyText variant="small">Every minute with God moves you forward.</BodyText>
             </View>
@@ -152,10 +148,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.10)',
   },
-  testimonyLink: { marginBottom: spacing.md },
-  testimonyCard: { marginBottom: 0 },
-  testimonyRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  testimonyIcon: {
+  strideLink: { marginBottom: spacing.md },
+  strideCard: { marginBottom: 0 },
+  strideRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  strideIcon: {
     width: 44,
     height: 44,
     borderRadius: 22,
@@ -163,7 +159,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.ink,
   },
-  testimonyText: { flex: 1 },
+  strideText: { flex: 1 },
   pressed: { opacity: 0.92 },
   footerDivider: { marginTop: spacing.sm },
 });

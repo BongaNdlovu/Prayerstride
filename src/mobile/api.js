@@ -5,6 +5,10 @@ import { isMockDataEnabled, mockApiFetch, mockUploadAvatar } from './mockData';
 const API_URL = process.env.EXPO_PUBLIC_API_URL || '';
 const API_TIMEOUT_MS = 15000;
 
+function shouldUseNativeFileFormData(file) {
+  return Boolean(file?.uri && globalThis.navigator?.product === 'ReactNative');
+}
+
 export function createFetchAbortContext(externalSignal, timeoutMs = API_TIMEOUT_MS) {
   const controller = new AbortController();
   const abortRequest = () => controller.abort();
@@ -87,7 +91,13 @@ export async function uploadMyAvatar(file, signal) {
   if (!file?.blob && !file?.uri) throw new Error('Could not prepare the profile photo for upload.');
 
   const formData = new FormData();
-  if (file.blob) {
+  if (shouldUseNativeFileFormData(file)) {
+    formData.append('avatar', {
+      uri: file.uri,
+      name: 'profile.jpg',
+      type: 'image/jpeg',
+    });
+  } else if (file.blob) {
     formData.append('avatar', file.blob, 'profile.jpg');
   } else {
     formData.append('avatar', {

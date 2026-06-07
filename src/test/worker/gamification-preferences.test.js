@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_GAMIFICATION_PREFERENCES,
+  buildGamificationSummary,
   buildXpPayload,
   normalizeGamificationPreferences,
   updateGamificationPreferences,
@@ -78,5 +79,32 @@ describe('gamification preferences', () => {
       duplicate: true,
       bonuses: [],
     });
+  });
+
+  it('includes all stored counters in public badge progress', async () => {
+    const fs = createFs();
+    fs.docs.set('gamificationSummaries/user-1', {
+      uid: 'user-1',
+      timeZone: 'UTC',
+      prayersCreated: 1,
+      prayersCarried: 20,
+      prayerMinutes: 120,
+      bookmarksCreated: 10,
+      nightSessions: 5,
+      longSessions: 4,
+      updatedAt: '2026-06-06T00:00:00.000Z',
+    });
+
+    const summary = await buildGamificationSummary(fs, {}, 'user-1', 'UTC');
+    const earnedIds = summary.badges
+      .filter((badge) => badge.state === 'earned')
+      .map((badge) => badge.id);
+
+    expect(earnedIds).toContain('first-prayer');
+    expect(earnedIds).toContain('compassion-helper');
+    expect(earnedIds).toContain('faithful-minutes');
+    expect(earnedIds).toContain('keeper-of-requests');
+    expect(earnedIds).toContain('night-watch');
+    expect(earnedIds).toContain('steadfast-hour');
   });
 });

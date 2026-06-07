@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { alpha, colors, fonts, radii, spacing } from '../theme';
 import BodyText from './BodyText';
 
-export default function SegmentedControl({ options, value, onChange, style }) {
+export default function SegmentedControl({ options, value, onChange, style, segmentStyle, labelStyle }) {
   return (
     <View style={[styles.wrap, style]}>
       {options.map((option) => {
@@ -15,10 +15,10 @@ export default function SegmentedControl({ options, value, onChange, style }) {
             accessibilityRole="tab"
             accessibilityLabel={option.label}
             accessibilityState={{ selected: value === option.value }}
-            style={[styles.segment, selected && styles.segmentActive]}
+            style={[styles.segment, segmentStyle, selected && styles.segmentActive]}
           >
             {Icon ? <Icon size={16} color={selected ? colors.teal : colors.ink3} /> : null}
-            <Text style={[styles.label, selected && styles.labelActive]}>{option.label}</Text>
+            <Text style={[styles.label, labelStyle, selected && styles.labelActive]}>{option.label}</Text>
             {option.subtext ? (
               <BodyText variant="caption" style={[styles.subtext, selected && styles.subtextActive]}>
                 {option.subtext}

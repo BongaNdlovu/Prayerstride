@@ -1,5 +1,6 @@
 import { StyleSheet, Text } from 'react-native';
-import { typography } from '../theme';
+import { onDarkTypography, typography } from '../theme';
+import { useAppTheme } from '../AppThemeProvider';
 
 const VARIANTS = {
   body: typography.body,
@@ -9,9 +10,18 @@ const VARIANTS = {
 };
 
 export default function BodyText({ variant = 'body', children, style, ...props }) {
+  const { darkMode } = useAppTheme();
+  const variants = darkMode ? DARK_VARIANTS : VARIANTS;
   return (
-    <Text style={[VARIANTS[variant] || VARIANTS.body, style]} {...props}>
+    <Text style={[variants[variant] || variants.body, style]} {...props}>
       {children}
     </Text>
   );
 }
+
+const DARK_VARIANTS = {
+  body: onDarkTypography.body,
+  small: onDarkTypography.bodySmall,
+  caption: onDarkTypography.caption,
+  label: { ...typography.label, color: onDarkTypography.body.color },
+};

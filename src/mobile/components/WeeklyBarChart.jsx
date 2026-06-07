@@ -2,7 +2,7 @@ import { View } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop, Text as SvgText } from 'react-native-svg';
 import { colors, spacing } from '../theme';
 
-export default function WeeklyBarChart({ data, width = 308, height = 150 }) {
+export default function WeeklyBarChart({ data, width = 308, height = 150, unit = 'sessions' }) {
   if (!data || data.length === 0) return null;
 
   const padding = { top: 12, right: 10, bottom: 26, left: 28 };
@@ -24,9 +24,10 @@ export default function WeeklyBarChart({ data, width = 308, height = 150 }) {
         {[0, 0.25, 0.5, 0.75, 1].map((frac, index) => {
           const y = padding.top + chartH * (1 - frac);
           const label = Math.round(maxVal * frac);
+          const suffix = unit === 'minutes' ? 'm' : '';
           return (
             <SvgText key={`yl-${index}`} x={padding.left - 7} y={y + 4} textAnchor="end" fontSize="10" fill={colors.ink3}>
-              {frac === 0 ? '0m' : `${label}m`}
+              {frac === 0 ? `0${suffix}` : `${label}${suffix}`}
             </SvgText>
           );
         })}

@@ -12,6 +12,12 @@ const DEFAULT_PREFERENCES = {
   streakRemindersEnabled: true,
 };
 
+const preferenceListeners = new Set();
+
+function emitPreferences(preferences) {
+  preferenceListeners.forEach((listener) => listener(preferences));
+}
+
 export function useGamificationPreferences(userId, enabled = true) {
   const [preferences, setPreferences] = useState(DEFAULT_PREFERENCES);
   const [loading, setLoading] = useState(Boolean(userId && enabled));
@@ -50,11 +56,22 @@ export function useGamificationPreferences(userId, enabled = true) {
     };
   }, [enabled, retryVersion, userId]);
 
+  useEffect(() => {
+    if (!userId || !enabled) return undefined;
+    const listener = (nextPreferences) => {
+      setPreferences({ ...DEFAULT_PREFERENCES, ...(nextPreferences || {}) });
+    };
+    preferenceListeners.add(listener);
+    return () => preferenceListeners.delete(listener);
+  }, [enabled, userId]);
+
   return { preferences, loading, error, retry, setPreferences };
 }
 
 export async function updateGamificationPreferences(userId, patch) {
   if (!userId) throw new Error('Please sign in before changing gamification preferences.');
   const result = await updateGamificationPreferencesApi(patch);
-  return { ...DEFAULT_PREFERENCES, ...(result.preferences || {}) };
+  const preferences = { ...DEFAULT_PREFERENCES, ...(result.preferences || {}) };
+  emitPreferences(preferences);
+  return preferences;
 }

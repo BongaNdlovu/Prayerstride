@@ -209,6 +209,14 @@ export function computeBadges(metrics) {
   });
 }
 
+export function formatBadgeProgress(badge) {
+  const current = Math.max(0, Number(badge?.current || 0));
+  const total = Math.max(0, Number(badge?.total || 0));
+  if (badge?.state === 'earned' || (total > 0 && current >= total)) return 'Earned';
+  if (!total) return '0 / 0';
+  return `${Math.min(current, total)} / ${total}`;
+}
+
 export function xpEventId(uid, type, sourceId) {
   return `${uid}_${type}_${sourceId}`;
 }

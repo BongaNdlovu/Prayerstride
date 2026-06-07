@@ -1,6 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { colors, gradients, spacing } from '../theme';
+import { useAppTheme } from '../AppThemeProvider';
 import LogoMark from './LogoMark';
 import Heading from './Heading';
 import SectionDivider from './SectionDivider';
@@ -18,6 +19,7 @@ export default function ScreenScaffold({
   style,
   contentStyle,
 }) {
+  const { darkMode } = useAppTheme();
   const isSpotlight = variant === 'spotlight';
 
   const inner = (
@@ -45,7 +47,7 @@ export default function ScreenScaffold({
     </>
   );
 
-  const containerStyle = [styles.screen, style];
+  const containerStyle = [styles.screen, darkMode && !isSpotlight && styles.screenDark, style];
   const scrollContentStyle = [
     pageContent ? styles.pageContent : styles.content,
     centerContent && styles.centerContent,
@@ -83,6 +85,7 @@ export default function ScreenScaffold({
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.surface },
+  screenDark: { backgroundColor: colors.night },
   scroll: { flex: 1, width: '100%' },
   content: { flexGrow: 1, width: '100%', paddingBottom: spacing.xxl },
   pageContent: { flexGrow: 1, width: '100%', paddingTop: spacing.md, paddingBottom: spacing.tabBar, paddingHorizontal: spacing.lg },

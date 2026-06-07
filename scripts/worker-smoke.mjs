@@ -104,7 +104,7 @@ assert(worker.includes("(?:\\.\\d+)?Z$"), 'Worker timestamp detection should req
 assert(worker.includes("fieldPath.endsWith('At')"), 'Worker timestamp detection should only apply to timestamp fields.');
 assert(worker.includes('response.ok') && worker.includes('invalidToken'), 'Worker should check FCM responses and clean up invalid tokens.');
 assert(!worker.includes("Access-Control-Allow-Origin', env.CORS_ORIGIN || '*'"), 'Worker should not fall back to wildcard CORS.');
-assert(worker.includes("let resolvedOrigin = origin ? '' : allowedOrigins[0]"), 'Worker should omit CORS access for untrusted browser origins.');
+assert(worker.includes("let resolvedOrigin = ''"), 'Worker should not grant CORS access before validating the request origin.');
 assert(!worker.includes('runFirestoreQuery'), 'Unused runFirestoreQuery helper should be removed.');
 assert(worker.includes("status >= 500 ? 'Unexpected server error'"), 'Worker should hide raw internal errors from clients.');
 assert(worker.includes("status: 401") && worker.includes("publicMessage: 'Authentication required'"), 'Worker should classify missing authentication as 401.');

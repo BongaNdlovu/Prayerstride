@@ -7,7 +7,18 @@ export class AvatarTooLargeError extends Error {
   }
 }
 
+export class AvatarReadError extends Error {
+  constructor() {
+    super('AVATAR_READ_FAILED');
+    this.name = 'AvatarReadError';
+    this.code = 'avatar/read-failed';
+  }
+}
+
 export function getUploadErrorMessage(error) {
+  if (error instanceof AvatarReadError || String(error?.code || '').toLowerCase() === 'avatar/read-failed') {
+    return 'Could not read the selected photo. Choose a different image and try again.';
+  }
   if (error instanceof AvatarTooLargeError) {
     return 'Choose an image smaller than 2 MB and try again.';
   }

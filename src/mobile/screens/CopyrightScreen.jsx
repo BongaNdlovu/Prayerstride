@@ -18,7 +18,7 @@ export default function CopyrightScreen({ onBack }) {
           {'\n\n'}
           You may not copy, modify, reverse engineer, distribute, sublicense, or create derivative works from PrayerStride without prior written permission.
           {'\n\n'}
-          User-generated content you submit remains yours, subject to the license granted in the Terms of Service so PrayerStride can host and display it.
+          User-generated content you submit remains yours, subject to the license granted in the Terms and Conditions so PrayerStride can host and display it.
         </BodyText>
       </GlassCard>
       <GlassCard style={{ marginTop: 16 }}>

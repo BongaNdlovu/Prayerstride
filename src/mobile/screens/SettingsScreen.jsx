@@ -15,7 +15,7 @@ const ITEMS = [
   { label: 'Notification Settings', route: 'notificationSettings' },
   { label: 'About PrayerStride', route: 'about' },
   { label: 'Privacy Policy', route: 'privacyPolicy' },
-  { label: 'Terms of Service', route: 'termsOfService' },
+  { label: 'Terms and Conditions', route: 'termsOfService' },
   { label: 'Legal & Copyright', route: 'copyright' },
   { label: 'Help Center', route: 'helpCenter' },
 ];

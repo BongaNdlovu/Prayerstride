@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
@@ -8,8 +8,7 @@ import {
   Users,
 } from 'lucide-react-native';
 import { alpha, colors, fonts, radii, sharedStyles, spacing } from '../theme';
-import { bookmarkPrayer, getPrayerBookmark, prayForRequest, unbookmarkPrayer } from '../api';
-import { bumpGamificationRefresh } from '../gamificationRefresh';
+import { bookmarkPrayer, getPrayerBookmark, unbookmarkPrayer } from '../api';
 import { deletePrayer, markAnswered, updatePrayer } from '../usePrayerData';
 import { prayedButtonLabel, prayedStorageKey } from '../prayerLimit';
 import { PRAYER_PRIVACY_OPTIONS, PRAYER_FREQUENCY_OPTIONS } from '../prayerFormOptions';
@@ -56,7 +55,6 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
   const [prayerCountDelta, setPrayerCountDelta] = useState(0);
   const [bookmarked, setBookmarked] = useState(false);
   const [showActions, setShowActions] = useState(false);
-  const prayingRef = useRef(false);
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [editBody, setEditBody] = useState('');
@@ -121,23 +119,8 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
       Alert.alert('Your request', 'You cannot pray for your own prayer request.');
       return;
     }
-    if (prayed || prayingRef.current) return;
-    prayingRef.current = true;
-    setPrayed(true);
-    try {
-      const result = await prayForRequest(prayer.id);
-      const limit = result.prayerLimit || prayer.prayerLimit || 'daily';
-      await AsyncStorage.setItem(prayedStorageKey(prayer.id, limit), 'true');
-      setPrayerCountDelta(result.duplicate ? 0 : 1);
-      if (!result.duplicate) bumpGamificationRefresh();
-      if (onRefresh) onRefresh();
-    } catch (error) {
-      setPrayed(false);
-      setPrayerCountDelta(0);
-      Alert.alert('Prayer not saved', getErrorMessage(error));
-    } finally {
-      prayingRef.current = false;
-    }
+    if (prayed) return;
+    handleTimer();
   };
 
   const handleReport = () => {

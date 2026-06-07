@@ -17,6 +17,13 @@ const TABS = [
   { key: 'all', label: 'All-Time' },
 ];
 
+function rankColors(rank) {
+  if (rank === 1) return { backgroundColor: colors.gold, textColor: colors.ink };
+  if (rank === 2) return { backgroundColor: '#CBD5E1', textColor: colors.ink };
+  if (rank === 3) return { backgroundColor: '#C07A3F', textColor: colors.white };
+  return { backgroundColor: colors.tealPale, textColor: colors.teal };
+}
+
 function TabButton({ item, active, onPress }) {
   return (
     <Pressable onPress={() => onPress(item.key)} style={[styles.tabButton, active && styles.tabButtonActive]}>
@@ -36,8 +43,8 @@ function LeaderboardPodium({ rows }) {
           </View>
           <BodyText variant="label" numberOfLines={1} style={styles.podiumName}>{row.displayName}</BodyText>
           <BodyText variant="caption">{row.scopeXP} XP</BodyText>
-          <View style={[styles.podiumBlock, row.rank === 1 && styles.podiumBlockFirst]}>
-            <Text style={styles.podiumRank}>{row.rank}</Text>
+          <View style={[styles.podiumBlock, { backgroundColor: rankColors(row.rank).backgroundColor }, row.rank === 1 && styles.podiumBlockFirst]}>
+            <Text style={[styles.podiumRank, { color: rankColors(row.rank).textColor }]}>{row.rank}</Text>
           </View>
         </View>
       ))}
@@ -142,8 +149,8 @@ export default function LeaderboardScreen({ user, onBack }) {
           renderItem={({ item }) => (
             <GlassCard style={styles.rowCard}>
               <View style={styles.row}>
-                <View style={styles.rankPill}>
-                  <BodyText variant="caption" style={styles.rankText}>{item.rank}</BodyText>
+                <View style={[styles.rankPill, { backgroundColor: rankColors(item.rank).backgroundColor }]}>
+                  <BodyText variant="caption" style={[styles.rankText, { color: rankColors(item.rank).textColor }]}>{item.rank}</BodyText>
                 </View>
                 <View style={styles.rowCopy}>
                   <Heading level="h4" style={styles.rowName}>{item.displayName}</Heading>

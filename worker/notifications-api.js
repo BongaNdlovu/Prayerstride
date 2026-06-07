@@ -42,12 +42,28 @@ async function listNotificationsFromFirestore(env, user, firestoreApi) {
   });
 }
 
+function mergeNotification(existing, next) {
+  if (!existing) return next;
+  return {
+    id: next.id || existing.id,
+    recipientUid: next.recipientUid ?? existing.recipientUid,
+    type: next.type ?? existing.type,
+    message: next.message ?? existing.message,
+    relatedId: next.relatedId ?? existing.relatedId,
+    actorUid: next.actorUid ?? existing.actorUid,
+    read: typeof next.read === 'boolean' ? next.read : existing.read,
+    createdAt: next.createdAt ?? existing.createdAt,
+  };
+}
+
 export async function getMyNotifications(env, user, firestoreApi) {
   const d1Notifications = await listNotificationsForRecipient(env, user.uid);
   const firestoreNotifications = await listNotificationsFromFirestore(env, user, firestoreApi);
   const byId = new Map();
   for (const notification of d1Notifications || []) byId.set(notification.id, notification);
-  for (const notification of firestoreNotifications) byId.set(notification.id, notification);
+  for (const notification of firestoreNotifications) {
+    byId.set(notification.id, mergeNotification(byId.get(notification.id), notification));
+  }
   const notifications = Array.from(byId.values())
     .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
   return { status: 200, body: { notifications } };
@@ -64,7 +80,15 @@ export async function getMyNotificationSettings(env, user, firestoreApi) {
 
 export async function markNotificationRead(env, user, notificationId, firestoreApi) {
   const doc = await firestoreApi.getDocument(env, firestoreApi.docName(env, 'notifications', notificationId));
-  if (!doc.exists) return { status: 404, body: { error: 'Notification not found.' } };
+  if (!doc.exists) {
+    const d1Notifications = await listNotificationsForRecipient(env, user.uid);
+    const d1Notification = (d1Notifications || []).find((item) => item.id === notificationId);
+    if (!d1Notification) return { status: 404, body: { error: 'Notification not found.' } };
+    if (d1Notification.read === true) return { status: 200, body: { ok: true, alreadyRead: true } };
+    await markNotificationReadD1(env, notificationId, user.uid);
+    await invalidateUserNotificationStream(env, user.uid);
+    return { status: 200, body: { ok: true } };
+  }
   const data = firestoreApi.fromFirestoreFields(doc.fields);
   if (data.recipientUid !== user.uid) return { status: 403, body: { error: 'Access denied.' } };
   if (data.read === true) return { status: 200, body: { ok: true, alreadyRead: true } };
@@ -107,7 +131,11 @@ export async function markAllNotificationsRead(env, user, firestoreApi) {
     },
   ]);
 
-  if (!docs.length) return { status: 200, body: { ok: true, count: 0 } };
+  if (!docs.length) {
+    await markAllNotificationsReadD1(env, user.uid);
+    await invalidateUserNotificationStream(env, user.uid);
+    return { status: 200, body: { ok: true, count: 0 } };
+  }
 
   const chunkSize = 400;
   for (let index = 0; index < docs.length; index += chunkSize) {

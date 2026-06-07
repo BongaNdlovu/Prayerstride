@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 describe('testimony flow', () => {
-  it('HomeScreen imports addTestimony for answered-prayer updates', async () => {
+  it('HomeScreen marks prayers answered without creating testimonies', async () => {
     const source = await import('./screens/HomeScreen.jsx?raw');
-    expect(source.default).toMatch(/addTestimony/);
-    expect(source.default).toMatch(/prayerId: updatePrayer\.id/);
+    expect(source.default).not.toMatch(/addTestimony/);
+    expect(source.default).toMatch(/markAnswered\(updatePrayer\.id\)/);
   });
 
   it('Worker still accepts testimony reaction types for admin/content compatibility', async () => {

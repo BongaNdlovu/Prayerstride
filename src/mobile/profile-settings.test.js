@@ -27,6 +27,8 @@ describe('profile settings', () => {
     expect(source.default).toMatch(/prepareAvatarBlob/);
     expect(source.default).toMatch(/uploadAvatarFile/);
     const apiSource = await import('./api.js?raw');
+    expect(apiSource.default).toMatch(/navigator\?\.product === 'ReactNative'/);
+    expect(apiSource.default).toMatch(/file\.uri/);
     expect(apiSource.default).toMatch(/file\.blob/);
     expect(apiSource.default).toMatch(/formData\.append\('avatar', file\.blob/);
     expect(avatarUpload.default).toMatch(/storage\/quota-exceeded/);

@@ -89,6 +89,24 @@ describe('mock data mode', () => {
     expect(markAll.count).toBeGreaterThanOrEqual(0);
   });
 
+  it('supports admin account deletion in mock mode', async () => {
+    await mockApiFetch('/api/admin/delete-account', {
+      method: 'POST',
+      body: JSON.stringify({ targetUid: 'member-ruth' }),
+    }, user);
+
+    const users = await mockApiFetch('/api/admin/users', {}, user);
+    const prayers = await mockApiFetch('/api/prayers?scope=feed', {}, user);
+    expect(users.users.some((item) => item.uid === 'member-ruth')).toBe(false);
+    expect(prayers.items.some((item) => item.authorUid === 'member-ruth')).toBe(false);
+  });
+
+  it('returns real badge-shaped mock gamification data', async () => {
+    const summary = await mockApiFetch('/api/gamification/summary', {}, user);
+    expect(summary.badges.length).toBeGreaterThan(4);
+    expect(summary.badges.every((badge) => badge.name && typeof badge.progress === 'number')).toBe(true);
+  });
+
   it('supports calendar manual testing flows', async () => {
     const seeded = await mockApiFetch('/api/calendar-events', {}, user);
     const bookmarks = await mockApiFetch('/api/calendar-bookmarks', {}, user);
@@ -162,5 +180,30 @@ describe('mock data mode', () => {
     expect(devotions.devotions.length).toBeGreaterThan(0);
     expect(guide.guide.title).toBe('Prayer Basics');
     expect(lesson.lesson.title).toBe('Listen First');
+  });
+
+  it('persists mock suspension and restore fields for admin testing', async () => {
+    await mockApiFetch('/api/admin/suspend-user', {
+      method: 'POST',
+      body: JSON.stringify({ targetUid: 'member-ruth', reason: 'Manual moderation test' }),
+    }, user);
+
+    let users = await mockApiFetch('/api/admin/users', {}, user);
+    let ruth = users.users.find((item) => item.uid === 'member-ruth');
+    expect(ruth.suspended).toBe(true);
+    expect(ruth.suspendedReason).toBe('Manual moderation test');
+    expect(ruth.suspendedAt).toBeTruthy();
+    expect(ruth.suspendedBy).toBe(user.uid);
+
+    await mockApiFetch('/api/admin/unsuspend-user', {
+      method: 'POST',
+      body: JSON.stringify({ targetUid: 'member-ruth' }),
+    }, user);
+
+    users = await mockApiFetch('/api/admin/users', {}, user);
+    ruth = users.users.find((item) => item.uid === 'member-ruth');
+    expect(ruth.suspended).toBe(false);
+    expect(ruth.suspendedAt).toBe(null);
+    expect(ruth.suspendedBy).toBe(null);
   });
 });

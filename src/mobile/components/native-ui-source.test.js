@@ -30,7 +30,6 @@ describe('native UI kit', () => {
       'ToggleRow',
       'StatCard',
       'PrayerCard',
-      'TestimonyCard',
       'WeeklyBarChart',
       'StreakCalendar',
       'AsyncState',
@@ -52,7 +51,7 @@ describe('native UI kit', () => {
   });
 
   it('shared native components do not import react-dom or browser APIs', async () => {
-    const names = ['ScreenScaffold', 'GlassCard', 'AppHeader', 'BottomTabs', 'EmptyState', 'ToggleRow', 'StatCard', 'PrayerCard', 'TestimonyCard', 'WeeklyBarChart', 'StreakCalendar', 'AsyncState', 'MotionPressable'];
+    const names = ['ScreenScaffold', 'GlassCard', 'AppHeader', 'BottomTabs', 'EmptyState', 'ToggleRow', 'StatCard', 'PrayerCard', 'WeeklyBarChart', 'StreakCalendar', 'AsyncState', 'MotionPressable'];
 
     for (const name of names) {
       const source = await import(`../components/${name}.jsx?raw`);
@@ -87,11 +86,6 @@ describe('native UI kit', () => {
     expect(source.default).toMatch(/<Image/);
     expect(source.default).toMatch(/resizeMode="contain"/);
     expect(source.default).not.toMatch(/react-native-svg/);
-  });
-
-  it('testimony reaction taps do not bubble into the card navigation action', async () => {
-    const source = await import('../components/TestimonyCard.jsx?raw');
-    expect(source.default).toMatch(/event\.stopPropagation\(\)/);
   });
 
   it('configures bundled and web logo assets without duplicating native Android config', async () => {

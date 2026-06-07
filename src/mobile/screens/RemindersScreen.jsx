@@ -15,7 +15,7 @@ import { getErrorMessage } from '../errors';
 
 const DAILY_REMINDERS = [
   { id: 'prayerActivity', title: 'Morning Prayer', time: '6:30 AM', schedule: 'Every day', icon: Sunrise },
-  { id: 'testimonyReactions', title: 'Midday Pause', time: '12:00 PM', schedule: 'Every day', icon: Sun },
+  { id: 'announcements', title: 'Midday Pause', time: '12:00 PM', schedule: 'Every day', icon: Sun },
   { id: 'pushEnabled', title: 'Evening Prayer', time: '8:00 PM', schedule: 'Every day', icon: Moon },
 ];
 

@@ -94,6 +94,7 @@ vi.mock('../../mobile/theme', () => ({
     textMuted: '#8595AD',
   },
   onDark: { text: '#FFFFFF', textSecondary: 'rgba(255,255,255,0.78)', textMuted: 'rgba(255,255,255,0.55)', accent: '#E0A106' },
+  onDarkTypography: { display: {}, h1: {}, h2: {}, h3: {}, h4: {}, body: {}, bodySmall: {}, label: {}, caption: {}, eyebrow: {}, stat: {} },
   alpha: {
     navy06: 'rgba(11,42,74,0.06)',
     navy08: 'rgba(11,42,74,0.08)',
