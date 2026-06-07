@@ -78,6 +78,12 @@ describe('screen rendering', () => {
     }
   });
 
+  it('HomeScreen keeps the daily verse visible when the prayer feed is empty', () => {
+    const { getByText } = render(<HomeScreen user={user} onOpenPrayer={noop} go={noop} />);
+    expect(getByText("Today's Verse")).toBeTruthy();
+    expect(getByText('No prayer requests available right now.')).toBeTruthy();
+  });
+
   it('no screen imports web-only APIs', async () => {
     for (const { name } of SCREENS) {
       const source = (await import(`../../../src/mobile/screens/${name}.jsx?raw`)).default;

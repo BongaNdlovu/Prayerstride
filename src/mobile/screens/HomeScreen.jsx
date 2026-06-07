@@ -26,6 +26,7 @@ import { filterBlockedItems, useBlocks } from '../useBlocks';
 import { useGamification } from '../useGamification';
 import { useAppFeedback } from '../AppFeedbackProvider';
 import { getErrorMessage } from '../errors';
+import { cleanOptionalProfileText } from '../profileFields';
 import { PRAYER_DETAILS_LIMIT } from '../prayerFormOptions';
 import ScreenScaffold from '../components/ScreenScaffold';
 import Heading from '../components/Heading';
@@ -191,6 +192,7 @@ function XPProgressPanel({ summary, onAchievements }) {
   const levelInfo = summary.levelInfo;
   const progressPct = Math.round(Math.min(Math.max(levelInfo.progress || 0, 0), 1) * 100);
   const xpIntoLevel = Number(levelInfo.xpIntoLevel || 0);
+  const journeyTitle = cleanOptionalProfileText(summary.journey?.title) || 'Prayer Strider';
 
   return (
     <View style={styles.progressStack}>
@@ -199,7 +201,7 @@ function XPProgressPanel({ summary, onAchievements }) {
           <View style={styles.levelBadge}>
             <Sparkles size={10} color={colors.ink} />
             <BodyText variant="caption" style={styles.levelBadgeText}>
-              Level {levelInfo.level} - {summary.journey.title}
+              Level {levelInfo.level} - {journeyTitle}
             </BodyText>
           </View>
           <BodyText variant="caption" style={styles.xpLabel}>
@@ -422,9 +424,10 @@ export default function HomeScreen({ user, onOpenPrayer, go }) {
         </View>
       </View>
 
+      <DailyVerseCard />
+
       <AsyncState loading={listLoading} error={listError} onRetry={retry}>
         <XPProgressPanel summary={gamified} onAchievements={() => go('achievements')} />
-
         {currentPrayer ? (
           <View style={styles.feedViewport}>
             <PrayerFocusCard
@@ -479,7 +482,6 @@ export default function HomeScreen({ user, onOpenPrayer, go }) {
                 <ChevronRight size={18} color={currentFeedIndex >= visiblePrayers.length - 1 ? colors.ink4 : colors.ink} />
               </Pressable>
             </View>
-            <DailyVerseCard />
           </View>
         ) : (
           <GlassCard style={styles.emptyFeedCard}>
@@ -679,6 +681,7 @@ const styles = StyleSheet.create({
     minHeight: 96,
     borderRadius: radii.md,
     padding: spacing.lg,
+    marginBottom: spacing.lg,
     overflow: 'hidden',
     justifyContent: 'space-between',
   },

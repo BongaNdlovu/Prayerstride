@@ -18,6 +18,7 @@ import { alpha, colors, fonts, radii, spacing } from '../theme';
 import { XP_PER_LEVEL } from '../gamification';
 import { useUserProfile } from '../useUsers';
 import { useGamification } from '../useGamification';
+import { cleanOptionalHandle, cleanOptionalPhotoURL, cleanOptionalProfileText } from '../profileFields';
 import ScreenScaffold from '../components/ScreenScaffold';
 import AppHeader from '../components/AppHeader';
 import GlassCard from '../components/GlassCard';
@@ -56,10 +57,14 @@ export default function ProfileScreen({ user, signOut, go }) {
     retry: retryGamification,
   } = useGamification(user?.uid, Boolean(user?.uid));
 
-  const displayName = profile?.displayName || user?.displayName || 'PrayerStride User';
-  const handle = profile?.handle || '';
-  const bio = profile?.bio || '';
-  const photoURL = profile?.photoURL || user?.photoURL;
+  const displayName = cleanOptionalProfileText(profile?.displayName)
+    || cleanOptionalProfileText(user?.displayName)
+    || 'PrayerStride User';
+  const handle = cleanOptionalHandle(profile?.handle);
+  const bio = cleanOptionalProfileText(profile?.bio);
+  const email = cleanOptionalProfileText(user?.email);
+  const photoURL = cleanOptionalPhotoURL(profile?.photoURL) || cleanOptionalPhotoURL(user?.photoURL);
+  const journeyTitle = cleanOptionalProfileText(gamified.journey?.title) || 'Prayer Strider';
   const statsUnavailable = Boolean(gamificationError);
   const earnedBadges = gamified.badges.filter((badge) => badge.state === 'earned').length;
   const impact = gamified.impact || {};
@@ -92,13 +97,13 @@ export default function ProfileScreen({ user, signOut, go }) {
           )}
         </View>
         <Heading level="h3" style={styles.name}>{displayName}</Heading>
-        {handle ? <BodyText variant="small" style={styles.handle}>@{handle.replace(/^@/, '')}</BodyText> : null}
+        {handle ? <BodyText variant="small" style={styles.handle}>@{handle}</BodyText> : null}
         <View style={styles.rankPill}>
           <Footprints size={11} color={colors.goldLight} />
-          <BodyText variant="caption" style={styles.rankPillText}>{gamified.journey?.title || 'Prayer Strider'}</BodyText>
+          <BodyText variant="caption" style={styles.rankPillText}>{journeyTitle}</BodyText>
         </View>
         {bio ? <BodyText variant="body" style={styles.bio}>{bio}</BodyText> : (
-          <BodyText variant="caption" style={styles.bio}>{user?.email || ''}</BodyText>
+          email ? <BodyText variant="caption" style={styles.bio}>{email}</BodyText> : null
         )}
       </GlassCard>
 
@@ -122,7 +127,7 @@ export default function ProfileScreen({ user, signOut, go }) {
             <Award size={22} color={colors.goldLight} />
             <View>
               <BodyText variant="caption" style={styles.levelRankLabel}>Current Rank</BodyText>
-              <Heading level="h4" style={styles.levelRankName}>{gamified.journey?.title || 'Prayer Strider'}</Heading>
+              <Heading level="h4" style={styles.levelRankName}>{journeyTitle}</Heading>
             </View>
           </View>
           <View style={styles.levelXpCol}>

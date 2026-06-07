@@ -12,7 +12,13 @@ import {
 } from '../avatarUpload';
 import { updateMyProfile } from '../api';
 import { isMockDataEnabled } from '../mockData';
-import { clearCachedProfile } from '../profileCache';
+import { getCachedProfile, setCachedProfile } from '../profileCache';
+import {
+  cleanOptionalHandle,
+  cleanOptionalPhotoURL,
+  cleanOptionalProfileText,
+  formatProfileHandleForSave,
+} from '../profileFields';
 import { alpha, colors, fonts, sharedStyles, spacing } from '../theme';
 import { useAuth } from '../AuthProvider';
 import { useUserProfile } from '../useUsers';
@@ -27,20 +33,13 @@ import { getErrorMessage } from '../errors';
 
 const BIO_MAX = 150;
 
-function normalizeHandle(value) {
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  const handle = trimmed.startsWith('@') ? trimmed : `@${trimmed}`;
-  return handle.slice(0, 40);
-}
-
 export default function EditProfileScreen({ user, onBack, onDone }) {
   const { resetPassword, changePassword } = useAuth();
   const { profile } = useUserProfile(user?.uid, Boolean(user?.uid));
-  const [name, setName] = useState(user?.displayName || '');
+  const [name, setName] = useState(cleanOptionalProfileText(user?.displayName));
   const [handle, setHandle] = useState('');
   const [bio, setBio] = useState('');
-  const [photoURL, setPhotoURL] = useState(user?.photoURL || '');
+  const [photoURL, setPhotoURL] = useState(cleanOptionalPhotoURL(user?.photoURL));
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -55,11 +54,38 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
 
   useEffect(() => {
     if (!profile) return;
-    setName(profile.displayName || user?.displayName || '');
-    setBio(profile.bio || '');
-    setHandle(profile.handle || '');
-    setPhotoURL(profile.photoURL || user?.photoURL || '');
+    setName(cleanOptionalProfileText(profile.displayName) || cleanOptionalProfileText(user?.displayName));
+    setBio(cleanOptionalProfileText(profile.bio));
+    setHandle(cleanOptionalHandle(profile.handle));
+    setPhotoURL(cleanOptionalPhotoURL(profile.photoURL) || cleanOptionalPhotoURL(user?.photoURL));
   }, [profile, user?.displayName, user?.photoURL]);
+
+  const cacheProfilePatch = (patch) => {
+    if (!user?.uid) return;
+    const cached = getCachedProfile(user.uid) || profile || {};
+    setCachedProfile(user.uid, {
+      ...cached,
+      uid: user.uid,
+      id: cached.id || user.uid,
+      email: cached.email ?? user?.email ?? null,
+      displayName: cleanOptionalProfileText(name) || cleanOptionalProfileText(cached.displayName) || cleanOptionalProfileText(user?.displayName) || null,
+      ...patch,
+    });
+  };
+
+  const applyPhotoUpdate = async (nextPhotoURL) => {
+    const sanitizedPhotoURL = cleanOptionalPhotoURL(nextPhotoURL);
+    if (!sanitizedPhotoURL) throw new Error('Could not upload your profile photo. Please try again.');
+    cacheProfilePatch({ photoURL: sanitizedPhotoURL });
+    if (mountedRef.current) setPhotoURL(sanitizedPhotoURL);
+    if (auth.currentUser) {
+      try {
+        await updateProfile(auth.currentUser, { photoURL: sanitizedPhotoURL });
+      } catch (error) {
+        logError('Auth profile photo sync failed', error);
+      }
+    }
+  };
 
   const pickPhoto = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -79,9 +105,8 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
     try {
       const asset = result.assets[0];
       if (isMockDataEnabled()) {
-        await updateMyProfile({ photoURL: asset.uri });
-        if (user?.uid) clearCachedProfile(user.uid);
-        if (mountedRef.current) setPhotoURL(asset.uri);
+        const profileResult = await updateMyProfile({ photoURL: asset.uri });
+        await applyPhotoUpdate(profileResult.profile?.photoURL || asset.uri);
         return;
       }
       uploadControllerRef.current?.abort();
@@ -89,8 +114,7 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
       uploadControllerRef.current = controller;
       const prepared = await prepareAvatarBlob(asset.uri);
       const downloadUrl = await uploadAvatarFile(prepared, controller.signal);
-      if (user?.uid) clearCachedProfile(user.uid);
-      if (mountedRef.current) setPhotoURL(downloadUrl);
+      await applyPhotoUpdate(downloadUrl);
     } catch (error) {
       if (error?.name === 'AbortError') return;
       if (error instanceof AvatarTooLargeError) {
@@ -111,27 +135,33 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
     }
     setBusy(true);
     const previousProfile = {
-      displayName: profile?.displayName || user?.displayName || '',
-      handle: profile?.handle || null,
-      bio: profile?.bio || null,
-      photoURL: profile?.photoURL || user?.photoURL || null,
+      displayName: cleanOptionalProfileText(profile?.displayName) || cleanOptionalProfileText(user?.displayName) || '',
+      handle: formatProfileHandleForSave(profile?.handle),
+      bio: cleanOptionalProfileText(profile?.bio) || null,
+      photoURL: cleanOptionalPhotoURL(profile?.photoURL) || cleanOptionalPhotoURL(user?.photoURL) || null,
     };
     try {
+      const nextHandle = formatProfileHandleForSave(handle);
+      const nextBio = cleanOptionalProfileText(bio) || null;
+      const nextPhotoURL = cleanOptionalPhotoURL(photoURL) || null;
       const result = await updateMyProfile({
         displayName: name.trim(),
-        handle: normalizeHandle(handle),
-        bio: bio.trim() || null,
-        photoURL: photoURL || null,
+        handle: nextHandle,
+        bio: nextBio,
+        photoURL: nextPhotoURL,
       });
-      const savedProfile = result.profile;
-      if (user?.uid) {
-        clearCachedProfile(user.uid);
-      }
+      const savedProfile = result.profile || {
+        ...previousProfile,
+        displayName: name.trim(),
+        handle: nextHandle,
+        bio: nextBio,
+        photoURL: nextPhotoURL,
+      };
       if (auth.currentUser) {
         try {
           await updateProfile(auth.currentUser, {
-            displayName: savedProfile?.displayName || name.trim(),
-            photoURL: savedProfile?.photoURL || photoURL || null,
+            displayName: cleanOptionalProfileText(savedProfile.displayName) || name.trim(),
+            photoURL: cleanOptionalPhotoURL(savedProfile.photoURL) || null,
           });
         } catch (error) {
           await updateMyProfile(previousProfile).catch((rollbackError) => {
@@ -140,6 +170,12 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
           throw error;
         }
       }
+      cacheProfilePatch({
+        displayName: cleanOptionalProfileText(savedProfile.displayName) || name.trim(),
+        handle: formatProfileHandleForSave(savedProfile.handle),
+        bio: cleanOptionalProfileText(savedProfile.bio) || null,
+        photoURL: cleanOptionalPhotoURL(savedProfile.photoURL) || null,
+      });
       if (onDone) onDone();
       Alert.alert('Profile updated', 'Your profile has been saved.');
     } catch (error) {
@@ -177,7 +213,7 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
     }
   };
 
-  const displayHandle = (handle || '').startsWith('@') ? (handle || '').slice(1) : (handle || '');
+  const displayHandle = cleanOptionalHandle(handle);
 
   return (
     <ScreenScaffold pageContent scroll>

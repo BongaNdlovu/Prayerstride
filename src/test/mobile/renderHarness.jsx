@@ -251,6 +251,8 @@ vi.mock('../../../src/mobile/AuthProvider', () => ({
 
 vi.mock('../../../src/mobile/profileCache', () => ({
   clearCachedProfile: vi.fn(),
+  getCachedProfile: vi.fn(() => null),
+  setCachedProfile: vi.fn(),
 }));
 
 vi.mock('@firebase/auth', () => ({
