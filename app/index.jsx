@@ -39,7 +39,6 @@ import RemindersScreen from '../src/mobile/screens/RemindersScreen';
 import ReportDetailsScreen from '../src/mobile/screens/ReportDetailsScreen';
 import ResetPasswordScreen from '../src/mobile/screens/ResetPasswordScreen';
 import SettingsScreen from '../src/mobile/screens/SettingsScreen';
-import SplashScreen from '../src/mobile/screens/SplashScreen';
 import StayConnectedScreen from '../src/mobile/screens/StayConnectedScreen';
 import TermsOfServiceScreen from '../src/mobile/screens/TermsOfServiceScreen';
 import AboutScreen from '../src/mobile/screens/AboutScreen';
@@ -49,7 +48,7 @@ import { AppFeedbackProvider } from '../src/mobile/AppFeedbackProvider';
 import { AppThemeProvider } from '../src/mobile/AppThemeProvider';
 import { useGamificationPreferences } from '../src/mobile/useGamificationPreferences';
 
-const AUTH_ROUTES = ['splash', 'welcome', 'reminderSetup', 'stayConnected', 'signIn', 'createAccount', 'resetPassword'];
+const AUTH_ROUTES = ['welcome', 'reminderSetup', 'stayConnected', 'signIn', 'createAccount', 'resetPassword'];
 const MAIN_TAB_ROUTES = ['home', 'leaderboard', 'stride', 'profile'];
 
 export default function MobileApp() {
@@ -79,7 +78,7 @@ export default function MobileApp() {
     const screen = nav.screen;
 
     if (!user) {
-      if (!AUTH_ROUTES.includes(screen)) setNav(reset('splash'));
+      if (!AUTH_ROUTES.includes(screen)) setNav(reset('welcome'));
       return;
     }
 
@@ -88,12 +87,12 @@ export default function MobileApp() {
       return;
     }
 
-    if (AUTH_ROUTES.includes(screen) || screen === 'splash') setNav(reset('home'));
+    if (AUTH_ROUTES.includes(screen)) setNav(reset('home'));
   }, [user, loading, registering, accountLoading, waitingForAccountProfile, suspended, nav.screen]);
 
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (loading || nav.screen === 'splash') return false;
+      if (loading) return false;
       setNav((prev) => back(prev, user ? 'home' : 'welcome'));
       return true;
     });
@@ -101,7 +100,7 @@ export default function MobileApp() {
     return () => subscription.remove();
   }, [loading, nav.screen, user]);
 
-  if (loading || registering || accountLoading) return <Centered label="Preparing PrayerStride..." />;
+  if (loading || registering || accountLoading) return <Centered />;
 
   if (user && accountError) {
     return (
@@ -111,7 +110,7 @@ export default function MobileApp() {
     );
   }
 
-  if (waitingForAccountProfile) return <Centered label="Preparing PrayerStride..." />;
+  if (waitingForAccountProfile) return <Centered />;
 
   if (user && registrationState === 'pending_completion') {
     return (
@@ -137,10 +136,10 @@ export default function MobileApp() {
   return (
     <SafeAreaView style={[styles.shell, appPreferences.darkModeEnabled === true && styles.shellDark]}>
       <AppThemeProvider darkMode={appPreferences.darkModeEnabled === true}>
-      <AppFeedbackProvider soundHapticsEnabled={appPreferences.soundHapticsEnabled !== false}>
-        <View style={[styles.appBody, appPreferences.darkModeEnabled === true && styles.appBodyDark]}>{content}</View>
-        {isMainTab && <BottomTabs active={screen} onChange={handleTabChange} />}
-      </AppFeedbackProvider>
+        <AppFeedbackProvider soundHapticsEnabled={appPreferences.soundHapticsEnabled !== false}>
+          <View style={[styles.appBody, appPreferences.darkModeEnabled === true && styles.appBodyDark]}>{content}</View>
+          {isMainTab && <BottomTabs active={screen} onChange={handleTabChange} />}
+        </AppFeedbackProvider>
       </AppThemeProvider>
     </SafeAreaView>
   );
@@ -148,9 +147,6 @@ export default function MobileApp() {
 
 function renderScreen({ screen, params, user, suspended, suspendedReason, signIn, register, signOut, resetPassword, deleteAccount, goFn, backFn }) {
   if (!user) {
-    if (screen === 'splash') {
-      return <SplashScreen onReady={() => goFn('welcome')} />;
-    }
     if (screen === 'welcome') {
       return <WelcomeScreen onContinue={() => goFn('reminderSetup')} onSignIn={() => goFn('signIn')} />;
     }
@@ -232,7 +228,7 @@ function Centered({ label }) {
   return (
     <SafeAreaView style={styles.centered}>
       <ActivityIndicator color={colors.teal} />
-      <Text style={styles.centeredText}>{label}</Text>
+      {label ? <Text style={styles.centeredText}>{label}</Text> : null}
     </SafeAreaView>
   );
 }

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createNavState, go, back, reset, initialRoute } from './navigation';
 
 describe('navigation', () => {
-  it('createNavState returns splash with empty params and history', () => {
+  it('createNavState returns welcome with empty params and history', () => {
     const state = createNavState();
     expect(state.screen).toBe(initialRoute);
     expect(state.params).toEqual({});
@@ -14,7 +14,7 @@ describe('navigation', () => {
     const next = go(state, 'home', { foo: 'bar' });
     expect(next.screen).toBe('home');
     expect(next.params).toEqual({ foo: 'bar' });
-    expect(next.history).toEqual([{ screen: 'splash', params: {} }]);
+    expect(next.history).toEqual([{ screen: 'welcome', params: {} }]);
   });
 
   it('go updates params without duplicating the current screen', () => {
@@ -33,9 +33,9 @@ describe('navigation', () => {
   });
 
   it('back returns to the previous screen', () => {
-    const state = { screen: 'home', params: {}, history: [{ screen: 'splash', params: {} }] };
+    const state = { screen: 'home', params: {}, history: [{ screen: 'welcome', params: {} }] };
     const prev = back(state, 'welcome');
-    expect(prev.screen).toBe('splash');
+    expect(prev.screen).toBe('welcome');
     expect(prev.params).toEqual({});
     expect(prev.history).toEqual([]);
   });

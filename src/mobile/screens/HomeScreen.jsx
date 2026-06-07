@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, PanResponder, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Bell,
   Bookmark,
   BookOpen,
-  ArrowDown,
-  ArrowUp,
+  ChevronLeft,
+  ChevronRight,
   Heart,
   MoreHorizontal,
   PenLine,
@@ -36,8 +36,6 @@ import AsyncState from '../components/AsyncState';
 import SegmentedControl from '../components/SegmentedControl';
 
 const PRAYER_CATEGORIES = ['Healing', 'Family', 'Strength', 'Provision', 'Guidance', 'Gratitude'];
-const SWIPE_DISTANCE_THRESHOLD = 36;
-const SWIPE_VELOCITY_THRESHOLD = 0.28;
 
 const DAILY_VERSES = [
   {
@@ -83,16 +81,6 @@ function formatXP(value) {
   return Math.max(0, Number(value) || 0).toLocaleString();
 }
 
-function isIntentionalVerticalSwipe(gesture) {
-  return Math.abs(gesture.dy) > 12 && Math.abs(gesture.dy) > Math.abs(gesture.dx) * 1.35;
-}
-
-function swipeDirection(gesture) {
-  if (gesture.dy <= -SWIPE_DISTANCE_THRESHOLD || gesture.vy <= -SWIPE_VELOCITY_THRESHOLD) return 1;
-  if (gesture.dy >= SWIPE_DISTANCE_THRESHOLD || gesture.vy >= SWIPE_VELOCITY_THRESHOLD) return -1;
-  return 0;
-}
-
 function ProgressDots({ count, activeIndex, onSelect }) {
   if (!count) return null;
   return (
@@ -114,16 +102,22 @@ function PrayerFocusCard({ prayer, saved, prayed, canUpdate, onPray, onAmen, onS
   const initial = prayer.authorName?.slice(0, 1)?.toUpperCase() || 'P';
   return (
     <View style={styles.focusCard}>
+      <View style={styles.focusAccent} />
       <View style={styles.focusHeader}>
         <View style={styles.focusAvatar}>
           <Text style={styles.focusAvatarText}>{initial}</Text>
         </View>
         <View style={styles.focusMeta}>
           <BodyText variant="label" numberOfLines={1}>{prayer.authorName || 'Community member'}</BodyText>
-          {prayer.urgent ? (
-            <BodyText variant="caption" style={styles.urgentLabel}>Urgent request</BodyText>
-          ) : null}
+          <BodyText variant="caption" style={styles.focusMetaLine}>
+            {prayer.category || 'Prayer request'}
+          </BodyText>
         </View>
+        {prayer.urgent ? (
+          <View style={styles.urgentPill}>
+            <BodyText variant="caption" style={styles.urgentLabel}>Urgent</BodyText>
+          </View>
+        ) : null}
       </View>
 
       <View style={styles.focusBody}>
@@ -135,9 +129,9 @@ function PrayerFocusCard({ prayer, saved, prayed, canUpdate, onPray, onAmen, onS
         ) : null}
         <BodyText variant="body" style={styles.focusText}>{prayer.body}</BodyText>
         {prayer.scriptureRef || prayer.category ? (
-          <BodyText variant="caption" style={styles.focusVerse}>
-            {prayer.scriptureRef || prayer.category}
-          </BodyText>
+            <BodyText variant="caption" style={styles.focusVerse}>
+              {prayer.scriptureRef || prayer.category}
+            </BodyText>
         ) : null}
       </View>
 
@@ -302,26 +296,6 @@ export default function HomeScreen({ user, onOpenPrayer, go }) {
     setCurrentFeedIndex(clamped);
   };
 
-  const feedIndexRef = useRef(currentFeedIndex);
-  feedIndexRef.current = currentFeedIndex;
-  const goToPrayerIndexRef = useRef(goToPrayerIndex);
-  goToPrayerIndexRef.current = goToPrayerIndex;
-
-  const panResponder = useRef(PanResponder.create({
-    onMoveShouldSetPanResponderCapture: (_event, gesture) => isIntentionalVerticalSwipe(gesture),
-    onMoveShouldSetPanResponder: (_event, gesture) => isIntentionalVerticalSwipe(gesture),
-    onPanResponderTerminationRequest: () => false,
-    onPanResponderRelease: (_event, gesture) => {
-      const direction = swipeDirection(gesture);
-      if (direction) goToPrayerIndexRef.current(feedIndexRef.current + direction);
-    },
-    onPanResponderTerminate: (_event, gesture) => {
-      const direction = swipeDirection(gesture);
-      if (direction) goToPrayerIndexRef.current(feedIndexRef.current + direction);
-    },
-    onShouldBlockNativeResponder: () => true,
-  })).current;
-
   useEffect(() => {
     if (currentFeedIndex >= visiblePrayers.length && visiblePrayers.length > 0) {
       setCurrentFeedIndex(visiblePrayers.length - 1);
@@ -452,7 +426,7 @@ export default function HomeScreen({ user, onOpenPrayer, go }) {
         <XPProgressPanel summary={gamified} onAchievements={() => go('achievements')} />
 
         {currentPrayer ? (
-          <View style={styles.feedViewport} {...panResponder.panHandlers}>
+          <View style={styles.feedViewport}>
             <PrayerFocusCard
               prayer={currentPrayer}
               saved={savedPrayerIds.has(currentPrayer.id)}
@@ -468,11 +442,17 @@ export default function HomeScreen({ user, onOpenPrayer, go }) {
             <View style={styles.feedNavRow}>
               <Pressable
                 onPress={() => goToPrayerIndex(currentFeedIndex - 1)}
-                style={styles.feedNavBtn}
+                disabled={currentFeedIndex === 0}
+                style={({ pressed }) => [
+                  styles.feedNavBtn,
+                  currentFeedIndex === 0 && styles.feedNavBtnDisabled,
+                  pressed && styles.feedNavBtnPressed,
+                ]}
                 accessibilityLabel="Previous prayer"
+                accessibilityState={{ disabled: currentFeedIndex === 0 }}
               >
-                <ArrowUp size={18} color={colors.ink} />
-                <BodyText variant="caption" style={styles.feedNavText}>Prev</BodyText>
+                <ChevronLeft size={18} color={currentFeedIndex === 0 ? colors.ink4 : colors.ink} />
+                <BodyText variant="caption" style={styles.feedNavText}>Previous</BodyText>
               </Pressable>
               <View style={styles.feedProgressWrap}>
                 <ProgressDots
@@ -480,15 +460,23 @@ export default function HomeScreen({ user, onOpenPrayer, go }) {
                   activeIndex={currentFeedIndex}
                   onSelect={setCurrentFeedIndex}
                 />
-                <BodyText variant="caption" style={styles.swipeHint}>Swipe up / down</BodyText>
+                <BodyText variant="caption" style={styles.feedCountText}>
+                  {currentFeedIndex + 1} of {visiblePrayers.length}
+                </BodyText>
               </View>
               <Pressable
                 onPress={() => goToPrayerIndex(currentFeedIndex + 1)}
-                style={styles.feedNavBtn}
+                disabled={currentFeedIndex >= visiblePrayers.length - 1}
+                style={({ pressed }) => [
+                  styles.feedNavBtn,
+                  currentFeedIndex >= visiblePrayers.length - 1 && styles.feedNavBtnDisabled,
+                  pressed && styles.feedNavBtnPressed,
+                ]}
                 accessibilityLabel="Next prayer"
+                accessibilityState={{ disabled: currentFeedIndex >= visiblePrayers.length - 1 }}
               >
                 <BodyText variant="caption" style={styles.feedNavText}>Next</BodyText>
-                <ArrowDown size={18} color={colors.ink} />
+                <ChevronRight size={18} color={currentFeedIndex >= visiblePrayers.length - 1 ? colors.ink4 : colors.ink} />
               </Pressable>
             </View>
             <DailyVerseCard />
@@ -749,7 +737,16 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     padding: spacing.xl,
     minHeight: 340,
+    overflow: 'hidden',
     ...shadow.card,
+  },
+  focusAccent: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 5,
+    backgroundColor: colors.gold,
   },
   focusHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.lg },
   focusAvatar: {
@@ -762,7 +759,16 @@ const styles = StyleSheet.create({
   },
   focusAvatarText: { fontFamily: fonts.sansExtraBold, fontSize: 16, color: colors.ink },
   focusMeta: { flex: 1 },
-  urgentLabel: { color: colors.redSoft, marginTop: 2 },
+  focusMetaLine: { color: colors.ink3, marginTop: 2 },
+  urgentPill: {
+    borderRadius: radii.pill,
+    backgroundColor: 'rgba(220,79,79,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(220,79,79,0.20)',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+  },
+  urgentLabel: { color: colors.redSoft, fontFamily: fonts.sansSemiBold },
   focusBody: { flex: 1, marginBottom: spacing.lg },
   focusQuote: { fontSize: 32, lineHeight: 32, color: colors.goldLight, fontFamily: fonts.display, opacity: 0.6 },
   focusTitle: { fontSize: 20, lineHeight: 26, marginBottom: spacing.sm },
@@ -794,20 +800,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: spacing.md,
-    paddingHorizontal: spacing.sm,
+    marginTop: spacing.lg,
+    gap: spacing.md,
   },
   feedNavBtn: {
-    width: 44,
+    minWidth: 98,
     height: 44,
-    borderRadius: 22,
+    borderRadius: radii.pill,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: alpha.ink08,
+    flexDirection: 'row',
+    gap: spacing.xs,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadow.subtle,
   },
+  feedNavBtnDisabled: { opacity: 0.45 },
+  feedNavBtnPressed: { opacity: 0.86 },
   feedProgressWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2 },
   progressDots: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, justifyContent: 'center' },
-  swipeHint: { color: colors.ink4, fontSize: 10 },
+  feedCountText: { color: colors.ink4, fontSize: 10, marginTop: 2 },
   progressDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.surface3 },
   progressDotActive: { width: 24, borderRadius: 4, backgroundColor: colors.teal },
   emptyFeedCard: { marginBottom: spacing.lg, alignItems: 'center', paddingVertical: spacing.xxl },

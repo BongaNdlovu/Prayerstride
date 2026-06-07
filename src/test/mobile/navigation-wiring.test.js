@@ -12,7 +12,7 @@ const ROUTED_SCREENS = [
   'accountSuspended',
 ];
 
-const AUTH_ROUTES = ['splash', 'welcome', 'reminderSetup', 'stayConnected', 'signIn', 'createAccount', 'resetPassword'];
+const AUTH_ROUTES = ['welcome', 'reminderSetup', 'stayConnected', 'signIn', 'createAccount', 'resetPassword'];
 
 describe('navigation wiring', () => {
   it('app shell routes all expected screen names', async () => {

@@ -1,4 +1,4 @@
-export const initialRoute = 'splash';
+export const initialRoute = 'welcome';
 const MAX_HISTORY_LENGTH = 40;
 
 export function createNavState() {

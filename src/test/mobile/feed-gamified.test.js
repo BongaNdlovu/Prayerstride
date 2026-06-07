@@ -6,10 +6,10 @@ describe('gamified feed source contract', () => {
     expect(source.default).toMatch(/currentFeedIndex/);
     expect(source.default).toMatch(/goToPrayerIndex/);
     expect(source.default).toMatch(/prayerMatchesQuery/);
-    expect(source.default).toMatch(/PanResponder/);
-    expect(source.default).toMatch(/isIntentionalVerticalSwipe/);
-    expect(source.default).toMatch(/swipeDirection/);
-    expect(source.default).toMatch(/onMoveShouldSetPanResponderCapture/);
+    expect(source.default).not.toMatch(/PanResponder/);
+    expect(source.default).not.toMatch(/isIntentionalVerticalSwipe/);
+    expect(source.default).not.toMatch(/swipeDirection/);
+    expect(source.default).not.toMatch(/onMoveShouldSetPanResponderCapture/);
     expect(source.default).toMatch(/progressDots/);
     expect(source.default).toMatch(/searchOpen/);
     expect(source.default).toMatch(/searchQuery/);
@@ -26,7 +26,7 @@ describe('gamified feed source contract', () => {
     expect(source.default).toMatch(/PRAYER_DETAILS_LIMIT/);
     expect(source.default).toMatch(/PRAYER_CATEGORIES/);
     expect(source.default).toMatch(/composeScriptureRef/);
-    expect(source.default).toMatch(/gesture\.dy/);
+    expect(source.default).not.toMatch(/gesture\.dy/);
     expect(source.default).toMatch(/setCurrentFeedIndex/);
     expect(source.default).not.toMatch(/document\./);
     expect(source.default).not.toMatch(/LEADERBOARD_DATA/);

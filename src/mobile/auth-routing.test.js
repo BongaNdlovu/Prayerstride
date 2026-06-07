@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-const AUTH_ROUTES = ['splash', 'welcome', 'reminderSetup', 'stayConnected', 'signIn', 'createAccount', 'resetPassword'];
+const AUTH_ROUTES = ['welcome', 'reminderSetup', 'stayConnected', 'signIn', 'createAccount', 'resetPassword'];
 
 function isAuthRoute(screen) {
   return AUTH_ROUTES.includes(screen);
@@ -8,7 +8,7 @@ function isAuthRoute(screen) {
 
 function getRouteForSignedOutUser(currentScreen) {
   if (isAuthRoute(currentScreen)) return currentScreen;
-  return 'splash';
+  return 'welcome';
 }
 
 function getRouteForSignedInUser(currentScreen) {
@@ -50,9 +50,9 @@ describe('auth routing', () => {
     expect(source.default).toMatch(/setUser\(MOCK_USER\)/);
   });
 
-  it('signed-out user on authenticated route goes to splash', () => {
-    expect(getRouteForSignedOutUser('home')).toBe('splash');
-    expect(getRouteForSignedOutUser('profile')).toBe('splash');
+  it('signed-out user on authenticated route goes to welcome', () => {
+    expect(getRouteForSignedOutUser('home')).toBe('welcome');
+    expect(getRouteForSignedOutUser('profile')).toBe('welcome');
   });
 
   it('signed-out user on auth route stays', () => {
@@ -64,7 +64,6 @@ describe('auth routing', () => {
 
   it('signed-in user on auth route goes home', () => {
     expect(getRouteForSignedInUser('signIn')).toBe('home');
-    expect(getRouteForSignedInUser('splash')).toBe('home');
     expect(getRouteForSignedInUser('welcome')).toBe('home');
     expect(getRouteForSignedInUser('resetPassword')).toBe('home');
   });

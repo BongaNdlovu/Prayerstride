@@ -1,15 +1,39 @@
+import { Fragment } from 'react';
 import { View } from 'react-native';
-import Svg, { Defs, LinearGradient, Rect, Stop, Text as SvgText } from 'react-native-svg';
+import Svg, { Defs, Line, LinearGradient, Rect, Stop, Text as SvgText } from 'react-native-svg';
 import { colors, spacing } from '../theme';
+
+function buildAxisTicks(maxValue) {
+  const value = Math.max(1, Math.ceil(Number(maxValue) || 0));
+  if (value <= 4) {
+    return Array.from({ length: value + 1 }, (_, index) => index);
+  }
+
+  const roughStep = value / 4;
+  const magnitude = 10 ** Math.floor(Math.log10(roughStep));
+  const normalized = roughStep / magnitude;
+  const niceStep = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
+  const step = niceStep * magnitude;
+  const axisMax = Math.ceil(value / step) * step;
+  const ticks = [];
+
+  for (let tick = 0; tick <= axisMax; tick += step) {
+    ticks.push(tick);
+  }
+
+  return ticks;
+}
 
 export default function WeeklyBarChart({ data, width = 308, height = 150, unit = 'sessions' }) {
   if (!data || data.length === 0) return null;
 
-  const padding = { top: 12, right: 10, bottom: 26, left: 28 };
+  const padding = { top: 12, right: 12, bottom: 26, left: 34 };
   const chartW = width - padding.left - padding.right;
   const chartH = height - padding.top - padding.bottom;
   const values = data.map((item) => item.prayers ?? item.value ?? item.minutes ?? 0);
   const maxVal = Math.max(...values, 1);
+  const yTicks = buildAxisTicks(maxVal);
+  const axisMax = yTicks[yTicks.length - 1] || 1;
   const barWidth = chartW / data.length - 8;
 
   return (
@@ -21,19 +45,28 @@ export default function WeeklyBarChart({ data, width = 308, height = 150, unit =
             <Stop offset="1" stopColor={colors.teal} />
           </LinearGradient>
         </Defs>
-        {[0, 0.25, 0.5, 0.75, 1].map((frac, index) => {
-          const y = padding.top + chartH * (1 - frac);
-          const label = Math.round(maxVal * frac);
+        {yTicks.map((tick, index) => {
+          const y = padding.top + chartH * (1 - tick / axisMax);
           const suffix = unit === 'minutes' ? 'm' : '';
           return (
-            <SvgText key={`yl-${index}`} x={padding.left - 7} y={y + 4} textAnchor="end" fontSize="10" fill={colors.ink3}>
-              {frac === 0 ? `0${suffix}` : `${label}${suffix}`}
-            </SvgText>
+            <Fragment key={`yl-${index}`}>
+              <Line
+                x1={padding.left}
+                x2={width - padding.right}
+                y1={y}
+                y2={y}
+                stroke={colors.surface3}
+                strokeWidth={1}
+              />
+              <SvgText x={padding.left - 8} y={y + 4} textAnchor="end" fontSize="10" fill={colors.ink3}>
+                {`${tick}${suffix}`}
+              </SvgText>
+            </Fragment>
           );
         })}
         {data.map((item, index) => {
           const value = item.prayers ?? item.value ?? item.minutes ?? 0;
-          const barH = (value / maxVal) * chartH;
+          const barH = (value / axisMax) * chartH;
           const x = padding.left + index * (chartW / data.length) + 4;
           const y = padding.top + chartH - barH;
           return (

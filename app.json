@@ -10,7 +10,8 @@
     ],
     "runtimeVersion": "1.0.0",
     "updates": {
-      "url": "https://u.expo.dev/b9037650-d868-4974-be17-28e248d5669c"
+      "url": "https://u.expo.dev/b9037650-d868-4974-be17-28e248d5669c",
+      "checkAutomatically": "ON_ERROR_RECOVERY"
     },
     "assetBundlePatterns": [
       "assets/icon.png",

@@ -26,7 +26,6 @@ import RemindersScreen from '../../../src/mobile/screens/RemindersScreen';
 import ReportDetailsScreen from '../../../src/mobile/screens/ReportDetailsScreen';
 import ResetPasswordScreen from '../../../src/mobile/screens/ResetPasswordScreen';
 import SettingsScreen from '../../../src/mobile/screens/SettingsScreen';
-import SplashScreen from '../../../src/mobile/screens/SplashScreen';
 import StayConnectedScreen from '../../../src/mobile/screens/StayConnectedScreen';
 import TermsOfServiceScreen from '../../../src/mobile/screens/TermsOfServiceScreen';
 import WelcomeScreen from '../../../src/mobile/screens/WelcomeScreen';
@@ -60,7 +59,6 @@ const SCREENS = [
   { name: 'ReportDetailsScreen', Cmp: ReportDetailsScreen, props: { report, go: noop, back: noop } },
   { name: 'ResetPasswordScreen', Cmp: ResetPasswordScreen, props: { onResetPassword: noop, onBack: noop } },
   { name: 'SettingsScreen', Cmp: SettingsScreen, props: { user, go: noop, deleteAccount: noop, onBack: noop } },
-  { name: 'SplashScreen', Cmp: SplashScreen, props: { onReady: noop } },
   { name: 'StayConnectedScreen', Cmp: StayConnectedScreen, props: { onContinue: noop } },
   { name: 'TermsOfServiceScreen', Cmp: TermsOfServiceScreen, props: { onBack: noop } },
   { name: 'WelcomeScreen', Cmp: WelcomeScreen, props: { onContinue: noop, onSignIn: noop } },
@@ -72,7 +70,7 @@ describe('screen rendering', () => {
     expect(container.innerHTML.length).toBeGreaterThan(0);
   });
 
-  it('renders all 27 screens in sequence', () => {
+  it('renders all 26 screens in sequence', () => {
     for (const { Cmp, props } of SCREENS) {
       const { container, unmount } = render(React.createElement(Cmp, props));
       expect(container.innerHTML.length).toBeGreaterThan(0);
