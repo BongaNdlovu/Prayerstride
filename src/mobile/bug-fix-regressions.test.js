@@ -55,7 +55,9 @@ describe('bug fix regressions — batch 1 and 2', () => {
   it('HomeScreen marks answered prayers without creating testimony records', async () => {
     const source = await import('./screens/HomeScreen.jsx?raw');
     expect(source.default).not.toMatch(/await addTestimony/);
-    expect(source.default).toMatch(/await markAnswered\(updatePrayer\.id\)/);
+    expect(source.default).toMatch(/Alert\.alert\('Mark Prayer Answered'/);
+    expect(source.default).toMatch(/await markAnswered\(prayer\.id\)/);
+    expect(source.default).not.toMatch(/updateBody/);
   });
 
   it('PrimaryButton supports subdued secondary variant', async () => {

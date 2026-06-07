@@ -33,6 +33,17 @@ describe('worker index regressions', () => {
     expect(source).toContain("You cannot react to your own testimony.");
   });
 
+  it('records answered-prayer gamification only after a successful preconditioned write', async () => {
+    const source = (await import('../../../worker/index.js?raw')).default;
+    const fnBody = source.match(/async function markPrayerAnswered[\s\S]*?\nasync function deletePrayer/)?.[0] || '';
+
+    expect(fnBody).toContain('if (alreadyAnswered) {');
+    expect(fnBody).toContain('return json({ ok: true, prayerId, alreadyAnswered: true });');
+    expect(fnBody).toContain('commitOptions: { precondition: { updateTime: contentDoc.updateTime } }');
+    expect(fnBody).toContain('if (result?.preconditionFailed) {');
+    expect(fnBody.indexOf('await recordPrayerAnswered')).toBeGreaterThan(fnBody.indexOf('if (result?.preconditionFailed) {'));
+  });
+
   it('guards fresh in-progress account deletion jobs but allows stale recovery', () => {
     const now = Date.parse('2026-06-06T12:00:00.000Z');
     expect(isFreshInProgressDeletion({

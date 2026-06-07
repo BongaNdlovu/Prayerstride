@@ -1037,7 +1037,7 @@ async function markPrayerAnswered(env, user, prayerId) {
     status: 'answered',
     updatedAt: new Date().toISOString(),
   };
-  await commitFirestoreWithD1(env, firestoreApi, {
+  const result = await commitFirestoreWithD1(env, firestoreApi, {
     feature: 'prayers',
     entityType: 'prayers',
     entityId: prayerId,
@@ -1048,8 +1048,20 @@ async function markPrayerAnswered(env, user, prayerId) {
         fields: toFirestoreFields(answeredFields),
       },
     }],
+    commitOptions: { precondition: { updateTime: contentDoc.updateTime } },
     syncD1: () => upsertPrayer(env, prayerRowFromFirestore(prayerId, answeredFields)),
   });
+  if (result?.preconditionFailed) {
+    const latest = await getDocument(env, contentDoc.name);
+    const latestData = latest.exists ? fromFirestoreFields(latest.fields) : {};
+    if (latestData.status === 'answered') {
+      return json({ ok: true, prayerId, alreadyAnswered: true });
+    }
+    throw Object.assign(new Error('Prayer changed while marking answered.'), {
+      status: 409,
+      publicMessage: 'Prayer changed. Please retry.',
+    });
+  }
   await recordPrayerAnswered(gamificationFirestore, env, user.uid, null);
   return json({ ok: true, prayerId });
 }

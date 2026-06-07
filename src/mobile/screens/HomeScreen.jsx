@@ -266,9 +266,6 @@ export default function HomeScreen({ user, onOpenPrayer, go }) {
   const [composeCategory, setComposeCategory] = useState('Guidance');
   const [composeScriptureRef, setComposeScriptureRef] = useState('');
   const [composeBusy, setComposeBusy] = useState(false);
-  const [updatePrayer, setUpdatePrayer] = useState(null);
-  const [updateBody, setUpdateBody] = useState('');
-  const [updateBusy, setUpdateBusy] = useState(false);
 
   useEffect(() => {
     if (!Array.isArray(gamified.prayedTodayIds)) return;
@@ -377,22 +374,29 @@ export default function HomeScreen({ user, onOpenPrayer, go }) {
     }
   };
 
-  const submitUpdate = async () => {
-    if (!updatePrayer?.id || !updateBody.trim() || updateBusy) return;
-    setUpdateBusy(true);
-    try {
-      await markAnswered(updatePrayer.id);
-      setUpdatePrayer(null);
-      setUpdateBody('');
-      feedback.celebrate();
-      feedback.showToast({ message: 'Prayer marked answered' });
-      retryPrayers();
-      retryStats();
-    } catch (error) {
-      Alert.alert('Could not share update', getErrorMessage(error));
-    } finally {
-      setUpdateBusy(false);
+  const handleMarkAnswered = (prayer) => {
+    if (!prayer?.id || prayer.authorUid !== uid) return;
+    if (prayer.status === 'answered') {
+      feedback.showToast({ message: 'Prayer already answered' });
+      return;
     }
+    Alert.alert('Mark Prayer Answered', 'Mark this prayer request as answered?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Mark Answered',
+        onPress: async () => {
+          try {
+            await markAnswered(prayer.id);
+            feedback.celebrate();
+            feedback.showToast({ message: 'Prayer marked answered' });
+            retryPrayers();
+            retryStats();
+          } catch (error) {
+            Alert.alert('Could not mark prayer answered', getErrorMessage(error));
+          }
+        },
+      },
+    ]);
   };
 
   const handleDeletePrayer = (prayer) => {
@@ -458,10 +462,7 @@ export default function HomeScreen({ user, onOpenPrayer, go }) {
               onAmen={() => handleAmen(currentPrayer)}
               onSave={() => handleSave(currentPrayer)}
               onMore={() => onOpenPrayer(currentPrayer)}
-              onUpdate={() => {
-                setUpdatePrayer(currentPrayer);
-                setUpdateBody('');
-              }}
+              onUpdate={() => handleMarkAnswered(currentPrayer)}
               onDelete={() => handleDeletePrayer(currentPrayer)}
             />
             <View style={styles.feedNavRow}>
@@ -581,36 +582,6 @@ export default function HomeScreen({ user, onOpenPrayer, go }) {
         </View>
       ) : null}
 
-      {updatePrayer ? (
-        <View style={styles.composeOverlay}>
-          <View style={styles.composeSheet}>
-            <View style={styles.composeHeader}>
-              <Heading level="h4">Add Prayer Update</Heading>
-              <Pressable onPress={() => setUpdatePrayer(null)} style={styles.searchCloseBtn}>
-                <X size={20} color={colors.ink} />
-              </Pressable>
-            </View>
-            <TextInput
-              value={updateBody}
-              onChangeText={(text) => setUpdateBody(text.slice(0, 280))}
-              placeholder="Share a short answered-prayer note..."
-              placeholderTextColor={colors.ink3}
-              style={[styles.composeInput, styles.composeBodyInput]}
-              multiline
-              maxLength={280}
-            />
-            <BodyText variant="caption" style={styles.composeCounter}>
-              {updateBody.length}/280
-            </BodyText>
-            <PrimaryButton
-              label={updateBusy ? 'Sharing...' : 'Share Update'}
-              onPress={submitUpdate}
-              busy={updateBusy}
-              disabled={!updateBody.trim()}
-            />
-          </View>
-        </View>
-      ) : null}
     </ScreenScaffold>
   );
 }

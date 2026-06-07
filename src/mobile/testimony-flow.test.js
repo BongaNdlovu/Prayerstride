@@ -4,7 +4,9 @@ describe('testimony flow', () => {
   it('HomeScreen marks prayers answered without creating testimonies', async () => {
     const source = await import('./screens/HomeScreen.jsx?raw');
     expect(source.default).not.toMatch(/addTestimony/);
-    expect(source.default).toMatch(/markAnswered\(updatePrayer\.id\)/);
+    expect(source.default).toMatch(/await markAnswered\(prayer\.id\)/);
+    expect(source.default).not.toMatch(/updateBody/);
+    expect(source.default).not.toMatch(/Share Update/);
   });
 
   it('Worker still accepts testimony reaction types for admin/content compatibility', async () => {

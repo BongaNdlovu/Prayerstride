@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { commitFirestoreWithD1 } from '../../../worker/db/commit.js';
 import { logDualWriteFailure, runDualWrite } from '../../../worker/db/dual-write.js';
 
 describe('dual-write', () => {
@@ -78,5 +79,24 @@ describe('dual-write', () => {
       .rejects.toThrow('Firestore quota exceeded');
 
     expect(d1Write).not.toHaveBeenCalled();
+  });
+
+  it('skips D1 sync when Firestore reports a precondition race', async () => {
+    const syncD1 = vi.fn(async () => {});
+    const firestoreCommit = vi.fn(async () => ({ preconditionFailed: true }));
+    const env = { DB: { prepare: vi.fn(() => ({ bind: vi.fn(() => ({ run: vi.fn() })) })) } };
+
+    const result = await commitFirestoreWithD1(env, { firestoreCommit }, {
+      feature: 'prayers',
+      entityType: 'prayers',
+      entityId: 'p5',
+      operation: 'mark-answered',
+      writes: [],
+      commitOptions: { precondition: { updateTime: 'old' } },
+      syncD1,
+    });
+
+    expect(result).toEqual({ preconditionFailed: true });
+    expect(syncD1).not.toHaveBeenCalled();
   });
 });

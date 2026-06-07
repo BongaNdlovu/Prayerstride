@@ -20,7 +20,7 @@ export async function commitFirestoreWithD1(env, firestoreApi, options) {
       commitResult = await firestoreApi.firestoreCommit(env, writes, commitOptions);
     },
     async () => {
-      if (syncD1 && !commitResult?.alreadyExists) await syncD1();
+      if (syncD1 && !commitResult?.alreadyExists && !commitResult?.preconditionFailed) await syncD1();
     },
   );
   return commitResult;
