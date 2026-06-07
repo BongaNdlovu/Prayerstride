@@ -59,8 +59,10 @@ describe('static feature screens', () => {
 
   it('AppFeedbackProvider is mounted in app shell', async () => {
     const app = await import('../../app/index.jsx?raw');
+    const navigation = await import('./navigation.js?raw');
     expect(app.default).toMatch(/AppFeedbackProvider/);
-    expect(app.default).toMatch(/MAIN_TAB_ROUTES = \['home', 'leaderboard', 'stride', 'profile'\]/);
+    expect(app.default).toMatch(/MAIN_TAB_ROUTES/);
+    expect(navigation.default).toMatch(/MAIN_TAB_ROUTES = \['home', 'leaderboard', 'stride', 'profile'\]/);
     expect(app.default).not.toMatch(/case 'discover'/);
     expect(app.default).not.toMatch(/case 'praise'/);
     expect(app.default).not.toMatch(/case 'dailyChallenge'/);

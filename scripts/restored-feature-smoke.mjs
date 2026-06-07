@@ -34,7 +34,7 @@ const preservedRoutes = {
   copyright: 'CopyrightScreen',
 };
 
-const authScreens = ['splash', 'welcome', 'reminderSetup', 'stayConnected', 'signIn', 'createAccount', 'resetPassword'];
+const authScreens = ['welcome', 'reminderSetup', 'stayConnected', 'signIn', 'createAccount', 'resetPassword'];
 
 const removedScreens = [
   'AnsweredPrayersScreen',
@@ -55,7 +55,6 @@ const removedScreens = [
 ];
 
 const componentFiles = [
-  'PageHero',
   'GlassCard',
   'AppHeader',
   'BottomTabs',
@@ -63,7 +62,6 @@ const componentFiles = [
   'ToggleRow',
   'StatCard',
   'PrayerCard',
-  'TestimonyCard',
   'WeeklyBarChart',
   'ProgressRing',
   'AsyncState',
@@ -111,6 +109,7 @@ console.log('\n3. Auth routes are still wired');
 for (const route of authScreens) {
   check(`Auth route '${route}' has explicit handling`, appSource.includes(`screen === '${route}'`));
 }
+check('Splash route is removed', !appSource.includes("screen === 'splash'") && !appSource.includes("reset('splash'"));
 check('AuthScreen still handles sign-in/create-account', appSource.includes('AuthScreen mode="signIn"') && appSource.includes('AuthScreen mode="register"'));
 
 console.log('\n4. Legacy standalone screens are gone');
@@ -140,10 +139,10 @@ for (const component of removedScreens) {
 
 console.log('\n5. Prototype tabs and feed behavior');
 check('Bottom tabs use Feed, Ranks, Stride, Profile', bottomTabsSource.includes("key: 'home'") && bottomTabsSource.includes("key: 'leaderboard'") && bottomTabsSource.includes("key: 'stride'") && bottomTabsSource.includes("key: 'profile'"));
-check('Timer is focused from Home prayer card', homeSource.includes("go('timer', { prayerId: currentPrayer.id, title: currentPrayer.title })"));
+check('Timer is focused from Home prayer card', homeSource.includes("go('timer', { prayerId: currentPrayer.id"));
 check('Home creates prototype prayer fields', homeSource.includes('addPrayer') && homeSource.includes('PRAYER_CATEGORIES') && homeSource.includes('composeScriptureRef'));
-check('Home updates answered prayers through testimony flow', homeSource.includes('addTestimony') && homeSource.includes('markAnswered(updatePrayer.id)'));
-check('Home supports vertical feed gestures', homeSource.includes('gesture.dy') && homeSource.includes('setCurrentFeedIndex'));
+check('Home updates answered prayers without testimony coupling', homeSource.includes('handleMarkAnswered(currentPrayer)') && !homeSource.includes('addTestimony'));
+check('Home uses explicit feed controls instead of vertical gestures', homeSource.includes('feedNavBtn') && homeSource.includes('setCurrentFeedIndex') && !homeSource.includes('gesture.dy'));
 
 console.log('\n6. Preserved feature access');
 check('Profile links to reminders', profileSource.includes("route: PROFILE_ROUTES.reminderSettings"));

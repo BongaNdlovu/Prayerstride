@@ -11,7 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../src/mobile/AuthProvider';
 import { colors, radii, spacing } from '../src/mobile/theme';
 import { registerForPushNotifications } from '../src/mobile/notifications';
-import { back, createNavState, go, reset } from '../src/mobile/navigation';
+import { AUTH_ROUTES, MAIN_TAB_ROUTES, back, createNavState, go, reset } from '../src/mobile/navigation';
 import { useSuspendedStatus } from '../src/mobile/useIsAdmin';
 import { warn } from '../src/mobile/logger';
 import BottomTabs from '../src/mobile/components/BottomTabs';
@@ -47,9 +47,6 @@ import WelcomeScreen from '../src/mobile/screens/WelcomeScreen';
 import { AppFeedbackProvider } from '../src/mobile/AppFeedbackProvider';
 import { AppThemeProvider } from '../src/mobile/AppThemeProvider';
 import { useGamificationPreferences } from '../src/mobile/useGamificationPreferences';
-
-const AUTH_ROUTES = ['welcome', 'reminderSetup', 'stayConnected', 'signIn', 'createAccount', 'resetPassword'];
-const MAIN_TAB_ROUTES = ['home', 'leaderboard', 'stride', 'profile'];
 
 export default function MobileApp() {
   const { user, loading, registering, signIn, register, completePendingRegistration, signOut, resetPassword, deleteAccount } = useAuth();

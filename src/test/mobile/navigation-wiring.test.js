@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { AUTH_ROUTES } from '../../../src/mobile/navigation';
 
 const ROUTED_SCREENS = [
   'home', 'leaderboard', 'stride', 'profile',
@@ -11,8 +12,6 @@ const ROUTED_SCREENS = [
   'adminDashboard', 'reportDetails',
   'accountSuspended',
 ];
-
-const AUTH_ROUTES = ['welcome', 'reminderSetup', 'stayConnected', 'signIn', 'createAccount', 'resetPassword'];
 
 describe('navigation wiring', () => {
   it('app shell routes all expected screen names', async () => {

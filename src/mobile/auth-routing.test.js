@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-
-const AUTH_ROUTES = ['welcome', 'reminderSetup', 'stayConnected', 'signIn', 'createAccount', 'resetPassword'];
+import { AUTH_ROUTES } from './navigation';
 
 function isAuthRoute(screen) {
   return AUTH_ROUTES.includes(screen);

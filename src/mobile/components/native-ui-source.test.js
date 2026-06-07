@@ -31,7 +31,6 @@ describe('native UI kit', () => {
       'StatCard',
       'PrayerCard',
       'WeeklyBarChart',
-      'StreakCalendar',
       'AsyncState',
       'MotionPressable',
       'Heading',
@@ -51,7 +50,7 @@ describe('native UI kit', () => {
   });
 
   it('shared native components do not import react-dom or browser APIs', async () => {
-    const names = ['ScreenScaffold', 'GlassCard', 'AppHeader', 'BottomTabs', 'EmptyState', 'ToggleRow', 'StatCard', 'PrayerCard', 'WeeklyBarChart', 'StreakCalendar', 'AsyncState', 'MotionPressable'];
+    const names = ['ScreenScaffold', 'GlassCard', 'AppHeader', 'BottomTabs', 'EmptyState', 'ToggleRow', 'StatCard', 'PrayerCard', 'WeeklyBarChart', 'AsyncState', 'MotionPressable'];
 
     for (const name of names) {
       const source = await import(`../components/${name}.jsx?raw`);
@@ -71,13 +70,6 @@ describe('native UI kit', () => {
     expect(source.default).toMatch(/width:\s*'100%'/);
     expect(source.default).toMatch(/centerContent/);
     expect(source.default).toMatch(/justifyContent:\s*'center'/);
-  });
-
-  it('streak days shrink proportionately on narrow smartphone screens', async () => {
-    const source = await import('../components/StreakCalendar.jsx?raw');
-    expect(source.default).toMatch(/flex:\s*1/);
-    expect(source.default).toMatch(/maxWidth:\s*34/);
-    expect(source.default).toMatch(/aspectRatio:\s*1/);
   });
 
   it('uses the supplied transparent logo for in-app branding', async () => {
