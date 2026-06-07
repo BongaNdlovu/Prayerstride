@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Footprints, Home, Trophy, User } from 'lucide-react-native';
-import { alpha, colors, fonts, onDark, spacing } from '../theme';
+import { alpha, colors, fonts, onDark, shadow, spacing } from '../theme';
 import { useAppTheme } from '../AppThemeProvider';
 
 const tabs = [
@@ -14,8 +14,9 @@ const styles = StyleSheet.create({
   shell: {
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    backgroundColor: 'rgba(250,250,248,0.92)',
+    backgroundColor: 'rgba(255,255,255,0.94)',
     paddingBottom: spacing.lg + 8,
+    ...shadow.subtle,
   },
   shellDark: {
     borderTopColor: onDark.border,
@@ -25,12 +26,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-around',
-    paddingTop: 10,
+    paddingTop: 12,
     paddingHorizontal: spacing.sm,
   },
   tabItem: { flex: 1, alignItems: 'center', gap: 4, paddingBottom: spacing.xs },
-  tabIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  tabIconActive: { backgroundColor: alpha.gold18 },
+  tabItemPressed: { opacity: 0.78 },
+  tabIcon: { width: 38, height: 38, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  tabIconActive: { backgroundColor: alpha.gold18, borderWidth: 1, borderColor: alpha.gold30 },
   tabStrideWrap: {
     width: 38,
     height: 38,
@@ -57,7 +59,14 @@ export default function BottomTabs({ active, onChange }) {
           const isStride = key === 'stride';
 
           return (
-            <Pressable key={key} onPress={() => onChange(key, {})} style={styles.tabItem} accessibilityRole="button" accessibilityLabel={label}>
+            <Pressable
+              key={key}
+              onPress={() => onChange(key, {})}
+              style={({ pressed }) => [styles.tabItem, pressed && styles.tabItemPressed]}
+              accessibilityRole="button"
+              accessibilityLabel={label}
+              accessibilityState={{ selected }}
+            >
               {isStride ? (
                 <View style={[styles.tabStrideWrap, darkMode && styles.tabStrideWrapDark, selected && styles.tabStrideWrapActive]}>
                   <Icon size={14} color={selected ? colors.goldLight : darkMode ? onDark.textMuted : colors.ink3} />

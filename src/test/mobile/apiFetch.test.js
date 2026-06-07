@@ -198,6 +198,15 @@ describe('mobile API backend wiring', () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
+  it('apiFetch does not allow caller headers to override the Firebase token', async () => {
+    await api.apiFetch('/api/secure', {
+      headers: { Authorization: 'Bearer attacker-token' },
+    });
+
+    const { options } = lastFetchCall();
+    expect(options.headers.Authorization).toBe('Bearer test-token');
+  });
+
   it('buildNotificationStreamUrl does not include bearer tokens in the URL', () => {
     const url = api.buildNotificationStreamUrl('test-token');
     if (url) expect(url).not.toContain('test-token');

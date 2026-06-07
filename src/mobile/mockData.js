@@ -6,8 +6,14 @@ const MOCK_BASE_URL = 'https://mock.prayerstride.local';
 let cachedState = null;
 let idCounter = 1;
 
+function isDevelopmentRuntime() {
+  if (typeof __DEV__ !== 'undefined') return __DEV__ === true;
+  return process.env.NODE_ENV === 'test';
+}
+
 export function isMockDataEnabled() {
-  return TRUE_VALUES.has(String(process.env.EXPO_PUBLIC_USE_MOCK_DATA || '').trim().toLowerCase());
+  return isDevelopmentRuntime()
+    && TRUE_VALUES.has(String(process.env.EXPO_PUBLIC_USE_MOCK_DATA || '').trim().toLowerCase());
 }
 
 function clone(value) {

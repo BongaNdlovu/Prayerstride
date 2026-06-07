@@ -25,6 +25,28 @@ describe('mock data mode', () => {
     }
   });
 
+  it('keeps mock mode disabled outside dev and test runtimes', () => {
+    const originalValue = process.env.EXPO_PUBLIC_USE_MOCK_DATA;
+    const originalDev = globalThis.__DEV__;
+    try {
+      process.env.EXPO_PUBLIC_USE_MOCK_DATA = 'true';
+      globalThis.__DEV__ = false;
+
+      expect(isMockDataEnabled()).toBe(false);
+    } finally {
+      if (originalDev === undefined) {
+        delete globalThis.__DEV__;
+      } else {
+        globalThis.__DEV__ = originalDev;
+      }
+      if (originalValue === undefined) {
+        delete process.env.EXPO_PUBLIC_USE_MOCK_DATA;
+      } else {
+        process.env.EXPO_PUBLIC_USE_MOCK_DATA = originalValue;
+      }
+    }
+  });
+
   it('returns an admin profile and populated prototype feed', async () => {
     const profile = await mockApiFetch('/api/me/profile', {}, user);
     expect(profile.profile.uid).toBe(user.uid);

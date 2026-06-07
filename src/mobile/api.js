@@ -38,8 +38,8 @@ export async function apiFetch(path, options = {}) {
   const abortContext = createFetchAbortContext(options.signal, API_TIMEOUT_MS);
 
   const headers = {
-    Authorization: `Bearer ${token}`,
     ...(options.headers || {}),
+    Authorization: `Bearer ${token}`,
   };
   if (!headers['Content-Type'] && !headers['content-type']) {
     headers['Content-Type'] = 'application/json';

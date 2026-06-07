@@ -478,9 +478,9 @@ vi.mock('../../../src/mobile/useReports', () => ({
 
 vi.mock('lucide-react-native', () => {
   const iconNames = [
-    'ArrowDown', 'ArrowLeft', 'ArrowUp', 'Award', 'BarChart3', 'Bell', 'BookOpen', 'Bookmark', 'Calendar',
+    'AlertCircle', 'ArrowDown', 'ArrowLeft', 'ArrowUp', 'Award', 'BarChart3', 'Bell', 'BookOpen', 'Bookmark', 'Briefcase', 'Calendar',
     'Camera', 'Check', 'CheckCircle', 'ChevronLeft', 'ChevronRight', 'Clock', 'Edit', 'ExternalLink', 'Eye',
-    'EyeOff', 'Filter', 'Flame', 'Footprints', 'Globe', 'Heart', 'Home', 'Image', 'Info', 'Link', 'Lock',
+    'EyeOff', 'Filter', 'Flame', 'Footprints', 'Globe', 'Heart', 'Home', 'Image', 'Inbox', 'Info', 'Link', 'Lock',
     'LogOut', 'Mail', 'MapPin', 'Megaphone', 'MessageCircle', 'Moon', 'MoreHorizontal', 'Pause', 'PenLine',
     'Phone', 'Play', 'PlayCircle', 'Plus', 'RotateCcw', 'Search', 'Send', 'SendHorizontal', 'Settings',
     'Share', 'Shield', 'ShieldAlert', 'Sliders', 'Sparkles', 'Star', 'StopCircle', 'Sun', 'Sunrise', 'Target',

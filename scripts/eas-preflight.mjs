@@ -2,6 +2,12 @@ import { existsSync, lstatSync, readdirSync, readFileSync, rmSync } from 'node:f
 import { join, relative } from 'node:path';
 
 const root = process.cwd();
+const trueValues = new Set(['1', 'true', 'yes', 'on', 'mock']);
+
+if (trueValues.has(String(process.env.EXPO_PUBLIC_USE_MOCK_DATA || '').trim().toLowerCase())) {
+  console.error('EAS preflight failed: EXPO_PUBLIC_USE_MOCK_DATA must be false for native builds.');
+  process.exit(1);
+}
 
 const generatedAndroidDirs = [
   'android/.gradle',

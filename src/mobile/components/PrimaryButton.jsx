@@ -24,7 +24,7 @@ export default function PrimaryButton({
         accessibilityRole="button"
         accessibilityLabel={label}
         accessibilityState={{ disabled: disabled || busy, busy }}
-        style={[styles.ghost, disabled && styles.disabled, style]}
+        style={({ pressed }) => [styles.ghost, pressed && styles.pressed, disabled && styles.disabled, style]}
       >
         <Text style={[styles.ghostText, textStyle]}>{busy ? 'One moment...' : label}</Text>
       </Pressable>
@@ -39,7 +39,7 @@ export default function PrimaryButton({
         accessibilityRole="button"
         accessibilityLabel={label}
         accessibilityState={{ disabled: disabled || busy, busy }}
-        style={[styles.secondary, disabled && styles.disabled, style]}
+        style={({ pressed }) => [styles.secondary, pressed && styles.pressed, disabled && styles.disabled, style]}
       >
         {busy ? (
           <ActivityIndicator color={colors.ink} />
@@ -58,7 +58,7 @@ export default function PrimaryButton({
   const iconColor = isGold ? colors.ink : colors.white;
 
   return (
-    <Pressable disabled={disabled || busy} onPress={onPress} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled: disabled || busy, busy }} style={[styles.wrap, disabled && styles.disabled, style]}>
+    <Pressable disabled={disabled || busy} onPress={onPress} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled: disabled || busy, busy }} style={({ pressed }) => [styles.wrap, pressed && styles.pressed, disabled && styles.disabled, style]}>
       <LinearGradient colors={gradientColors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.gradient}>
         {busy ? (
           <ActivityIndicator color={iconColor} />
@@ -85,6 +85,7 @@ const styles = StyleSheet.create({
   inner: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   text: { ...typography.button },
   disabled: { opacity: 0.5 },
+  pressed: { opacity: 0.86 },
   ghost: {
     minHeight: 52,
     borderRadius: radii.md,

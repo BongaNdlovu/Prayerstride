@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { colors, gradients, spacing } from '../theme';
+import { alpha, colors, gradients, spacing } from '../theme';
 import { useAppTheme } from '../AppThemeProvider';
 import LogoMark from './LogoMark';
 import Heading from './Heading';
@@ -56,7 +56,9 @@ export default function ScreenScaffold({
 
   const background = isSpotlight ? (
     <LinearGradient colors={gradients.spotlight} style={StyleSheet.absoluteFillObject} />
-  ) : null;
+  ) : (
+    <LinearGradient colors={darkMode ? gradients.spotlight : gradients.screen} style={StyleSheet.absoluteFillObject} />
+  );
 
   if (!scroll) {
     return (
@@ -88,19 +90,32 @@ const styles = StyleSheet.create({
   screenDark: { backgroundColor: colors.night },
   scroll: { flex: 1, width: '100%' },
   content: { flexGrow: 1, width: '100%', paddingBottom: spacing.xxl },
-  pageContent: { flexGrow: 1, width: '100%', paddingTop: spacing.md, paddingBottom: spacing.tabBar, paddingHorizontal: spacing.lg },
+  pageContent: {
+    flexGrow: 1,
+    width: '100%',
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.tabBar,
+    paddingHorizontal: spacing.lg,
+  },
   centerContent: { justifyContent: 'center' },
   header: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.md,
   },
   headerCenter: { flex: 1, alignItems: 'center' },
   headerRight: { width: 40, alignItems: 'flex-end' },
-  title: { marginTop: spacing.sm, textAlign: 'center', fontSize: 28 },
+  title: { marginTop: spacing.sm, textAlign: 'center', fontSize: 27, lineHeight: 33 },
   titleOnDark: { color: colors.white },
-  subtitle: { marginTop: spacing.xs, textAlign: 'center', fontSize: 14, opacity: 0.72 },
+  subtitle: {
+    marginTop: spacing.xs,
+    maxWidth: 310,
+    textAlign: 'center',
+    fontSize: 14,
+    lineHeight: 21,
+    color: alpha.ink62,
+  },
   subtitleOnDark: { color: colors.white, opacity: 0.72 },
   divider: { marginTop: spacing.md, marginBottom: spacing.sm },
 });
