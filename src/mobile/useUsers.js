@@ -3,6 +3,17 @@ import { getAdminUsers, getMyProfile } from './api';
 import { useIsAdmin } from './useIsAdmin';
 import { clearCachedProfile, getCachedProfile, setCachedProfile } from './profileCache';
 
+function profileTime(profile) {
+  const time = Date.parse(profile?.updatedAt || '');
+  return Number.isFinite(time) ? time : 0;
+}
+
+export function selectFreshestProfileForCache(nextProfile, cachedProfile) {
+  if (!cachedProfile) return nextProfile;
+  if (!nextProfile) return cachedProfile;
+  return profileTime(cachedProfile) > profileTime(nextProfile) ? cachedProfile : nextProfile;
+}
+
 export function useUsers(user, enabled = true) {
   const { isAdmin, loading: adminLoading } = useIsAdmin(user);
   const [users, setUsers] = useState([]);
@@ -92,8 +103,9 @@ export function useUserProfile(uid, enabled = true) {
         const result = await getMyProfile();
         if (cancelled) return;
         const nextProfile = result.profile || null;
-        setProfile(nextProfile);
-        if (nextProfile) setCachedProfile(uid, nextProfile);
+        const freshestProfile = selectFreshestProfileForCache(nextProfile, getCachedProfile(uid));
+        setProfile(freshestProfile);
+        if (freshestProfile) setCachedProfile(uid, freshestProfile);
         setError(null);
       } catch (err) {
         if (cancelled) return;

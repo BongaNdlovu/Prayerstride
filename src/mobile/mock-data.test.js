@@ -25,14 +25,14 @@ describe('mock data mode', () => {
     }
   });
 
-  it('keeps mock mode disabled outside dev and test runtimes', () => {
+  it('keeps mock mode enabled in release builds when the explicit public flag is on', () => {
     const originalValue = process.env.EXPO_PUBLIC_USE_MOCK_DATA;
     const originalDev = globalThis.__DEV__;
     try {
       process.env.EXPO_PUBLIC_USE_MOCK_DATA = 'true';
       globalThis.__DEV__ = false;
 
-      expect(isMockDataEnabled()).toBe(false);
+      expect(isMockDataEnabled()).toBe(true);
     } finally {
       if (originalDev === undefined) {
         delete globalThis.__DEV__;
@@ -45,6 +45,29 @@ describe('mock data mode', () => {
         process.env.EXPO_PUBLIC_USE_MOCK_DATA = originalValue;
       }
     }
+  });
+
+  it('keeps mock mode disabled when the public flag is off', () => {
+    const originalValue = process.env.EXPO_PUBLIC_USE_MOCK_DATA;
+    try {
+      process.env.EXPO_PUBLIC_USE_MOCK_DATA = 'false';
+      expect(isMockDataEnabled()).toBe(false);
+    } finally {
+      if (originalValue === undefined) {
+        delete process.env.EXPO_PUBLIC_USE_MOCK_DATA;
+      } else {
+        process.env.EXPO_PUBLIC_USE_MOCK_DATA = originalValue;
+      }
+    }
+  });
+
+  it('provides cross-platform Expo scripts for starting with mock data', async () => {
+    const packageJson = JSON.parse((await import('../../package.json?raw')).default);
+    const startScript = (await import('../../scripts/expo-start.mjs?raw')).default;
+
+    expect(packageJson.scripts['start:mock']).toBe('node scripts/expo-start.mjs lan mock');
+    expect(packageJson.scripts['web:mock']).toBe('node scripts/expo-start.mjs web mock');
+    expect(startScript).toMatch(/EXPO_PUBLIC_USE_MOCK_DATA/);
   });
 
   it('returns an admin profile and populated prototype feed', async () => {

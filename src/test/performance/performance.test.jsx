@@ -30,6 +30,8 @@ vi.mock('react-native', () => ({
   ),
   Switch: ({ value, onValueChange }) => <input type="checkbox" checked={value} onChange={(e) => onValueChange(e.target.checked)} />,
   TextInput: (props) => <input {...props} />,
+  Platform: { OS: 'ios', select: (obj) => obj.ios, Version: '17.0' },
+  Vibration: { vibrate: vi.fn(), cancel: vi.fn() },
 }));
 
 vi.mock('expo-linear-gradient', () => ({

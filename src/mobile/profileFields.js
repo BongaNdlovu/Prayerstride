@@ -11,6 +11,13 @@ export function cleanOptionalPhotoURL(value) {
   return cleanOptionalProfileText(value);
 }
 
+export function imageUriWithCacheBuster(value, version) {
+  const uri = cleanOptionalPhotoURL(value);
+  if (!uri || !version || !/^https?:\/\//i.test(uri)) return uri;
+  const separator = uri.includes('?') ? '&' : '?';
+  return `${uri}${separator}v=${encodeURIComponent(String(version))}`;
+}
+
 export function cleanOptionalHandle(value) {
   const handle = cleanOptionalProfileText(value).replace(/^@+/, '').trim();
   return handle || '';

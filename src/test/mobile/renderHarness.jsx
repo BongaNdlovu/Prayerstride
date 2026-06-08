@@ -125,6 +125,7 @@ vi.mock('react-native', () => ({
   TouchableOpacity: ({ children, onPress, ...props }) => React.createElement('button', { type: 'button', onClick: onPress, ...props }, children),
   Modal: ({ children, visible, ...props }) => (visible ? React.createElement('div', props, children) : null),
   Platform: { OS: 'ios', select: (obj) => obj.ios, Version: '17.0' },
+  Vibration: { vibrate: vi.fn(), cancel: vi.fn() },
   Animated: {
     createAnimatedComponent: (comp) => comp,
     View: ({ children, ...props }) => React.createElement('div', props, children),

@@ -1,10 +1,26 @@
 import { spawn } from 'child_process';
+import { existsSync } from 'fs';
 import { mkdtemp, rm } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
 
 const targetUrl = process.argv[2] || 'http://127.0.0.1:8083';
-const edgePath = process.env.EDGE_PATH || 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
+function defaultEdgePath() {
+  if (process.platform === 'win32') {
+    const candidates = [
+      process.env.ProgramFiles,
+      process.env['ProgramFiles(x86)'],
+      process.env.LOCALAPPDATA,
+    ]
+      .filter(Boolean)
+      .map((base) => join(base, 'Microsoft', 'Edge', 'Application', 'msedge.exe'));
+    return candidates.find((candidate) => existsSync(candidate)) || 'msedge.exe';
+  }
+  if (process.platform === 'darwin') return '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge';
+  return 'microsoft-edge';
+}
+
+const edgePath = process.env.EDGE_PATH || defaultEdgePath();
 const port = Number(process.env.EDGE_DEBUG_PORT || 9333);
 const profileDir = await mkdtemp(join(tmpdir(), 'prayerstride-edge-'));
 

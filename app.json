@@ -20,12 +20,6 @@
       "assets/logo-transparent.png",
       "src/assets/compressed-scenes/*.jpg"
     ],
-    "ios": {
-      "bundleIdentifier": "com.lift.prayer"
-    },
-    "android": {
-      "package": "com.lift.prayer"
-    },
     "web": {
       "favicon": "./assets/favicon.png"
     },

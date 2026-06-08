@@ -18,7 +18,12 @@ import { alpha, colors, fonts, radii, spacing } from '../theme';
 import { XP_PER_LEVEL } from '../gamification';
 import { useUserProfile } from '../useUsers';
 import { useGamification } from '../useGamification';
-import { cleanOptionalHandle, cleanOptionalPhotoURL, cleanOptionalProfileText } from '../profileFields';
+import {
+  cleanOptionalHandle,
+  cleanOptionalPhotoURL,
+  cleanOptionalProfileText,
+  imageUriWithCacheBuster,
+} from '../profileFields';
 import ScreenScaffold from '../components/ScreenScaffold';
 import AppHeader from '../components/AppHeader';
 import GlassCard from '../components/GlassCard';
@@ -64,6 +69,7 @@ export default function ProfileScreen({ user, signOut, go }) {
   const bio = cleanOptionalProfileText(profile?.bio);
   const email = cleanOptionalProfileText(user?.email);
   const photoURL = cleanOptionalPhotoURL(profile?.photoURL) || cleanOptionalPhotoURL(user?.photoURL);
+  const avatarUri = imageUriWithCacheBuster(photoURL, profile?.updatedAt || profile?.photoURL);
   const journeyTitle = cleanOptionalProfileText(gamified.journey?.title) || 'Prayer Strider';
   const statsUnavailable = Boolean(gamificationError);
   const earnedBadges = gamified.badges.filter((badge) => badge.state === 'earned').length;
@@ -88,8 +94,8 @@ export default function ProfileScreen({ user, signOut, go }) {
       <AsyncState loading={profileLoading} error={profileError} onRetry={retry}>
       <GlassCard style={styles.profileCard}>
         <View style={styles.avatarWrap}>
-          {photoURL ? (
-            <Image source={{ uri: photoURL }} style={styles.avatarImage} />
+          {avatarUri ? (
+            <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
           ) : (
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>{displayName.slice(0, 1).toUpperCase()}</Text>

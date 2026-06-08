@@ -3,6 +3,7 @@ import { Alert, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { ChevronRight } from 'lucide-react-native';
 import { alpha, colors, fonts, sharedStyles, spacing } from '../theme';
 import { useGamificationPreferences, updateGamificationPreferences } from '../useGamificationPreferences';
+import { triggerFeedbackCue } from '../AppFeedbackProvider';
 import ScreenScaffold from '../components/ScreenScaffold';
 import AppHeader from '../components/AppHeader';
 import GlassCard from '../components/GlassCard';
@@ -34,6 +35,7 @@ export default function SettingsScreen({ user, go, deleteAccount, onBack }) {
     try {
       const next = await updateGamificationPreferences(user?.uid, { [key]: value });
       setPreferences(next);
+      if (key === 'soundHapticsEnabled' && value === true) triggerFeedbackCue('celebrate');
     } catch (error) {
       Alert.alert('Could not update preference', getErrorMessage(error));
     }

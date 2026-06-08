@@ -91,10 +91,15 @@ not a substitute for legal advice.
 
 ## Store identity
 
-Set the final identifiers in `app.json` before creating store binaries:
+Set the final Android identifier in the checked-in native project before creating
+store binaries:
 
-- `expo.android.package`
-- `expo.ios.bundleIdentifier`
+- `android/app/build.gradle` - `namespace` and `defaultConfig.applicationId`
+
+Do not add `expo.android` or `expo.ios` native config blocks to `app.json` while
+native project folders are checked in; Expo Doctor treats those fields as
+unsynced. Add iOS identity in the native iOS project when an iOS project is
+checked in.
 
 ## Local verification
 

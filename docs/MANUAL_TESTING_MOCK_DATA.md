@@ -4,18 +4,30 @@ Use mock data when you want to test the migrated UI without depending on live co
 
 ## Enable
 
-Add this to `.env.local` before starting or exporting the app:
+Start Expo with one of the mock scripts so the public flag is set before the app
+bundle is built:
+
+```bash
+npm run start:mock
+npm run web:mock
+```
+
+Use `npm run start:mock:tunnel` if you need the tunnel host.
+
+Alternatively, add this to `.env.local` before starting or exporting the app:
 
 ```bash
 EXPO_PUBLIC_USE_MOCK_DATA=true
 ```
 
-Then restart the dev server or rebuild the web export. Expo reads this value at bundle time.
+Then restart the dev server or rebuild the web export. Expo reads this value at
+bundle time, so changing it while an app build is already running will not
+switch an installed bundle into mock mode.
 
-## What Stays Real
+## What Changes
 
-- Firebase sign-in and account creation screens still render normally.
-- After sign-in, app data comes from local mock fixtures instead of the Worker API.
+- The app boots straight into the local `Demo Admin` user.
+- App data comes from local mock fixtures instead of the Worker API.
 - Push registration and notification stream sockets are skipped in mock mode.
 
 ## What You Can Test

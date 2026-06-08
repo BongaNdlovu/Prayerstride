@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 export const colors = {
   white: '#FFFFFF',
 
@@ -172,7 +174,19 @@ export const onDarkTypography = {
   eyebrow: { ...typography.eyebrow, color: onDark.accent },
 };
 
-export const shadow = {
+const webShadow = {
+  card: {
+    boxShadow: '0px 4px 12px rgba(17, 24, 39, 0.08)',
+  },
+  fab: {
+    boxShadow: '0px 4px 12px rgba(184, 146, 74, 0.18)',
+  },
+  subtle: {
+    boxShadow: '0px 1px 6px rgba(17, 24, 39, 0.06)',
+  },
+};
+
+const nativeShadow = {
   card: {
     shadowColor: colors.ink,
     shadowOffset: { width: 0, height: 4 },
@@ -195,6 +209,8 @@ export const shadow = {
     elevation: 1,
   },
 };
+
+export const shadow = Platform.OS === 'web' ? webShadow : nativeShadow;
 
 export const glass = {
   backgroundColor: colors.white,

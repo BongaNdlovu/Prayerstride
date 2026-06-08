@@ -24,19 +24,48 @@ describe('production wiring', () => {
     expect(source).toMatch(/\[triggers\]/);
   });
 
+  it('production CORS origins do not include local development hosts', async () => {
+    const source = (await import('../../../wrangler.toml?raw')).default;
+    const productionLines = source
+      .split(/\r?\n/)
+      .filter((line) => line.startsWith('CORS_ORIGINS =') || line.startsWith('vars = { ENVIRONMENT = "production"'));
+
+    expect(productionLines.join('\n')).not.toMatch(/localhost|127\.0\.0\.1/);
+  });
+
   it('mobile API uses production worker URL constant', async () => {
     const source = (await import('../../../src/mobile/api.js?raw')).default;
     expect(source).toMatch(/EXPO_PUBLIC_API_URL/);
     expect(source).toMatch(/API_URL/);
   });
 
-  it('app.json has valid store identifiers', async () => {
+  it('app.json keeps Expo metadata in app config', async () => {
     const source = (await import('../../../app.json?raw')).default;
     const parsed = JSON.parse(source);
     expect(parsed.expo?.slug).toBeTruthy();
     expect(parsed.expo?.name).toBeTruthy();
-    expect(parsed.expo?.ios?.bundleIdentifier).toBe('com.lift.prayer');
-    expect(parsed.expo?.android?.package).toBe('com.lift.prayer');
+    expect(parsed.expo?.android).toBeUndefined();
+    expect(parsed.expo?.ios).toBeUndefined();
+  });
+
+  it('native Android config has the release identity and vibration permission', async () => {
+    const gradle = (await import('../../../android/app/build.gradle?raw')).default;
+    const manifest = (await import('../../../android/app/src/main/AndroidManifest.xml?raw')).default;
+
+    expect(gradle).toMatch(/namespace 'com\.lift\.prayer'/);
+    expect(gradle).toMatch(/applicationId 'com\.lift\.prayer'/);
+    expect(manifest).toMatch(/android\.permission\.VIBRATE/);
+  });
+
+  it('EAS native build profiles do not bundle mock data', async () => {
+    const source = (await import('../../../eas.json?raw')).default;
+    const parsed = JSON.parse(source);
+    const trueValues = new Set(['1', 'true', 'yes', 'on', 'mock']);
+    const offenders = Object.entries(parsed.build || {})
+      .filter(([, profile]) => trueValues.has(String(profile.env?.EXPO_PUBLIC_USE_MOCK_DATA || '').trim().toLowerCase()))
+      .map(([name]) => name);
+
+    expect(offenders).toEqual([]);
   });
 
   it('server smoke uses production worker URL', async () => {

@@ -18,6 +18,7 @@ import {
   cleanOptionalPhotoURL,
   cleanOptionalProfileText,
   formatProfileHandleForSave,
+  imageUriWithCacheBuster,
 } from '../profileFields';
 import { alpha, colors, fonts, sharedStyles, spacing } from '../theme';
 import { useAuth } from '../AuthProvider';
@@ -40,6 +41,7 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
   const [handle, setHandle] = useState('');
   const [bio, setBio] = useState('');
   const [photoURL, setPhotoURL] = useState(cleanOptionalPhotoURL(user?.photoURL));
+  const [photoVersion, setPhotoVersion] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -58,6 +60,7 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
     setBio(cleanOptionalProfileText(profile.bio));
     setHandle(cleanOptionalHandle(profile.handle));
     setPhotoURL(cleanOptionalPhotoURL(profile.photoURL) || cleanOptionalPhotoURL(user?.photoURL));
+    setPhotoVersion(profile.updatedAt || '');
   }, [profile, user?.displayName, user?.photoURL]);
 
   const cacheProfilePatch = (patch) => {
@@ -76,8 +79,12 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
   const applyPhotoUpdate = async (nextPhotoURL) => {
     const sanitizedPhotoURL = cleanOptionalPhotoURL(nextPhotoURL);
     if (!sanitizedPhotoURL) throw new Error('Could not upload your profile photo. Please try again.');
-    cacheProfilePatch({ photoURL: sanitizedPhotoURL });
-    if (mountedRef.current) setPhotoURL(sanitizedPhotoURL);
+    const updatedAt = new Date().toISOString();
+    cacheProfilePatch({ photoURL: sanitizedPhotoURL, updatedAt });
+    if (mountedRef.current) {
+      setPhotoURL(sanitizedPhotoURL);
+      setPhotoVersion(updatedAt);
+    }
     if (auth.currentUser) {
       try {
         await updateProfile(auth.currentUser, { photoURL: sanitizedPhotoURL });
@@ -214,6 +221,7 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
   };
 
   const displayHandle = cleanOptionalHandle(handle);
+  const avatarUri = imageUriWithCacheBuster(photoURL, photoVersion);
 
   return (
     <ScreenScaffold pageContent scroll>
@@ -221,8 +229,8 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <GlassCard style={styles.profileCard}>
           <Pressable disabled={busy} onPress={pickPhoto} style={styles.avatarButton} accessibilityRole="button" accessibilityLabel="Change profile photo">
-            {photoURL ? (
-              <Image source={{ uri: photoURL }} style={styles.avatarImage} />
+            {avatarUri ? (
+              <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
             ) : (
               <View style={styles.avatarFallback}>
                 <Camera size={28} color={colors.ink} />
