@@ -175,7 +175,6 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, pr
           title: privateTitle.trim(),
           body: 'Private prayer session created from the stopwatch.',
           privacy: 'private',
-          allowShare: false,
         }, user);
         sessionPrayerId = prayerRef.id;
       }

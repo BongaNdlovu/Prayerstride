@@ -11,7 +11,7 @@ import { alpha, colors, fonts, radii, sharedStyles, spacing } from '../theme';
 import { bookmarkPrayer, getPrayerBookmark, unbookmarkPrayer } from '../api';
 import { deletePrayer, markAnswered, updatePrayer } from '../usePrayerData';
 import { prayedButtonLabel, prayedStorageKey } from '../prayerLimit';
-import { PRAYER_PRIVACY_OPTIONS, PRAYER_FREQUENCY_OPTIONS } from '../prayerFormOptions';
+import { PRAYER_PRIVACY_OPTIONS, PRAYER_FREQUENCY_OPTIONS, resolvePrayerPrivacy } from '../prayerFormOptions';
 import { submitReport } from '../useReports';
 import { formatFirestoreDate } from '../sessionStats';
 import ScreenScaffold from '../components/ScreenScaffold';
@@ -63,7 +63,6 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
   const [editPrivacy, setEditPrivacy] = useState('community');
   const [editPrayerLimit, setEditPrayerLimit] = useState('daily');
   const [editUrgent, setEditUrgent] = useState(false);
-  const [editAllowShare, setEditAllowShare] = useState(true);
   const [editBusy, setEditBusy] = useState(false);
 
   useEffect(() => {
@@ -181,10 +180,9 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
     setEditBody(prayer.body || '');
     setEditScriptureRef(prayer.scriptureRef || '');
     setEditCategory(prayer.category || '');
-    setEditPrivacy(prayer.privacy || 'community');
+    setEditPrivacy(resolvePrayerPrivacy(prayer));
     setEditPrayerLimit(prayer.prayerLimit || 'daily');
     setEditUrgent(Boolean(prayer.urgent));
-    setEditAllowShare(prayer.allowShare !== false);
     setEditing(true);
     setShowActions(false);
   };
@@ -205,7 +203,6 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
         privacy: editPrivacy || 'community',
         prayerLimit: editPrayerLimit || 'daily',
         urgent: editUrgent,
-        allowShare: editAllowShare,
       });
       setEditing(false);
       if (onRefresh) onRefresh();
@@ -283,10 +280,6 @@ export default function PrayerDetailScreen({ prayer, user, onBack, go, onRefresh
           <Pressable onPress={() => setEditUrgent(!editUrgent)} style={styles.editToggle}>
             <BodyText variant="label">Urgent</BodyText>
             <View style={[styles.editToggleIndicator, editUrgent && styles.editToggleOn]} />
-          </Pressable>
-          <Pressable onPress={() => setEditAllowShare(!editAllowShare)} style={styles.editToggle}>
-            <BodyText variant="label">Allow sharing</BodyText>
-            <View style={[styles.editToggleIndicator, editAllowShare && styles.editToggleOn]} />
           </Pressable>
           <PrimaryButton label={editBusy ? 'Saving...' : 'Save Changes'} onPress={handleEditSubmit} busy={editBusy} style={styles.editSaveBtn} />
           <Pressable onPress={() => setEditing(false)} style={styles.editCancelBtn}>

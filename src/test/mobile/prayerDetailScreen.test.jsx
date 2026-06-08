@@ -84,23 +84,21 @@ describe('PrayerDetailScreen render behavior', () => {
         body: 'Updated body text',
         scriptureRef: 'Psalm 23',
         category: 'Family',
-        privacy: 'private',
+        privacy: 'hidden',
         prayerLimit: 'weekly',
         urgent: true,
-        allowShare: false,
       });
     });
     expect(onRefresh).toHaveBeenCalled();
   });
 
-  it('preserves privacy frequency urgent and share when unchanged', async () => {
+  it('preserves privacy frequency and urgent status when unchanged', async () => {
     renderPrayerDetail({
       prayer: {
         ...ownerPrayer,
         privacy: 'hidden',
         prayerLimit: 'once',
         urgent: false,
-        allowShare: true,
       },
     });
 
@@ -113,9 +111,17 @@ describe('PrayerDetailScreen render behavior', () => {
         privacy: 'hidden',
         prayerLimit: 'once',
         urgent: false,
-        allowShare: true,
       }));
     });
+  });
+
+  it('does not expose unused sharing controls while editing prayers', () => {
+    renderPrayerDetail();
+
+    clickByText('More');
+    clickByText('Edit');
+
+    expect(screen.queryByText('Allow sharing')).not.toBeInTheDocument();
   });
 
   it('blocks save when body is blank', async () => {
@@ -223,7 +229,7 @@ describe('updatePrayer partial payload contract', () => {
     expect(source).toMatch(/if \('privacy' in data\) payload\.privacy/);
     expect(source).toMatch(/if \('prayerLimit' in data\) payload\.prayerLimit/);
     expect(source).toMatch(/if \('urgent' in data/);
-    expect(source).toMatch(/if \('allowShare' in data\) payload\.allowShare/);
+    expect(source).not.toMatch(/payload\.allowShare/);
     expect(source).toMatch(/await apiUpdatePrayer\(prayerId, payload\)/);
   });
 

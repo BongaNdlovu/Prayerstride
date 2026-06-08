@@ -367,7 +367,6 @@ export default function HomeScreen({ user, onOpenPrayer, go, onTabBarHiddenChang
         privacy: 'community',
         prayerLimit: 'daily',
         urgent: false,
-        allowShare: true,
       }, currentUser);
       setComposeOpen(false);
       setComposeBody('');

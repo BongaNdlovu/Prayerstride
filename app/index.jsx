@@ -14,6 +14,7 @@ import { registerForPushNotifications } from '../src/mobile/notifications';
 import { AUTH_ROUTES, MAIN_TAB_ROUTES, back, createNavState, go, reset } from '../src/mobile/navigation';
 import { useSuspendedStatus } from '../src/mobile/useIsAdmin';
 import { warn } from '../src/mobile/logger';
+import { scheduleAppUpdateCheck } from '../src/mobile/appUpdates';
 import BottomTabs from '../src/mobile/components/BottomTabs';
 import AsyncState from '../src/mobile/components/AsyncState';
 import PrimaryButton from '../src/mobile/components/PrimaryButton';
@@ -63,6 +64,8 @@ export default function MobileApp() {
   } = useSuspendedStatus(user);
   const waitingForAccountProfile = Boolean(user && profileUid !== user.uid);
   const { preferences: appPreferences } = useGamificationPreferences(user?.uid, Boolean(user?.uid));
+
+  useEffect(() => scheduleAppUpdateCheck(), []);
 
   useEffect(() => {
     if (!user) return;

@@ -120,7 +120,6 @@ export async function addPrayer(data, user) {
     privacy: data.privacy || 'community',
     prayerLimit: data.prayerLimit || 'daily',
     urgent: Boolean(data.urgent ?? data.urgency),
-    allowShare: data.allowShare !== false,
   });
   return { id: result.prayerId };
 }
@@ -136,7 +135,6 @@ export async function updatePrayer(prayerId, data) {
   if ('privacy' in data) payload.privacy = data.privacy || 'community';
   if ('prayerLimit' in data) payload.prayerLimit = data.prayerLimit || 'daily';
   if ('urgent' in data || 'urgency' in data) payload.urgent = Boolean(data.urgent ?? data.urgency);
-  if ('allowShare' in data) payload.allowShare = data.allowShare !== false;
   await apiUpdatePrayer(prayerId, payload);
 }
 

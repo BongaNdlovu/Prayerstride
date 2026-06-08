@@ -38,6 +38,14 @@ describe('prayer flow', () => {
     expect(source.default).toMatch(/onDone=\{\(\) => resetFn\('stride'\)\}/);
   });
 
+  it('app schedules an Expo update check on launch', async () => {
+    const source = await import('../../app/index.jsx?raw');
+    const appConfig = await import('../../app.json');
+
+    expect(source.default).toMatch(/scheduleAppUpdateCheck/);
+    expect(appConfig.default.expo.updates.checkAutomatically).toBe('ON_LOAD');
+  });
+
   it('app shell no longer exposes legacy prayer feed routes', async () => {
     const source = await import('../../app/index.jsx?raw');
     expect(source.default).not.toMatch(/case 'discover'/);
@@ -59,9 +67,10 @@ describe('prayer flow', () => {
     expect(source.default).not.toMatch(/createdAt\.seconds/);
   });
 
-  it('private stopwatch sessions explicitly disable sharing', async () => {
+  it('private stopwatch sessions create private prayers without sharing controls', async () => {
     const source = await import('./screens/PrayerStopwatchScreen.jsx?raw');
-    expect(source.default).toMatch(/privacy:\s*'private',[\s\S]*allowShare:\s*false/);
+    expect(source.default).toMatch(/privacy:\s*'private'/);
+    expect(source.default).not.toMatch(/allowShare/);
   });
 
   it('PrayerStopwatchScreen remains scrollable on short phone screens', async () => {
