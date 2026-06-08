@@ -55,6 +55,7 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, pr
   const shimmer = useSharedValue(0);
   const isDirectPrivateSession = !prayerId;
   const sessionTitle = prayerTitle || privateTitle.trim() || 'Private prayer session';
+  const isOwnPrayerRequest = Boolean(prayerId && prayer?.authorUid && user?.uid && prayer.authorUid === user.uid);
   const prayerAuthor = prayer?.authorName || prayer?.name || 'Community member';
   const prayerInitial = prayerAuthor.slice(0, 1).toUpperCase();
   const prayerBody = prayer?.body || prayer?.text || 'Hold this prayer with care and attention.';
@@ -180,8 +181,8 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, pr
       }
 
       await addPrayerSession({ prayerId: sessionPrayerId, title: sessionTitle, seconds }, user);
-      if (!isDirectPrivateSession) {
-        const result = await prayForRequest(sessionPrayerId);
+      if (!isDirectPrivateSession && !isOwnPrayerRequest) {
+        const result = await prayForRequest(sessionPrayerId, { qualityPrayer: true, seconds });
         const limit = result.prayerLimit || prayer?.prayerLimit || 'daily';
         await AsyncStorage.setItem(prayedStorageKey(sessionPrayerId, limit), 'true');
       }

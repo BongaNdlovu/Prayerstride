@@ -436,7 +436,7 @@ async function handleApi(request, env, url, requestId) {
   match = url.pathname.match(/^\/api\/prayers\/([^/]+)\/pray$/);
   if (match && request.method === 'POST') {
     await checkNotSuspended(env, user.uid);
-    return prayForRequest(env, user, decodeURIComponent(match[1]));
+    return prayForRequest(env, user, decodeURIComponent(match[1]), body);
   }
 
   match = url.pathname.match(/^\/api\/prayers\/([^/]+)$/);
@@ -1402,7 +1402,7 @@ async function registerDevice(env, user, body) {
   return json({ ok: true });
 }
 
-async function prayForRequest(env, user, prayerId) {
+async function prayForRequest(env, user, prayerId, body = {}) {
   await checkCommunityAccess(env, user.uid);
   const prayer = await getDocument(env, docName(env, 'prayers', prayerId));
   if (!prayer.exists) return json({ error: 'Prayer not found' }, 404);
@@ -1441,6 +1441,14 @@ async function prayForRequest(env, user, prayerId) {
     });
   }
   await enforceCooldown(env, user.uid, 'pray', 1);
+  const qualityPrayerSeconds = Number(body?.seconds || 0);
+  const isQualityPrayer = body?.qualityPrayer === true
+    && Number.isFinite(qualityPrayerSeconds)
+    && qualityPrayerSeconds >= 15;
+  const notificationType = isQualityPrayer ? 'quality_prayer_prayed' : 'prayer_prayed';
+  const notificationMessage = isQualityPrayer
+    ? 'Someone spent focused time praying for your request.'
+    : 'Someone prayed for your request.';
 
   const writes = [
     {
@@ -1475,8 +1483,8 @@ async function prayForRequest(env, user, prayerId) {
     && !actorBlockedByRecipient;
   if (notifyAllowed) {
     writes.push(notificationWrite(env, data.authorUid, {
-      type: 'prayer_prayed',
-      message: 'Someone prayed for your request.',
+      type: notificationType,
+      message: notificationMessage,
       relatedId: prayerId,
       actorUid: user.uid,
     }));
@@ -1519,8 +1527,8 @@ async function prayForRequest(env, user, prayerId) {
     if (prefs.pushEnabled !== false) {
       await sendPushToUser(env, data.authorUid, {
         title: 'PrayerStride',
-        body: 'Someone prayed for your request.',
-        data: { type: 'prayer_prayed', relatedId: prayerId },
+        body: notificationMessage,
+        data: { type: notificationType, relatedId: prayerId },
       });
     }
   }
@@ -1538,6 +1546,7 @@ async function prayForRequest(env, user, prayerId) {
     dayKey,
     weekKey,
     prayerLimit,
+    qualityPrayer: isQualityPrayer,
     xpAwarded: xp.awarded,
     bonuses: xp.bonuses || [],
     xp: buildXpPayload(xp, XP_AWARDS.prayAction),

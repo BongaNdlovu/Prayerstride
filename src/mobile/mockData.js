@@ -485,7 +485,7 @@ function buildSummary(state) {
 
 function leaderboardFor(state, scope) {
   const rows = [
-    { uid: state.profile.uid, displayName: state.profile.displayName, rank: 2, scopeXP: scope === 'weekly' ? 620 : 1840, level: 4, streak: 6, badgesEarned: 3, change: 1 },
+    { uid: state.profile.uid, displayName: state.profile.displayName, photoURL: state.profile.photoURL || null, updatedAt: state.profile.updatedAt || null, rank: 2, scopeXP: scope === 'weekly' ? 620 : 1840, level: 4, streak: 6, badgesEarned: 3, change: 1 },
     { uid: 'member-ruth', displayName: 'Ruth M.', rank: 1, scopeXP: scope === 'weekly' ? 710 : 2110, level: 5, streak: 9, badgesEarned: 5, change: 0 },
     { uid: 'member-daniel', displayName: 'Daniel K.', rank: 3, scopeXP: scope === 'weekly' ? 540 : 1690, level: 4, streak: 4, badgesEarned: 2, change: -1 },
     { uid: 'member-hope', displayName: 'Hope N.', rank: 4, scopeXP: scope === 'weekly' ? 420 : 1320, level: 3, streak: 3, badgesEarned: 2, change: 2 },
@@ -553,7 +553,13 @@ function applyAnnouncementMap(state, mapper) {
 
 export async function mockUploadAvatar(file, user) {
   const state = getState(user);
-  state.profile.photoURL = 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=240&h=240&fit=crop';
+  const updatedAt = nowDate().toISOString();
+  state.profile = {
+    ...state.profile,
+    photoURL: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=240&h=240&fit=crop',
+    updatedAt,
+  };
+  state.users = state.users.map((item) => (item.uid === state.profile.uid ? { ...item, ...state.profile } : item));
   return { ok: true, photoURL: state.profile.photoURL };
 }
 

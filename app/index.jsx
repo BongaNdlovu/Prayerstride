@@ -51,6 +51,7 @@ import { useGamificationPreferences } from '../src/mobile/useGamificationPrefere
 export default function MobileApp() {
   const { user, loading, registering, signIn, register, completePendingRegistration, signOut, resetPassword, deleteAccount } = useAuth();
   const [nav, setNav] = useState(() => createNavState());
+  const [tabBarHidden, setTabBarHidden] = useState(false);
   const {
     suspended,
     suspendedReason,
@@ -86,6 +87,10 @@ export default function MobileApp() {
 
     if (AUTH_ROUTES.includes(screen)) setNav(reset('home'));
   }, [user, loading, registering, accountLoading, waitingForAccountProfile, suspended, nav.screen]);
+
+  useEffect(() => {
+    setTabBarHidden(false);
+  }, [nav.screen]);
 
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -127,7 +132,7 @@ export default function MobileApp() {
 
   const content = renderScreen({
     screen, params, user, suspended, suspendedReason, signIn, register, signOut,
-    resetPassword, deleteAccount, goFn: handleGo, backFn: handleBack,
+    resetPassword, deleteAccount, goFn: handleGo, backFn: handleBack, resetFn: handleTabChange, setTabBarHidden,
   });
 
   return (
@@ -135,14 +140,14 @@ export default function MobileApp() {
       <AppThemeProvider darkMode={appPreferences.darkModeEnabled === true}>
         <AppFeedbackProvider soundHapticsEnabled={appPreferences.soundHapticsEnabled !== false}>
           <View style={[styles.appBody, appPreferences.darkModeEnabled === true && styles.appBodyDark]}>{content}</View>
-          {isMainTab && <BottomTabs active={screen} onChange={handleTabChange} />}
+          {isMainTab && !tabBarHidden && <BottomTabs active={screen} onChange={handleTabChange} />}
         </AppFeedbackProvider>
       </AppThemeProvider>
     </SafeAreaView>
   );
 }
 
-function renderScreen({ screen, params, user, suspended, suspendedReason, signIn, register, signOut, resetPassword, deleteAccount, goFn, backFn }) {
+function renderScreen({ screen, params, user, suspended, suspendedReason, signIn, register, signOut, resetPassword, deleteAccount, goFn, backFn, resetFn, setTabBarHidden }) {
   if (!user) {
     if (screen === 'welcome') {
       return <WelcomeScreen onContinue={() => goFn('reminderSetup')} onSignIn={() => goFn('signIn')} />;
@@ -170,15 +175,15 @@ function renderScreen({ screen, params, user, suspended, suspendedReason, signIn
   }
 
   switch (screen) {
-    case 'home': return <HomeScreen user={user} onOpenPrayer={(p) => goFn('detail', { prayer: p })} go={goFn} />;
+    case 'home': return <HomeScreen user={user} onOpenPrayer={(p) => goFn('detail', { prayer: p })} go={goFn} onTabBarHiddenChange={setTabBarHidden} />;
     case 'leaderboard': return <LeaderboardScreen user={user} onBack={() => backFn('home')} />;
     case 'stride': return <MyStatsScreen user={user} go={goFn} onBack={() => backFn('profile')} />;
     case 'profile': return <ProfileScreen user={user} signOut={signOut} go={goFn} />;
     case 'detail': return params.prayer
       ? <PrayerDetailScreen prayer={params.prayer} user={user} onBack={() => backFn('home')} go={goFn} />
       : <PlaceholderScreen screen="Prayer unavailable" onBack={() => backFn('home')} />;
-    case 'timer': return <PrayerStopwatchScreen prayerId={params.prayerId} title={params.title} prayer={params.prayer} user={user} onBack={() => backFn('home')} onDone={() => backFn('stride')} />;
-    case 'prayerStopwatch': return <PrayerStopwatchScreen prayerId={params.prayerId} title={params.title} prayer={params.prayer} user={user} onBack={() => backFn('home')} onDone={() => backFn('stride')} />;
+    case 'timer': return <PrayerStopwatchScreen prayerId={params.prayerId} title={params.title} prayer={params.prayer} user={user} onBack={() => backFn('home')} onDone={() => resetFn('stride')} />;
+    case 'prayerStopwatch': return <PrayerStopwatchScreen prayerId={params.prayerId} title={params.title} prayer={params.prayer} user={user} onBack={() => backFn('home')} onDone={() => resetFn('stride')} />;
     case 'settings': return <SettingsScreen user={user} go={goFn} deleteAccount={deleteAccount} onBack={() => backFn('profile')} />;
     case 'editProfile': return <EditProfileScreen user={user} onBack={() => backFn('profile')} onDone={() => backFn('profile')} />;
     case 'notifications': return <NotificationsScreen user={user} onBack={() => backFn('profile')} />;

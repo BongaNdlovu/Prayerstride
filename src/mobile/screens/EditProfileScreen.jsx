@@ -42,6 +42,7 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
   const [bio, setBio] = useState('');
   const [photoURL, setPhotoURL] = useState(cleanOptionalPhotoURL(user?.photoURL));
   const [photoVersion, setPhotoVersion] = useState('');
+  const [photoLoadFailed, setPhotoLoadFailed] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -62,6 +63,10 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
     setPhotoURL(cleanOptionalPhotoURL(profile.photoURL) || cleanOptionalPhotoURL(user?.photoURL));
     setPhotoVersion(profile.updatedAt || '');
   }, [profile, user?.displayName, user?.photoURL]);
+
+  useEffect(() => {
+    setPhotoLoadFailed(false);
+  }, [photoURL, photoVersion]);
 
   const cacheProfilePatch = (patch) => {
     if (!user?.uid) return;
@@ -123,6 +128,7 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
       const downloadUrl = await uploadAvatarFile(prepared, controller.signal);
       await applyPhotoUpdate(downloadUrl);
     } catch (error) {
+      logError('Profile photo upload failed', error);
       if (error?.name === 'AbortError') return;
       if (error instanceof AvatarTooLargeError) {
         Alert.alert('Photo too large', getUploadErrorMessage(error));
@@ -229,8 +235,8 @@ export default function EditProfileScreen({ user, onBack, onDone }) {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <GlassCard style={styles.profileCard}>
           <Pressable disabled={busy} onPress={pickPhoto} style={styles.avatarButton} accessibilityRole="button" accessibilityLabel="Change profile photo">
-            {avatarUri ? (
-              <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
+            {avatarUri && !photoLoadFailed ? (
+              <Image source={{ uri: avatarUri }} style={styles.avatarImage} onError={() => setPhotoLoadFailed(true)} />
             ) : (
               <View style={styles.avatarFallback}>
                 <Camera size={28} color={colors.ink} />

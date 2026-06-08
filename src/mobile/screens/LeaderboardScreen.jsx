@@ -1,9 +1,10 @@
-import { useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Lock, Trophy } from 'lucide-react-native';
 import { alpha, colors, fonts, radii, spacing } from '../theme';
 import { useLeaderboard } from '../useLeaderboard';
 import { useGamificationPreferences, updateGamificationPreferences } from '../useGamificationPreferences';
+import { cleanOptionalPhotoURL, imageUriWithCacheBuster } from '../profileFields';
 import ScreenScaffold from '../components/ScreenScaffold';
 import AppHeader from '../components/AppHeader';
 import AsyncState from '../components/AsyncState';
@@ -32,15 +33,40 @@ function TabButton({ item, active, onPress }) {
   );
 }
 
+function LeaderboardAvatar({ row, size = 'row' }) {
+  const [imageLoadFailed, setImageLoadFailed] = useState(false);
+  const photoURL = cleanOptionalPhotoURL(row?.photoURL);
+  const avatarUri = imageUriWithCacheBuster(photoURL, row?.updatedAt || row?.photoURL);
+  const initial = row?.displayName?.slice(0, 1)?.toUpperCase() || 'P';
+  const isPodium = size === 'podium';
+
+  useEffect(() => {
+    setImageLoadFailed(false);
+  }, [avatarUri]);
+
+  return (
+    <View style={isPodium ? styles.podiumAvatar : styles.rowAvatar}>
+      {avatarUri && !imageLoadFailed ? (
+        <Image
+          source={{ uri: avatarUri }}
+          style={styles.leaderboardAvatarImage}
+          onError={() => setImageLoadFailed(true)}
+          accessibilityLabel={`${row?.displayName || 'User'} profile photo`}
+        />
+      ) : (
+        <BodyText variant="label" style={styles.avatarInitial}>{initial}</BodyText>
+      )}
+    </View>
+  );
+}
+
 function LeaderboardPodium({ rows }) {
   if (!rows.length) return null;
   return (
     <View style={styles.podium}>
       {rows.map((row) => (
         <View key={row.uid} style={[styles.podiumCol, row.rank === 1 && styles.podiumColFirst]}>
-          <View style={styles.podiumAvatar}>
-            <BodyText variant="label">{row.displayName?.slice(0, 1) || 'P'}</BodyText>
-          </View>
+          <LeaderboardAvatar row={row} size="podium" />
           <BodyText variant="label" numberOfLines={1} style={styles.podiumName}>{row.displayName}</BodyText>
           <BodyText variant="caption">{row.scopeXP} XP</BodyText>
           <View style={[styles.podiumBlock, { backgroundColor: rankColors(row.rank).backgroundColor }, row.rank === 1 && styles.podiumBlockFirst]}>
@@ -152,6 +178,7 @@ export default function LeaderboardScreen({ user, onBack }) {
                 <View style={[styles.rankPill, { backgroundColor: rankColors(item.rank).backgroundColor }]}>
                   <BodyText variant="caption" style={[styles.rankText, { color: rankColors(item.rank).textColor }]}>{item.rank}</BodyText>
                 </View>
+                <LeaderboardAvatar row={item} />
                 <View style={styles.rowCopy}>
                   <Heading level="h4" style={styles.rowName}>{item.displayName}</Heading>
                   <BodyText variant="caption">
@@ -215,7 +242,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: alpha.ink08,
     marginBottom: spacing.xs,
+    overflow: 'hidden',
   },
+  leaderboardAvatarImage: { width: '100%', height: '100%' },
+  avatarInitial: { color: colors.ink },
   podiumName: { textAlign: 'center', maxWidth: '100%' },
   podiumBlock: {
     width: '100%',
@@ -259,6 +289,15 @@ const styles = StyleSheet.create({
     backgroundColor: alpha.ink08,
   },
   rankText: { color: colors.ink, fontFamily: fonts.sansExtraBold },
+  rowAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: alpha.ink08,
+    overflow: 'hidden',
+  },
   rowCopy: { flex: 1 },
   rowName: { fontSize: 17, lineHeight: 22 },
   rowPoints: { fontSize: 18, lineHeight: 24 },

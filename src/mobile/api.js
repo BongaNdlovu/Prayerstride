@@ -330,10 +330,10 @@ export function deletePrayer(prayerId) {
   });
 }
 
-export function prayForRequest(prayerId) {
+export function prayForRequest(prayerId, payload = {}) {
   return apiFetch(`/api/prayers/${encodeURIComponent(prayerId)}/pray`, {
     method: 'POST',
-    body: JSON.stringify({}),
+    body: JSON.stringify(payload || {}),
   });
 }
 

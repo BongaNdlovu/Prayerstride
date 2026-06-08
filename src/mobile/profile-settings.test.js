@@ -26,6 +26,8 @@ describe('profile settings', () => {
     expect(source.default).toMatch(/handle/);
     expect(source.default).toMatch(/prepareAvatarBlob/);
     expect(source.default).toMatch(/uploadAvatarFile/);
+    expect(source.default).toMatch(/Profile photo upload failed/);
+    expect(source.default).toMatch(/onError=\{\(\) => setPhotoLoadFailed\(true\)\}/);
     const apiSource = await import('./api.js?raw');
     expect(apiSource.default).toMatch(/navigator\?\.product === 'ReactNative'/);
     expect(apiSource.default).toMatch(/file\.uri/);
@@ -33,6 +35,41 @@ describe('profile settings', () => {
     expect(apiSource.default).toMatch(/formData\.append\('avatar', file\.blob/);
     expect(avatarUpload.default).toMatch(/storage\/quota-exceeded/);
     expect(source.default).toMatch(/onBack=\{onBack\}/);
+  });
+
+  it('ProfileScreen falls back to initials when a saved avatar URL fails to load', async () => {
+    const source = await import('./screens/ProfileScreen.jsx?raw');
+    expect(source.default).toMatch(/avatarLoadFailed/);
+    expect(source.default).toMatch(/onError=\{\(\) => setAvatarLoadFailed\(true\)\}/);
+  });
+
+  it('HomeScreen header avatar follows the saved profile photo', async () => {
+    const source = await import('./screens/HomeScreen.jsx?raw');
+    expect(source.default).toMatch(/useUserProfile/);
+    expect(source.default).toMatch(/headerAvatarUri/);
+    expect(source.default).toMatch(/onError=\{\(\) => setHeaderAvatarLoadFailed\(true\)\}/);
+  });
+
+  it('HomeScreen hides bottom tabs while feed overlays are open', async () => {
+    const source = await import('./screens/HomeScreen.jsx?raw');
+    const app = await import('../../app/index.jsx?raw');
+    expect(source.default).toMatch(/onTabBarHiddenChange\?\. \(overlayOpen\)|onTabBarHiddenChange\?\.\(overlayOpen\)/);
+    expect(source.default).toMatch(/BackHandler\.addEventListener\('hardwareBackPress'/);
+    expect(app.default).toMatch(/tabBarHidden/);
+    expect(app.default).toMatch(/isMainTab && !tabBarHidden/);
+  });
+
+  it('LeaderboardScreen renders profile photos from leaderboard rows', async () => {
+    const source = await import('./screens/LeaderboardScreen.jsx?raw');
+    expect(source.default).toMatch(/LeaderboardAvatar/);
+    expect(source.default).toMatch(/cleanOptionalPhotoURL\(row\?\.photoURL\)/);
+    expect(source.default).toMatch(/onError=\{\(\) => setImageLoadFailed\(true\)\}/);
+  });
+
+  it('mock leaderboard rows include the current user profile photo', async () => {
+    const source = await import('./mockData.js?raw');
+    expect(source.default).toMatch(/photoURL: state\.profile\.photoURL \|\| null/);
+    expect(source.default).toMatch(/state\.users = state\.users\.map/);
   });
 
   it('SettingsScreen links to about and copyright routes', async () => {

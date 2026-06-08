@@ -185,6 +185,15 @@ describe('mobile API backend wiring', () => {
     }
   });
 
+  it('prayForRequest can send quality-prayer metadata for timed sessions', async () => {
+    await api.prayForRequest('prayer/1', { qualityPrayer: true, seconds: 90 });
+
+    const { url, options } = lastFetchCall();
+    expect(url.endsWith('/api/prayers/prayer%2F1/pray')).toBe(true);
+    expect(options.method).toBe('POST');
+    expect(JSON.parse(options.body)).toEqual({ qualityPrayer: true, seconds: 90 });
+  });
+
   it('apiFetch maps backend failures to status-bearing errors', async () => {
     fetch.mockResolvedValueOnce(jsonResponse({ error: 'blocked' }, { ok: false, status: 403 }));
 

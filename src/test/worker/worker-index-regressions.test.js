@@ -33,6 +33,17 @@ describe('worker index regressions', () => {
     expect(source).toContain("You cannot react to your own testimony.");
   });
 
+  it('sends a distinct notification for timed quality prayers', async () => {
+    const source = (await import('../../../worker/index.js?raw')).default;
+    const fnBody = source.match(/async function prayForRequest[\s\S]*?\nasync function reactToTestimony/)?.[0] || '';
+
+    expect(fnBody).toContain("body?.qualityPrayer === true");
+    expect(fnBody).toContain("qualityPrayerSeconds >= 15");
+    expect(fnBody).toContain("type: notificationType");
+    expect(fnBody).toContain("message: notificationMessage");
+    expect(fnBody).toContain("data: { type: notificationType, relatedId: prayerId }");
+  });
+
   it('records answered-prayer gamification only after a successful preconditioned write', async () => {
     const source = (await import('../../../worker/index.js?raw')).default;
     const fnBody = source.match(/async function markPrayerAnswered[\s\S]*?\nasync function deletePrayer/)?.[0] || '';

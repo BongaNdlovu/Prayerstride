@@ -10,7 +10,14 @@ describe('prayer flow', () => {
   it('PrayerStopwatchScreen records the pray action after a genuine timed session', async () => {
     const source = await import('./screens/PrayerStopwatchScreen.jsx?raw');
     expect(source.default).toMatch(/MIN_GENUINE_PRAYER_SECONDS/);
-    expect(source.default).toMatch(/prayForRequest\(sessionPrayerId\)/);
+    expect(source.default).toMatch(/prayForRequest\(sessionPrayerId, \{ qualityPrayer: true, seconds \}\)/);
+  });
+
+  it('PrayerStopwatchScreen skips prayed-count updates for own requests while saving the session', async () => {
+    const source = await import('./screens/PrayerStopwatchScreen.jsx?raw');
+    expect(source.default).toMatch(/isOwnPrayerRequest/);
+    expect(source.default).toMatch(/!isDirectPrivateSession && !isOwnPrayerRequest/);
+    expect(source.default).toMatch(/await addPrayerSession/);
   });
 
   it('HomeScreen imports usePrayers', async () => {
@@ -23,6 +30,12 @@ describe('prayer flow', () => {
     expect(source.default).toMatch(/PrayerFocusCard/);
     expect(source.default).toMatch(/go\('timer', \{ prayerId: currentPrayer\.id, title: currentPrayer\.title, prayer: currentPrayer \}\)/);
     expect(source.default).toMatch(/accessibilityLabel="Start prayer timer"/);
+  });
+
+  it('app routes completed prayer sessions directly to Stride stats', async () => {
+    const source = await import('../../app/index.jsx?raw');
+    expect(source.default).toMatch(/resetFn: handleTabChange/);
+    expect(source.default).toMatch(/onDone=\{\(\) => resetFn\('stride'\)\}/);
   });
 
   it('app shell no longer exposes legacy prayer feed routes', async () => {

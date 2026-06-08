@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, BackHandler, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Bell,
@@ -24,9 +24,10 @@ import { bookmarkPrayer } from '../api';
 import { addPrayer, deletePrayer, markAnswered, usePrayers } from '../usePrayerData';
 import { filterBlockedItems, useBlocks } from '../useBlocks';
 import { useGamification } from '../useGamification';
+import { useUserProfile } from '../useUsers';
 import { useAppFeedback } from '../AppFeedbackProvider';
 import { getErrorMessage } from '../errors';
-import { cleanOptionalProfileText } from '../profileFields';
+import { cleanOptionalPhotoURL, cleanOptionalProfileText, imageUriWithCacheBuster } from '../profileFields';
 import { PRAYER_DETAILS_LIMIT } from '../prayerFormOptions';
 import ScreenScaffold from '../components/ScreenScaffold';
 import Heading from '../components/Heading';
@@ -241,12 +242,13 @@ function DailyVerseCard() {
   );
 }
 
-export default function HomeScreen({ user, onOpenPrayer, go }) {
+export default function HomeScreen({ user, onOpenPrayer, go, onTabBarHiddenChange }) {
   const feedback = useAppFeedback();
   const currentUser = auth.currentUser || user;
   const uid = currentUser?.uid;
   const { prayers, loading: prayersLoading, error: prayersError, retry: retryPrayers } = usePrayers(true);
   const { blockedUids, loading: blocksLoading, error: blocksError, refresh: retryBlocks } = useBlocks(true);
+  const { profile } = useUserProfile(uid, Boolean(uid));
   const {
     summary: gamified,
     retry: retryStats,
@@ -262,6 +264,8 @@ export default function HomeScreen({ user, onOpenPrayer, go }) {
   const [composeCategory, setComposeCategory] = useState('Guidance');
   const [composeScriptureRef, setComposeScriptureRef] = useState('');
   const [composeBusy, setComposeBusy] = useState(false);
+  const [headerAvatarLoadFailed, setHeaderAvatarLoadFailed] = useState(false);
+  const overlayOpen = searchOpen || composeOpen;
 
   useEffect(() => {
     if (!Array.isArray(gamified.prayedTodayIds)) return;
@@ -273,7 +277,9 @@ export default function HomeScreen({ user, onOpenPrayer, go }) {
     [prayers, blockedUids, blocksLoading],
   );
   const currentPrayer = visiblePrayers[clampIndex(currentFeedIndex, visiblePrayers.length)];
-  const userInitial = (user?.displayName || user?.email || 'P').slice(0, 1).toUpperCase();
+  const headerPhotoURL = cleanOptionalPhotoURL(profile?.photoURL) || cleanOptionalPhotoURL(currentUser?.photoURL) || cleanOptionalPhotoURL(user?.photoURL);
+  const headerAvatarUri = imageUriWithCacheBuster(headerPhotoURL, profile?.updatedAt || profile?.photoURL);
+  const userInitial = (profile?.displayName || currentUser?.displayName || currentUser?.email || user?.displayName || user?.email || 'P').slice(0, 1).toUpperCase();
   const searchResults = useMemo(
     () => visiblePrayers
       .map((prayer, index) => ({ prayer, index }))
@@ -288,6 +294,32 @@ export default function HomeScreen({ user, onOpenPrayer, go }) {
     retryBlocks();
     retryStats();
   };
+
+  useEffect(() => {
+    setHeaderAvatarLoadFailed(false);
+  }, [headerAvatarUri]);
+
+  useEffect(() => {
+    onTabBarHiddenChange?.(overlayOpen);
+    return () => onTabBarHiddenChange?.(false);
+  }, [onTabBarHiddenChange, overlayOpen]);
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (searchOpen) {
+        setSearchOpen(false);
+        setSearchQuery('');
+        return true;
+      }
+      if (composeOpen) {
+        setComposeOpen(false);
+        return true;
+      }
+      return false;
+    });
+
+    return () => subscription?.remove?.();
+  }, [composeOpen, searchOpen]);
 
   const goToPrayerIndex = (nextIndex) => {
     if (!visiblePrayers.length) return;
@@ -418,7 +450,16 @@ export default function HomeScreen({ user, onOpenPrayer, go }) {
           </Pressable>
           <Pressable onPress={() => go('profile')} style={styles.avatarRing} accessibilityRole="button" accessibilityLabel="Profile">
             <View style={styles.headerAvatar}>
-              <Text style={styles.headerAvatarText}>{userInitial}</Text>
+              {headerAvatarUri && !headerAvatarLoadFailed ? (
+                <Image
+                  source={{ uri: headerAvatarUri }}
+                  style={styles.headerAvatarImage}
+                  onError={() => setHeaderAvatarLoadFailed(true)}
+                  accessibilityLabel="Profile photo"
+                />
+              ) : (
+                <Text style={styles.headerAvatarText}>{userInitial}</Text>
+              )}
             </View>
           </Pressable>
         </View>
@@ -635,7 +676,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.surface,
+    overflow: 'hidden',
   },
+  headerAvatarImage: { width: '100%', height: '100%' },
   headerAvatarText: { color: colors.gold, fontFamily: fonts.sansExtraBold, fontSize: 13 },
   progressStack: { gap: spacing.sm, marginBottom: spacing.lg },
   xpBarWrap: {

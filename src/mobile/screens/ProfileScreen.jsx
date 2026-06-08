@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   Award,
@@ -55,6 +56,7 @@ const MORE_LINKS = [
 ];
 
 export default function ProfileScreen({ user, signOut, go }) {
+  const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
   const { profile, loading: profileLoading, error: profileError, retry: retryProfile } = useUserProfile(user?.uid, Boolean(user?.uid));
   const {
     summary: gamified,
@@ -70,6 +72,9 @@ export default function ProfileScreen({ user, signOut, go }) {
   const email = cleanOptionalProfileText(user?.email);
   const photoURL = cleanOptionalPhotoURL(profile?.photoURL) || cleanOptionalPhotoURL(user?.photoURL);
   const avatarUri = imageUriWithCacheBuster(photoURL, profile?.updatedAt || profile?.photoURL);
+  useEffect(() => {
+    setAvatarLoadFailed(false);
+  }, [avatarUri]);
   const journeyTitle = cleanOptionalProfileText(gamified.journey?.title) || 'Prayer Strider';
   const statsUnavailable = Boolean(gamificationError);
   const earnedBadges = gamified.badges.filter((badge) => badge.state === 'earned').length;
@@ -94,8 +99,8 @@ export default function ProfileScreen({ user, signOut, go }) {
       <AsyncState loading={profileLoading} error={profileError} onRetry={retry}>
       <GlassCard style={styles.profileCard}>
         <View style={styles.avatarWrap}>
-          {avatarUri ? (
-            <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
+          {avatarUri && !avatarLoadFailed ? (
+            <Image source={{ uri: avatarUri }} style={styles.avatarImage} onError={() => setAvatarLoadFailed(true)} />
           ) : (
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>{displayName.slice(0, 1).toUpperCase()}</Text>

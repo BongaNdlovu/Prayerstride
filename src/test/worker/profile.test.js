@@ -3,9 +3,9 @@ import { avatarUrlForUid, serializeProfile } from '../../../worker/profile.js';
 
 describe('profile helpers', () => {
   it('builds canonical avatar urls from API_PUBLIC_URL', () => {
-    const request = new Request('https://api.prayerstride.app/api/me/profile');
-    const url = avatarUrlForUid({ API_PUBLIC_URL: 'https://api.prayerstride.app' }, request, 'uid-9');
-    expect(url).toBe('https://api.prayerstride.app/avatars/uid-9/profile.jpg');
+    const request = new Request('https://prayerstride.fanelesibonge50.workers.dev/api/me/profile');
+    const url = avatarUrlForUid({ API_PUBLIC_URL: 'https://prayerstride.fanelesibonge50.workers.dev' }, request, 'uid-9');
+    expect(url).toBe('https://prayerstride.fanelesibonge50.workers.dev/avatars/uid-9/profile.jpg');
   });
 
   it('serializes profile fields for mobile clients', () => {
