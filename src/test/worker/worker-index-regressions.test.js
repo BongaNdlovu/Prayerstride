@@ -44,6 +44,20 @@ describe('worker index regressions', () => {
     expect(fnBody).toContain("data: { type: notificationType, relatedId: prayerId }");
   });
 
+  it('sends announcement notifications and platform sound cues', async () => {
+    const source = (await import('../../../worker/index.js?raw')).default;
+    const announcementBody = source.match(/async function adminCreateAnnouncement[\s\S]*?\nasync function adminUpdateAnnouncement/)?.[0] || '';
+    const fcmBody = source.match(/async function sendFcm[\s\S]*?\nfunction stringifyData/)?.[0] || '';
+
+    expect(announcementBody).toContain('await notifyAnnouncementRecipients');
+    expect(announcementBody).toContain("prefs.announcements === false");
+    expect(announcementBody).toContain("type: 'announcement'");
+    expect(fcmBody).toContain("channel_id: 'prayerstride-default'");
+    expect(fcmBody).toContain("sound: 'default'");
+    expect(fcmBody).toContain('default_vibrate_timings: true');
+    expect(fcmBody).toContain("aps: {\n              sound: 'default'");
+  });
+
   it('records answered-prayer gamification only after a successful preconditioned write', async () => {
     const source = (await import('../../../worker/index.js?raw')).default;
     const fnBody = source.match(/async function markPrayerAnswered[\s\S]*?\nasync function deletePrayer/)?.[0] || '';

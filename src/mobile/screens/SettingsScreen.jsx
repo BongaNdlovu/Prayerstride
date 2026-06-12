@@ -4,6 +4,7 @@ import { ChevronRight } from 'lucide-react-native';
 import { alpha, colors, fonts, sharedStyles, spacing } from '../theme';
 import { useGamificationPreferences, updateGamificationPreferences } from '../useGamificationPreferences';
 import { triggerFeedbackCue } from '../AppFeedbackProvider';
+import { configureStreakReminderNotifications } from '../notifications';
 import ScreenScaffold from '../components/ScreenScaffold';
 import AppHeader from '../components/AppHeader';
 import GlassCard from '../components/GlassCard';
@@ -33,9 +34,15 @@ export default function SettingsScreen({ user, go, deleteAccount, onBack }) {
 
   const savePreference = async (key, value) => {
     try {
+      if (key === 'streakRemindersEnabled' && value === true) {
+        await configureStreakReminderNotifications(true);
+      }
       const next = await updateGamificationPreferences(user?.uid, { [key]: value });
       setPreferences(next);
       if (key === 'soundHapticsEnabled' && value === true) triggerFeedbackCue('celebrate');
+      if (key === 'streakRemindersEnabled' && value === false) {
+        await configureStreakReminderNotifications(false);
+      }
     } catch (error) {
       Alert.alert('Could not update preference', getErrorMessage(error));
     }

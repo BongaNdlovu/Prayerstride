@@ -78,7 +78,7 @@ export function triggerFeedbackCue(kind = 'tap') {
   }
 }
 
-export function AppFeedbackProvider({ children, soundHapticsEnabled = true }) {
+export function AppFeedbackProvider({ children, soundHapticsEnabled = true, milestoneCuesEnabled = true }) {
   const [toast, setToast] = useState(null);
   const [celebrationKey, setCelebrationKey] = useState(0);
 
@@ -98,12 +98,16 @@ export function AppFeedbackProvider({ children, soundHapticsEnabled = true }) {
         if (fallbackMessage) showToast({ message: fallbackMessage });
         return;
       }
+      if (!milestoneCuesEnabled) {
+        if (fallbackMessage) showToast({ message: fallbackMessage });
+        return;
+      }
       const bonus = xp.bonuses?.includes('dailyChallenge') ? ' Daily prayer goal complete.' : '';
       celebrate();
       showToast({ tone: 'gold', message: `Prayer progress recorded.${bonus}` });
     };
     return { showToast, showXp, celebrate };
-  }, [soundHapticsEnabled]);
+  }, [milestoneCuesEnabled, soundHapticsEnabled]);
 
   return (
     <FeedbackContext.Provider value={api}>

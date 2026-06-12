@@ -12,8 +12,10 @@ import Animated, {
 import { ArrowLeft, CheckCircle, Pause, Play, RotateCcw, Timer } from 'lucide-react-native';
 import { colors, fonts, radii, sharedStyles, spacing, typography } from '../theme';
 import { prayForRequest } from '../api';
+import { triggerFeedbackCue } from '../AppFeedbackProvider';
 import { addPrayer } from '../usePrayerData';
 import { addPrayerSession } from '../usePrayerSessions';
+import { useGamificationPreferences } from '../useGamificationPreferences';
 import { bumpGamificationRefresh } from '../gamificationRefresh';
 import { prayedStorageKey } from '../prayerLimit';
 import ScreenScaffold from '../components/ScreenScaffold';
@@ -49,12 +51,16 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, pr
   const [presetSeconds, setPresetSeconds] = useState(0);
   const intervalRef = useRef(null);
   const loggingRef = useRef(false);
+  const latestMilestoneRef = useRef(0);
   const pulse = useSharedValue(1);
   const drift = useSharedValue(0);
   const shimmer = useSharedValue(0);
   const isDirectPrivateSession = !prayerId;
   const sessionTitle = prayerTitle || privateTitle.trim() || 'Private prayer session';
   const isOwnPrayerRequest = Boolean(prayerId && prayer?.authorUid && user?.uid && prayer.authorUid === user.uid);
+  const { preferences } = useGamificationPreferences(user?.uid, Boolean(user?.uid));
+  const milestoneCuesEnabled = preferences.xpNotificationsEnabled !== false;
+  const soundHapticsEnabled = preferences.soundHapticsEnabled !== false;
   const prayerAuthor = prayer?.authorName || prayer?.name || 'Community member';
   const prayerInitial = prayerAuthor.slice(0, 1).toUpperCase();
   const prayerBody = prayer?.body || prayer?.text || 'Hold this prayer with care and attention.';
@@ -111,6 +117,18 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, pr
       setReadyToLog(true);
     }
   }, [presetSeconds, running, seconds]);
+
+  useEffect(() => {
+    const currentMilestone = latestMilestone || 0;
+    if (!milestoneCuesEnabled) {
+      latestMilestoneRef.current = currentMilestone;
+      return;
+    }
+    if (currentMilestone && currentMilestone !== latestMilestoneRef.current && soundHapticsEnabled) {
+      triggerFeedbackCue('celebrate');
+    }
+    latestMilestoneRef.current = currentMilestone;
+  }, [latestMilestone, milestoneCuesEnabled, soundHapticsEnabled]);
 
   const ringStyle = useAnimatedStyle(() => ({
     transform: [{ scale: pulse.value }],
@@ -305,16 +323,16 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, pr
           ))}
         </View>
 
-        {latestMilestone ? (
+        {milestoneCuesEnabled && latestMilestone ? (
           <View style={styles.milestonePill}>
             <CheckCircle size={14} color={colors.goldLight} />
             <BodyText variant="caption" style={styles.milestoneText}>{latestMilestone} minute milestone reached</BodyText>
           </View>
-        ) : (
+        ) : milestoneCuesEnabled ? (
           <BodyText variant="caption" style={styles.nextMilestone}>
             {nextMilestone ? `${nextMilestone} minute milestone ahead` : 'Long session in progress'}
           </BodyText>
-        )}
+        ) : null}
 
         <View style={styles.actions}>
           <PrimaryButton

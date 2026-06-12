@@ -58,7 +58,7 @@ export default function RemindersScreen({ user, onBack }) {
                   </View>
                   <View style={styles.reminderMeta}>
                     <Heading level="h4">{item.title}</Heading>
-                    <BodyText variant="caption">{item.time} · {item.schedule}</BodyText>
+                    <BodyText variant="caption">{item.time} - {item.schedule}</BodyText>
                   </View>
                 </View>
                 <ToggleRow
@@ -80,7 +80,7 @@ export default function RemindersScreen({ user, onBack }) {
                 <View style={styles.scheduleInfo}>
                   <BodyText variant="label">{item.title}</BodyText>
                   <BodyText variant="caption" style={styles.scheduleMeta}>
-                    {item.time ? `${item.time} · ${item.schedule}` : item.schedule}
+                    {item.time ? `${item.time} - ${item.schedule}` : item.schedule}
                   </BodyText>
                 </View>
                 <View style={styles.scheduleDot} />

@@ -75,4 +75,37 @@ describe('static feature screens', () => {
     expect(source.default).not.toMatch(/document\./);
     expect(source.default).not.toMatch(/window\./);
   });
+
+  it('settings preferences drive feedback cues and local streak reminders', async () => {
+    const app = await import('../../app/index.jsx?raw');
+    const feedback = await import('./AppFeedbackProvider.jsx?raw');
+    const settings = await import('./screens/SettingsScreen.jsx?raw');
+    const timer = await import('./screens/PrayerStopwatchScreen.jsx?raw');
+    const notifications = await import('./notifications.js?raw');
+
+    expect(app.default).toMatch(/milestoneCuesEnabled=\{appPreferences\.xpNotificationsEnabled !== false\}/);
+    expect(feedback.default).toMatch(/milestoneCuesEnabled/);
+    expect(settings.default).toMatch(/configureStreakReminderNotifications/);
+    expect(timer.default).toMatch(/preferences\.xpNotificationsEnabled !== false/);
+    expect(timer.default).toMatch(/triggerFeedbackCue\('celebrate'\)/);
+    expect(notifications.default).toMatch(/scheduleNotificationAsync/);
+    expect(notifications.default).toMatch(/STREAK_REMINDER_NOTIFICATION_ID/);
+  });
+
+  it('push notification setup requests sound and vibration on Android', async () => {
+    const source = await import('./notifications.js?raw');
+    expect(source.default).toMatch(/setNotificationChannelAsync\(DEFAULT_NOTIFICATION_CHANNEL_ID/);
+    expect(source.default).toMatch(/sound:\s*'default'/);
+    expect(source.default).toMatch(/vibrationPattern:\s*\[0, 250, 250, 250\]/);
+    expect(source.default).toMatch(/enableVibrate:\s*true/);
+  });
+
+  it('notification settings exposes every user notification category', async () => {
+    const source = await import('./screens/NotificationSettingsScreen.jsx?raw');
+    expect(source.default).toMatch(/save\('prayerActivity'/);
+    expect(source.default).toMatch(/save\('testimonyReactions'/);
+    expect(source.default).toMatch(/save\('announcements'/);
+    expect(source.default).toMatch(/save\('pushEnabled'/);
+    expect(source.default).toMatch(/registerForPushNotifications\(\{ requirePermission: true \}\)/);
+  });
 });

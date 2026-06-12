@@ -1779,7 +1779,63 @@ async function adminCreateAnnouncement(env, user, body) {
       }),
     },
   }]);
-  return json({ ok: true, announcementId: id });
+
+  let notificationWarning = null;
+  try {
+    await notifyAnnouncementRecipients(env, user.uid, id, {
+      title: String(body.title).slice(0, 120),
+      category: body.category,
+    });
+  } catch (error) {
+    notificationWarning = 'Announcement saved, but notifications could not be sent.';
+    log(env, 'error', { announcementId: id, error: error.message }, 'announcement-notification-failed');
+  }
+
+  return json({ ok: true, announcementId: id, notificationWarning });
+}
+
+async function notifyAnnouncementRecipients(env, actorUid, announcementId, announcement) {
+  const users = await listDocuments(env, docName(env, 'users'));
+  const message = `New announcement: ${announcement.title}`;
+  const writes = [];
+  const pushRecipients = [];
+
+  for (const userDoc of users) {
+    const uid = dataId(userDoc);
+    if (!uid || uid === actorUid) continue;
+
+    const profile = fromFirestoreFields(userDoc.fields || {});
+    if (profile.deletedAt || profile.suspended === true) continue;
+    if (profile.registrationState && profile.registrationState !== 'complete') continue;
+
+    const prefs = await getNotificationSettings(env, uid);
+    if (prefs.announcements === false) continue;
+
+    writes.push(notificationWrite(env, uid, {
+      type: 'announcement',
+      message,
+      relatedId: announcementId,
+      actorUid,
+      category: announcement.category,
+    }));
+    pushRecipients.push(uid);
+  }
+
+  await commitInChunks(env, writes);
+
+  for (let index = 0; index < pushRecipients.length; index += 25) {
+    const batch = pushRecipients.slice(index, index + 25);
+    await Promise.all(batch.map(async (uid) => {
+      await invalidateUserNotificationStream(env, uid);
+      await sendPushToUser(env, uid, {
+        title: 'PrayerStride',
+        body: message,
+        data: { type: 'announcement', relatedId: announcementId, category: announcement.category },
+      });
+    }));
+  }
+
+  return { notificationCount: writes.length };
 }
 
 async function adminUpdateAnnouncement(env, user, body) {
@@ -2286,6 +2342,22 @@ async function sendFcm(env, token, payload) {
         token,
         notification: { title: payload.title, body: payload.body },
         data: stringifyData(payload.data || {}),
+        android: {
+          priority: 'HIGH',
+          notification: {
+            channel_id: 'prayerstride-default',
+            sound: 'default',
+            default_sound: true,
+            default_vibrate_timings: true,
+          },
+        },
+        apns: {
+          payload: {
+            aps: {
+              sound: 'default',
+            },
+          },
+        },
       },
     }),
   });

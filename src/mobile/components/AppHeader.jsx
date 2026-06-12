@@ -60,6 +60,7 @@ export default function AppHeader({
           <ChevronLeft size={20} color={iconColor} />
         </Pressable>
       ) : null}
+      <LogoMark size={32} />
       <View style={styles.titleGroup}>
         {title ? <Heading level="h3" style={styles.inlineTitle}>{title}</Heading> : null}
         {subtitle ? <BodyText variant="caption" style={styles.inlineSubtitle}>{subtitle}</BodyText> : null}

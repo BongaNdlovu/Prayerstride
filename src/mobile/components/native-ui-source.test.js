@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { existsSync } from 'node:fs';
 
 describe('native UI kit', () => {
   it('theme exports expected keys', async () => {
@@ -73,20 +74,23 @@ describe('native UI kit', () => {
   });
 
   it('uses the supplied transparent logo for in-app branding', async () => {
-    const source = await import('../components/LogoMark.jsx?raw');
-    expect(source.default).toMatch(/logo-transparent\.png/);
-    expect(source.default).toMatch(/<Image/);
-    expect(source.default).toMatch(/resizeMode="contain"/);
-    expect(source.default).not.toMatch(/react-native-svg/);
+    const logo = await import('../components/LogoMark.jsx?raw');
+    const header = await import('../components/AppHeader.jsx?raw');
+    expect(logo.default).toMatch(/logo-transparent\.png/);
+    expect(logo.default).toMatch(/<Image/);
+    expect(logo.default).toMatch(/resizeMode="contain"/);
+    expect(logo.default).not.toMatch(/react-native-svg/);
+    expect(header.default).toMatch(/<LogoMark size=\{32\}/);
   });
 
-  it('configures bundled and web logo assets without duplicating native Android config', async () => {
+  it('configures footprint logo assets for bundled, native, and web surfaces', async () => {
     const source = await import('../../../app.json?raw');
     expect(source.default).toMatch(/"assets\/icon\.png"/);
     expect(source.default).toMatch(/"assets\/adaptive-icon\.png"/);
     expect(source.default).toMatch(/"assets\/logo-transparent\.png"/);
     expect(source.default).toMatch(/"favicon": "\.\/assets\/favicon\.png"/);
-    expect(source.default).not.toMatch(/"adaptiveIcon"/);
-    expect(source.default).not.toMatch(/"splash"/);
+    expect(existsSync('android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp')).toBe(true);
+    expect(existsSync('android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.webp')).toBe(true);
+    expect(existsSync('android/app/src/main/res/drawable-xxxhdpi/splashscreen_logo.png')).toBe(true);
   });
 });

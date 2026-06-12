@@ -141,7 +141,10 @@ export default function MobileApp() {
   return (
     <SafeAreaView style={[styles.shell, appPreferences.darkModeEnabled === true && styles.shellDark]}>
       <AppThemeProvider darkMode={appPreferences.darkModeEnabled === true}>
-        <AppFeedbackProvider soundHapticsEnabled={appPreferences.soundHapticsEnabled !== false}>
+        <AppFeedbackProvider
+          soundHapticsEnabled={appPreferences.soundHapticsEnabled !== false}
+          milestoneCuesEnabled={appPreferences.xpNotificationsEnabled !== false}
+        >
           <View style={[styles.appBody, appPreferences.darkModeEnabled === true && styles.appBodyDark]}>{content}</View>
           {isMainTab && !tabBarHidden && <BottomTabs active={screen} onChange={handleTabChange} />}
         </AppFeedbackProvider>

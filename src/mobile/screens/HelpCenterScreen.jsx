@@ -65,7 +65,7 @@ const TOPICS = [
     title: 'Notifications and Settings',
     body: 'Settings lets you choose how PrayerStride supports you throughout the week.',
     items: [
-      'Notification Settings controls prayer activity, announcements, and reminder alerts.',
+      'Notification Settings controls prayer activity, testimony reactions, announcements, and device alerts.',
       'Dark Mode, Sound and Haptics, Milestone Cues, and Streak Reminders can be adjusted any time.',
       'If you need to leave the app, Delete Account is available from Settings.',
     ],

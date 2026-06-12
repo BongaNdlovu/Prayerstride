@@ -16,12 +16,14 @@ import { getErrorMessage } from '../errors';
 export default function NotificationSettingsScreen({ user, onBack }) {
   const { settings, loading, error, retry } = useNotificationSettings(user?.uid, true);
   const [prayerActivity, setPrayerActivity] = useState(true);
+  const [testimonyReactions, setTestimonyReactions] = useState(true);
   const [announcements, setAnnouncements] = useState(true);
   const [pushEnabled, setPushEnabled] = useState(true);
 
   useEffect(() => {
     if (settings) {
       setPrayerActivity(settings.prayerActivity !== false);
+      setTestimonyReactions(settings.testimonyReactions !== false);
       setAnnouncements(settings.announcements !== false);
       setPushEnabled(settings.pushEnabled !== false);
     }
@@ -31,7 +33,7 @@ export default function NotificationSettingsScreen({ user, onBack }) {
     try {
       await updateNotificationSettings(user.uid, { [key]: value });
       if (key === 'pushEnabled' && value) {
-        registerForPushNotifications().catch((error) => {
+        registerForPushNotifications({ requirePermission: true }).catch((error) => {
           setPushEnabled(false);
           updateNotificationSettings(user.uid, { pushEnabled: false }).catch((saveError) => {
             Alert.alert('Could not save preference', getErrorMessage(saveError));
@@ -58,6 +60,12 @@ export default function NotificationSettingsScreen({ user, onBack }) {
           onToggle={(v) => { setPrayerActivity(v); save('prayerActivity', v, setPrayerActivity); }}
         />
         <ToggleRow
+          label="Testimony Reactions"
+          subtext="When someone responds to a testimony you shared."
+          value={testimonyReactions}
+          onToggle={(v) => { setTestimonyReactions(v); save('testimonyReactions', v, setTestimonyReactions); }}
+        />
+        <ToggleRow
           label="Announcements"
           subtext="Community updates from PrayerStride leaders."
           value={announcements}
@@ -80,7 +88,7 @@ export default function NotificationSettingsScreen({ user, onBack }) {
           </View>
           <View style={styles.quietText}>
             <BodyText variant="label">Quiet Hours</BodyText>
-            <BodyText variant="caption">10 PM – 7 AM · Notifications paused</BodyText>
+            <BodyText variant="caption">10 PM - 7 AM - Notifications paused</BodyText>
           </View>
         </View>
       </GlassCard>
