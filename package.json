@@ -18,6 +18,8 @@
     "web:mock": "node scripts/expo-start.mjs web mock",
     "build": "expo export",
     "build:android:apk": "node scripts/ensure-scene-assets.mjs && node scripts/build-android-release.mjs",
+    "lint": "node scripts/lint-smoke.mjs",
+    "test:lint": "npm run lint && npm run test:unit",
     "test:worker": "node scripts/worker-smoke.mjs",
     "test:worker:routes": "node scripts/worker-route-contract.mjs",
     "test:server": "node scripts/server-smoke.mjs",

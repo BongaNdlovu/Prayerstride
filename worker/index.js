@@ -2054,6 +2054,37 @@ async function deleteFirebaseAuthUser(env, uid) {
 }
 
 async function deleteStoragePrefix(env, prefix) {
+  const r2Deleted = await deleteR2StoragePrefix(env, prefix);
+  let firebaseDeleted = 0;
+  try {
+    firebaseDeleted = await deleteFirebaseStoragePrefix(env, prefix);
+  } catch (error) {
+    log(env, 'warn', { prefix, message: error.message }, 'legacy-storage-delete-skipped');
+  }
+  return r2Deleted + firebaseDeleted;
+}
+
+async function deleteR2StoragePrefix(env, prefix) {
+  if (!env.AVATARS) {
+    log(env, 'warn', { prefix }, 'r2-delete-skipped-no-bucket');
+    return 0;
+  }
+
+  let cursor;
+  let deleted = 0;
+  do {
+    const page = await env.AVATARS.list({ prefix, cursor, limit: 100 });
+    const keys = (page.objects || []).map((object) => object.key);
+    if (keys.length) {
+      await env.AVATARS.delete(keys.length === 1 ? keys[0] : keys);
+      deleted += keys.length;
+    }
+    cursor = page.truncated ? page.cursor : undefined;
+  } while (cursor);
+  return deleted;
+}
+
+async function deleteFirebaseStoragePrefix(env, prefix) {
   const bucket = env.FIREBASE_STORAGE_BUCKET;
   if (!bucket) {
     log(env, 'warn', { prefix }, 'storage-delete-skipped-no-bucket');

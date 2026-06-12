@@ -108,4 +108,35 @@ describe('avatar worker upload', () => {
     expect(result.body.error).toMatch(/smaller than 2 MB/i);
     expect(put).not.toHaveBeenCalled();
   });
+
+  it('accepts Android multipart uploads when the file part type is generic', async () => {
+    const put = vi.fn(async () => {});
+    const env = {
+      API_PUBLIC_URL: 'https://api.prayerstride.test',
+      AVATARS: { put },
+    };
+    const user = { uid: 'uid-1', email: 'alex@example.test' };
+    const firestoreApi = createFirestoreStub({
+      uid: user.uid,
+      email: user.email,
+      displayName: 'Alex',
+      role: 'user',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    });
+
+    const result = await uploadMyAvatar(
+      env,
+      user,
+      avatarRequest(new Blob(['avatar-bytes'], { type: 'application/octet-stream' })),
+      firestoreApi,
+      {
+        avatarUrlForUid: (nextEnv, _request, uid) => `${nextEnv.API_PUBLIC_URL}/avatars/${uid}/profile.jpg`,
+      },
+    );
+
+    expect(result.status).toBe(200);
+    expect(result.body.photoURL).toBe('https://api.prayerstride.test/avatars/uid-1/profile.jpg');
+    expect(put).toHaveBeenCalled();
+  });
 });

@@ -3,7 +3,8 @@ import { getApiErrorMessage, toUserFacingError } from './errors';
 import { isMockDataEnabled, mockApiFetch, mockUploadAvatar } from './mockData';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || '';
-const API_TIMEOUT_MS = 15000;
+export const API_TIMEOUT_MS = 30000;
+export const API_UPLOAD_TIMEOUT_MS = 90000;
 
 function shouldUseNativeFileFormData(file) {
   return Boolean(file?.uri && globalThis.navigator?.product === 'ReactNative');
@@ -35,10 +36,16 @@ export async function apiFetch(path, options = {}) {
   const token = await auth.currentUser?.getIdToken();
   if (!token) throw new Error('You must be signed in.');
 
-  const abortContext = createFetchAbortContext(options.signal, API_TIMEOUT_MS);
+  const {
+    headers: callerHeaders = {},
+    signal,
+    timeoutMs = API_TIMEOUT_MS,
+    ...fetchOptions
+  } = options;
+  const abortContext = createFetchAbortContext(signal, timeoutMs);
 
   const headers = {
-    ...(options.headers || {}),
+    ...callerHeaders,
     Authorization: `Bearer ${token}`,
   };
   if (!headers['Content-Type'] && !headers['content-type']) {
@@ -47,7 +54,7 @@ export async function apiFetch(path, options = {}) {
 
   try {
     const response = await fetch(`${API_URL}${path}`, {
-      ...options,
+      ...fetchOptions,
       signal: abortContext.signal,
       headers,
     });
@@ -60,7 +67,7 @@ export async function apiFetch(path, options = {}) {
     }
     return data;
   } catch (error) {
-    if (options.signal?.aborted) throw error;
+    if (signal?.aborted) throw error;
     if (abortContext.timedOut()) {
       throw new Error('The request timed out. Check your connection and try again.');
     }
@@ -107,7 +114,7 @@ export async function uploadMyAvatar(file, signal) {
     });
   }
 
-  const abortContext = createFetchAbortContext(signal, API_TIMEOUT_MS);
+  const abortContext = createFetchAbortContext(signal, API_UPLOAD_TIMEOUT_MS);
 
   try {
     const response = await fetch(`${API_URL}/api/me/avatar`, {

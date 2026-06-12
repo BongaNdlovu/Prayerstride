@@ -30,19 +30,16 @@ const env = loadEnv();
 const apiKey = env.EXPO_PUBLIC_FIREBASE_API_KEY;
 const apiUrl = env.EXPO_PUBLIC_API_URL;
 const projectId = env.EXPO_PUBLIC_FIREBASE_PROJECT_ID;
-const storageBucket = env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET;
 
-if (![apiKey, apiUrl, projectId, storageBucket].every(Boolean)) {
+if (![apiKey, apiUrl, projectId].every(Boolean)) {
   throw new Error('Missing required EXPO_PUBLIC_* values in .env.local');
 }
 
 const suffix = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
 const email = `production-smoke-${suffix}@example.com`;
 const password = `Smoke-${crypto.randomUUID()}!`;
-const avatarPath = 'avatars/pending/profile.jpg';
 let idToken = '';
 let uid = '';
-let uploadedAvatarPath = '';
 let workerDeleted = false;
 const failures = [];
 
@@ -56,18 +53,6 @@ async function deleteAuthUser() {
       body: JSON.stringify({ idToken }),
     },
     [200],
-  );
-}
-
-async function deleteAvatar() {
-  if (!uploadedAvatarPath || !idToken) return;
-  await requestJson(
-    `https://firebasestorage.googleapis.com/v0/b/${encodeURIComponent(storageBucket)}/o/${encodeURIComponent(uploadedAvatarPath)}`,
-    {
-      method: 'DELETE',
-      headers: { Authorization: `Firebase ${idToken}` },
-    },
-    [200, 204, 404],
   );
 }
 
@@ -130,23 +115,24 @@ try {
   );
   console.log(`gamification summary: PASS (${summary.badges?.length || 0} badges)`);
 
-  uploadedAvatarPath = avatarPath.replace('pending', uid);
   try {
-    await requestJson(
-      `https://firebasestorage.googleapis.com/v0/b/${encodeURIComponent(storageBucket)}/o?name=${encodeURIComponent(uploadedAvatarPath)}`,
+    const formData = new FormData();
+    formData.append('avatar', new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0xd9])], { type: 'image/jpeg' }), 'profile.jpg');
+    const avatarResult = await requestJson(
+      `${apiUrl}/api/me/avatar`,
       {
         method: 'POST',
-        headers: {
-          Authorization: `Firebase ${idToken}`,
-          'Content-Type': 'image/jpeg',
-        },
-        body: Buffer.from([0xff, 0xd8, 0xff, 0xd9]),
+        headers: { Authorization: `Bearer ${idToken}` },
+        body: formData,
       },
       [200],
     );
-    console.log('firebase storage avatar upload: PASS');
+    if (!avatarResult.photoURL) throw new Error('Avatar upload did not return photoURL');
+    const avatarResponse = await fetch(avatarResult.photoURL);
+    if (!avatarResponse.ok) throw new Error(`Avatar URL returned ${avatarResponse.status}`);
+    console.log('worker avatar upload: PASS');
   } catch (error) {
-    failures.push(`firebase storage avatar upload: FAILED (${error.message})`);
+    failures.push(`worker avatar upload: FAILED (${error.message})`);
     console.warn(failures.at(-1));
   }
 
@@ -158,9 +144,6 @@ try {
       console.warn(`worker account cleanup: FAILED (${error.message})`);
     });
     if (!workerDeleted) {
-      await deleteAvatar().catch((error) => {
-        console.warn(`avatar cleanup: FAILED (${error.message})`);
-      });
       await deleteAuthUser().catch((error) => {
         console.warn(`auth cleanup: FAILED (${error.message})`);
       });

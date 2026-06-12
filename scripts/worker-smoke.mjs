@@ -64,6 +64,8 @@ assert(worker.includes('retryFailedDeletionJobs'), 'Scheduled maintenance should
 assert(worker.includes('purgeExpiredDeletionTombstones'), 'Worker should purge expired deletion tombstones.');
 assert(worker.includes('deletion-query-fallback'), 'Account deletion should fall back when collection-group indexes are unavailable.');
 assert(worker.includes('storage-delete-non-fatal'), 'Account deletion should continue when avatar storage cleanup fails.');
+assert(worker.includes('deleteR2StoragePrefix'), 'Account deletion should clean avatars from the R2 bucket.');
+assert(worker.includes('legacy-storage-delete-skipped'), 'Account deletion should not fail when legacy Firebase Storage cleanup is unavailable.');
 assert(worker.includes('deleteContentAndActions'), 'Worker should cascade content deletion to nested pray and reaction records.');
 assert(
   /async function deleteContentAndActions[\s\S]*runCollectionGroupQuery\(env, 'notifications'/.test(worker),

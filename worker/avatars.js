@@ -6,6 +6,12 @@ import {
 
 export const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 export const AVATAR_CONTENT_TYPE = 'image/jpeg';
+const ACCEPTED_AVATAR_CONTENT_TYPES = new Set([
+  '',
+  'application/octet-stream',
+  'image/jpg',
+  AVATAR_CONTENT_TYPE,
+]);
 const AVATAR_OBJECT_KEY = (uid) => `avatars/${uid}/profile.jpg`;
 
 export function avatarObjectKey(uid) {
@@ -29,8 +35,8 @@ export async function uploadMyAvatar(env, user, request, firestoreApi, profileAp
     return { status: 400, body: { error: 'Missing avatar file.' } };
   }
 
-  const contentType = file.type || '';
-  if (contentType && contentType !== AVATAR_CONTENT_TYPE) {
+  const contentType = String(file.type || '').split(';', 1)[0].trim().toLowerCase();
+  if (!ACCEPTED_AVATAR_CONTENT_TYPES.has(contentType)) {
     return { status: 400, body: { error: 'Avatar must be a JPEG image.' } };
   }
 

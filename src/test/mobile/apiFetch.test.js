@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as api from '../../mobile/api.js';
-import { createFetchAbortContext } from '../../mobile/api.js';
+import {
+  API_TIMEOUT_MS,
+  API_UPLOAD_TIMEOUT_MS,
+  createFetchAbortContext,
+} from '../../mobile/api.js';
 import { auth } from '../../mobile/firebase.js';
 
 describe('createFetchAbortContext', () => {
@@ -214,6 +218,36 @@ describe('mobile API backend wiring', () => {
 
     const { options } = lastFetchCall();
     expect(options.headers.Authorization).toBe('Bearer test-token');
+  });
+
+  it('apiFetch keeps internal timeout options out of the fetch call', async () => {
+    await api.apiFetch('/api/secure', { timeoutMs: 12345 });
+
+    const { options } = lastFetchCall();
+    expect(options.timeoutMs).toBeUndefined();
+  });
+
+  it('uploadMyAvatar uses the longer upload timeout window', async () => {
+    vi.useFakeTimers();
+    let receivedSignal;
+    fetch.mockImplementationOnce((_url, options) => {
+      receivedSignal = options.signal;
+      return new Promise((_resolve, reject) => {
+        options.signal.addEventListener('abort', () => reject(new Error('aborted')), { once: true });
+      });
+    });
+
+    const upload = api.uploadMyAvatar({
+      blob: new Blob(['avatar'], { type: 'image/jpeg' }),
+    });
+    const expectedRejection = expect(upload).rejects.toThrow('The request timed out. Check your connection and try again.');
+    await Promise.resolve();
+
+    await vi.advanceTimersByTimeAsync(API_TIMEOUT_MS);
+    expect(receivedSignal.aborted).toBe(false);
+
+    await vi.advanceTimersByTimeAsync(API_UPLOAD_TIMEOUT_MS - API_TIMEOUT_MS);
+    await expectedRejection;
   });
 
   it('buildNotificationStreamUrl does not include bearer tokens in the URL', () => {
