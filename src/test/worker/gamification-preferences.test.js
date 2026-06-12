@@ -36,11 +36,12 @@ function createFs() {
 describe('gamification preferences', () => {
   it('normalizes safe defaults', () => {
     expect(normalizeGamificationPreferences(null)).toEqual(DEFAULT_GAMIFICATION_PREFERENCES);
-    expect(normalizeGamificationPreferences({ leaderboardVisible: true, soundHapticsEnabled: false }))
-      .toMatchObject({ leaderboardVisible: true, soundHapticsEnabled: false, darkModeEnabled: false });
+    expect(normalizeGamificationPreferences({ publicComparisonVisible: true, soundHapticsEnabled: false }))
+      .toMatchObject({ soundHapticsEnabled: false, darkModeEnabled: false });
+    expect(normalizeGamificationPreferences({ publicComparisonVisible: true })).not.toHaveProperty('publicComparisonVisible');
   });
 
-  it('persists preferences and mirrors leaderboard visibility into the summary', async () => {
+  it('persists private growth preferences without public visibility flags', async () => {
     const fs = createFs();
     fs.docs.set('gamificationSummaries/user-1', {
       uid: 'user-1',
@@ -50,20 +51,17 @@ describe('gamification preferences', () => {
     });
 
     const preferences = await updateGamificationPreferences(fs, {}, 'user-1', {
-      leaderboardVisible: true,
       darkModeEnabled: true,
       ignored: 'nope',
     });
 
-    expect(preferences).toMatchObject({ leaderboardVisible: true, darkModeEnabled: true });
+    expect(preferences).toMatchObject({ darkModeEnabled: true });
+    expect(preferences).not.toHaveProperty('publicComparisonVisible');
     expect(fs.docs.get('gamificationPreferences/user-1')).toMatchObject({
       uid: 'user-1',
-      leaderboardVisible: true,
       darkModeEnabled: true,
     });
-    expect(fs.docs.get('gamificationSummaries/user-1')).toMatchObject({
-      leaderboardVisible: true,
-    });
+    expect(fs.docs.get('gamificationSummaries/user-1')).not.toHaveProperty('publicComparisonVisible');
   });
 
   it('builds structured XP payloads for the mobile contract', () => {

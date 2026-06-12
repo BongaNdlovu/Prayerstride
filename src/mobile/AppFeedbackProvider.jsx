@@ -98,9 +98,9 @@ export function AppFeedbackProvider({ children, soundHapticsEnabled = true }) {
         if (fallbackMessage) showToast({ message: fallbackMessage });
         return;
       }
-      const bonus = xp.bonuses?.includes('dailyChallenge') ? ' Daily challenge complete.' : '';
+      const bonus = xp.bonuses?.includes('dailyChallenge') ? ' Daily prayer goal complete.' : '';
       celebrate();
-      showToast({ tone: 'gold', message: `+${xp.points} XP.${bonus}` });
+      showToast({ tone: 'gold', message: `Prayer progress recorded.${bonus}` });
     };
     return { showToast, showXp, celebrate };
   }, [soundHapticsEnabled]);

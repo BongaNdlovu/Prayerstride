@@ -10,7 +10,7 @@ const componentsDir = resolve(mobileSrc, 'components');
 
 const prototypeRoutes = {
   home: 'HomeScreen',
-  leaderboard: 'LeaderboardScreen',
+  community: 'CommunityScreen',
   stride: 'MyStatsScreen',
   profile: 'ProfileScreen',
   timer: 'PrayerStopwatchScreen',
@@ -138,7 +138,7 @@ for (const component of removedScreens) {
 });
 
 console.log('\n5. Prototype tabs and feed behavior');
-check('Bottom tabs use Feed, Ranks, Stride, Profile', bottomTabsSource.includes("key: 'home'") && bottomTabsSource.includes("key: 'leaderboard'") && bottomTabsSource.includes("key: 'stride'") && bottomTabsSource.includes("key: 'profile'"));
+check('Bottom tabs use Feed, Chain, Stride, Profile', bottomTabsSource.includes("key: 'home'") && bottomTabsSource.includes("key: 'community'") && bottomTabsSource.includes("key: 'stride'") && bottomTabsSource.includes("key: 'profile'"));
 check('Timer is focused from Home prayer card', homeSource.includes("go('timer', { prayerId: currentPrayer.id"));
 check('Home creates prototype prayer fields', homeSource.includes('addPrayer') && homeSource.includes('PRAYER_CATEGORIES') && homeSource.includes('composeScriptureRef'));
 check('Home updates answered prayers without testimony coupling', homeSource.includes('handleMarkAnswered(currentPrayer)') && !homeSource.includes('addTestimony'));

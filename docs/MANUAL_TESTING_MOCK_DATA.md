@@ -38,7 +38,7 @@ switch an installed bundle into mock mode.
 - Timer: start, pause, reset, and log a prayer session.
 - Calendar: view seeded events, add/update/delete an event, and bookmark dates.
 - Content: open mock devotions and the Prayer Basics study guide lesson flow.
-- Ranks: view podium, current user rank, and opt-in state.
+- Prayer Chain: view anonymous shared impact, cooperative goal progress, and the shared prayer wall.
 - Stride: view sessions, streak, weekly chart, answered prayers, and testimonies.
 - Profile: edit profile, open reminders, announcements, achievements, and admin dashboard.
 - Notifications: mark one notification or all notifications as read.

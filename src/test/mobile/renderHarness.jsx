@@ -40,7 +40,6 @@ const harnessMocks = vi.hoisted(() => ({
   mockDeletePrayer: vi.fn(() => Promise.resolve()),
   mockMarkAnswered: vi.fn(() => Promise.resolve()),
   mockUpdateGamificationPreferences: vi.fn(() => Promise.resolve({
-    leaderboardVisible: true,
     darkModeEnabled: false,
     soundHapticsEnabled: true,
     xpNotificationsEnabled: true,
@@ -391,7 +390,6 @@ vi.mock('../../../src/mobile/logger', () => ({ warn: vi.fn() }));
 vi.mock('../../../src/mobile/useGamificationPreferences', () => ({
   useGamificationPreferences: () => ({
     preferences: {
-      leaderboardVisible: true,
       darkModeEnabled: false,
       soundHapticsEnabled: true,
       xpNotificationsEnabled: true,
@@ -426,19 +424,10 @@ vi.mock('../../../src/mobile/useGamification', () => ({
       streak: 0,
       totalXP: 0,
       levelInfo: { level: 1, progress: 0, xpIntoLevel: 0 },
-      journey: { title: 'Prayer Walker', stage: 'beginner' },
+      journey: { title: 'Seed', stage: 'beginner' },
       badges: [],
       impact: { prayerSessions: 0, peoplePrayedFor: 0, answeredPrayers: 0 },
     },
-    loading: false,
-    error: null,
-    retry: vi.fn(),
-  }),
-}));
-
-vi.mock('../../../src/mobile/useLeaderboard', () => ({
-  useLeaderboard: () => ({
-    leaderboard: { scope: 'weekly', resetAt: null, rows: [], me: null },
     loading: false,
     error: null,
     retry: vi.fn(),
@@ -515,7 +504,6 @@ export function resetRenderHarnessMocks() {
   harnessMocks.mockGetPrayerBookmark.mockImplementation(() => Promise.resolve({ bookmarked: false }));
   harnessMocks.mockPrayForRequest.mockImplementation(() => Promise.resolve({ duplicate: false, prayerLimit: 'daily' }));
   harnessMocks.mockUpdateGamificationPreferences.mockImplementation(() => Promise.resolve({
-    leaderboardVisible: true,
     darkModeEnabled: false,
     soundHapticsEnabled: true,
     xpNotificationsEnabled: true,

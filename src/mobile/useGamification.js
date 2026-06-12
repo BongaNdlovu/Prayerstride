@@ -21,7 +21,7 @@ const DEFAULT_SUMMARY = {
   todayXP: 0,
   totalXP: 0,
   levelInfo: { level: 1, totalXP: 0, xpIntoLevel: 0, xpToNextLevel: 500, progress: 0 },
-  journey: { id: 'first-steps', title: 'First Steps', subtitle: 'Beginning your prayer walk' },
+  journey: { id: 'seed', title: 'Seed', subtitle: 'Beginning your prayer walk' },
   weeklyStats: [],
   activeDayIndexes: [],
   currentDayIndex: new Date().getDay(),

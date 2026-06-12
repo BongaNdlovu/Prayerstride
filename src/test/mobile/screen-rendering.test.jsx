@@ -13,7 +13,7 @@ import CopyrightScreen from '../../../src/mobile/screens/CopyrightScreen';
 import EditProfileScreen from '../../../src/mobile/screens/EditProfileScreen';
 import HelpCenterScreen from '../../../src/mobile/screens/HelpCenterScreen';
 import HomeScreen from '../../../src/mobile/screens/HomeScreen';
-import LeaderboardScreen from '../../../src/mobile/screens/LeaderboardScreen';
+import CommunityScreen from '../../../src/mobile/screens/CommunityScreen';
 import MyStatsScreen from '../../../src/mobile/screens/MyStatsScreen';
 import NotificationSettingsScreen from '../../../src/mobile/screens/NotificationSettingsScreen';
 import NotificationsScreen from '../../../src/mobile/screens/NotificationsScreen';
@@ -46,7 +46,7 @@ const SCREENS = [
   { name: 'EditProfileScreen', Cmp: EditProfileScreen, props: { user, onBack: noop, onDone: noop } },
   { name: 'HelpCenterScreen', Cmp: HelpCenterScreen, props: { onBack: noop } },
   { name: 'HomeScreen', Cmp: HomeScreen, props: { user, onOpenPrayer: noop, go: noop } },
-  { name: 'LeaderboardScreen', Cmp: LeaderboardScreen, props: { user, onBack: noop } },
+  { name: 'CommunityScreen', Cmp: CommunityScreen, props: { user, onBack: noop, go: noop } },
   { name: 'MyStatsScreen', Cmp: MyStatsScreen, props: { user, onBack: noop, go: noop } },
   { name: 'NotificationSettingsScreen', Cmp: NotificationSettingsScreen, props: { user, onBack: noop } },
   { name: 'NotificationsScreen', Cmp: NotificationsScreen, props: { user, onBack: noop } },

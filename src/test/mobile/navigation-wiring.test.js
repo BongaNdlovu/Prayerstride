@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { AUTH_ROUTES } from '../../../src/mobile/navigation';
 
 const ROUTED_SCREENS = [
-  'home', 'leaderboard', 'stride', 'profile',
+  'home', 'community', 'stride', 'profile',
   'detail', 'timer', 'prayerStopwatch',
   'settings', 'editProfile',
   'notifications', 'notificationSettings',
@@ -38,6 +38,7 @@ describe('navigation wiring', () => {
     expect(source).not.toMatch(/case 'create'/);
     expect(source).not.toMatch(/case 'praise'/);
     expect(source).not.toMatch(/case 'dailyChallenge'/);
+    expect(source).not.toMatch(/case 'leaderboard'/);
   });
 
   it('PrayerDetailScreen go targets are valid routes', async () => {
@@ -66,7 +67,7 @@ describe('navigation wiring', () => {
     const goCalls = source.match(/go\('(\w+)'/g) || [];
     const targets = goCalls.map((c) => c.match(/'(\w+)'/)[1]);
 
-    const validTargets = ['timer', 'detail', 'settings', 'leaderboard', 'stride', 'profile',
+    const validTargets = ['timer', 'detail', 'settings', 'community', 'stride', 'profile',
       'notifications', 'achievements', 'reminderSettings', 'adminDashboard'];
     for (const target of targets) {
       expect(validTargets).toContain(target);

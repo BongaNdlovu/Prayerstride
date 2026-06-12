@@ -9,7 +9,7 @@ describe('normalizeGamificationSummary', () => {
     expect(summary.activeDayIndexes).toEqual([]);
     expect(summary.prayedTodayIds).toEqual([]);
     expect(summary.levelInfo.level).toBe(1);
-    expect(summary.journey.id).toBe('first-steps');
+    expect(summary.journey.id).toBe('seed');
     expect(summary.impact).toEqual({
       prayerSessions: 0,
       peoplePrayedFor: 0,

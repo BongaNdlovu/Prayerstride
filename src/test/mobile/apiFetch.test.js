@@ -140,8 +140,7 @@ const API_WRAPPER_CASES = [
   { name: 'adminArchiveAnnouncement', run: () => api.adminArchiveAnnouncement('a1'), path: '/api/admin/announcements/archive', method: 'POST', body: { announcementId: 'a1' } },
   { name: 'getGamificationSummary', run: () => api.getGamificationSummary('Africa/Johannesburg'), path: '/api/gamification/summary?timeZone=Africa%2FJohannesburg' },
   { name: 'getGamificationPreferences', run: () => api.getGamificationPreferences(), path: '/api/gamification/preferences' },
-  { name: 'updateGamificationPreferences', run: () => api.updateGamificationPreferences({ showRank: false }), path: '/api/gamification/preferences', method: 'POST', body: { showRank: false } },
-  { name: 'getGamificationLeaderboard', run: () => api.getGamificationLeaderboard('monthly', 10), path: '/api/gamification/leaderboard?scope=monthly&limit=10' },
+  { name: 'updateGamificationPreferences', run: () => api.updateGamificationPreferences({ darkModeEnabled: true }), path: '/api/gamification/preferences', method: 'POST', body: { darkModeEnabled: true } },
   { name: 'updateGamificationTimeZone', run: () => api.updateGamificationTimeZone('UTC'), path: '/api/gamification/timezone', method: 'POST', body: { timeZone: 'UTC' } },
   { name: 'backfillGamification', run: () => api.backfillGamification('UTC'), path: '/api/gamification/backfill', method: 'POST', body: { timeZone: 'UTC' } },
   {

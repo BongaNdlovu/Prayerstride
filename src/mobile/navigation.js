@@ -1,6 +1,6 @@
 export const initialRoute = 'welcome';
 export const AUTH_ROUTES = ['welcome', 'reminderSetup', 'stayConnected', 'signIn', 'createAccount', 'resetPassword'];
-export const MAIN_TAB_ROUTES = ['home', 'leaderboard', 'stride', 'profile'];
+export const MAIN_TAB_ROUTES = ['home', 'community', 'stride', 'profile'];
 const MAX_HISTORY_LENGTH = 40;
 
 export function createNavState() {

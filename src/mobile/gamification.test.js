@@ -79,10 +79,10 @@ describe('gamification', () => {
   });
 
   it('derives journey stages from level without persistence', () => {
-    expect(journeyStageForLevel(1).id).toBe('first-steps');
-    expect(journeyStageForLevel(3).id).toBe('steady-path');
-    expect(journeyStageForLevel(8).id).toBe('prayer-companion');
-    expect(journeyStageForLevel(20).id).toBe('summit-seeker');
+    expect(journeyStageForLevel(1).id).toBe('seed');
+    expect(journeyStageForLevel(3).id).toBe('root');
+    expect(journeyStageForLevel(5).id).toBe('branch');
+    expect(journeyStageForLevel(20).id).toBe('fruit');
   });
 
   it('computes badge progress across earned, in-progress, and locked states', () => {

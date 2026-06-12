@@ -342,7 +342,6 @@ function seedState(user) {
       announcements: true,
     },
     gamificationPreferences: {
-      leaderboardVisible: true,
       darkModeEnabled: false,
       soundHapticsEnabled: true,
       xpNotificationsEnabled: true,
@@ -448,7 +447,7 @@ function buildSummary(state) {
       xpToNextLevel: 500 - xpIntoLevel,
       progress: xpIntoLevel / 500,
     },
-    journey: { id: 'faithful-strider', title: 'Faithful Strider', subtitle: 'Building a steady prayer rhythm' },
+    journey: { id: 'branch', title: 'Branch', subtitle: 'Carrying others in prayer' },
     weeklyStats: [
       { day: 'Sun', xp: 110 },
       { day: 'Mon', xp: 80 },
@@ -480,22 +479,6 @@ function buildSummary(state) {
       answeredPrayers: answered,
       totalPrayerSeconds: totalSeconds,
     },
-  };
-}
-
-function leaderboardFor(state, scope) {
-  const rows = [
-    { uid: state.profile.uid, displayName: state.profile.displayName, photoURL: state.profile.photoURL || null, updatedAt: state.profile.updatedAt || null, rank: 2, scopeXP: scope === 'weekly' ? 620 : 1840, level: 4, streak: 6, badgesEarned: 3, change: 1 },
-    { uid: 'member-ruth', displayName: 'Ruth M.', rank: 1, scopeXP: scope === 'weekly' ? 710 : 2110, level: 5, streak: 9, badgesEarned: 5, change: 0 },
-    { uid: 'member-daniel', displayName: 'Daniel K.', rank: 3, scopeXP: scope === 'weekly' ? 540 : 1690, level: 4, streak: 4, badgesEarned: 2, change: -1 },
-    { uid: 'member-hope', displayName: 'Hope N.', rank: 4, scopeXP: scope === 'weekly' ? 420 : 1320, level: 3, streak: 3, badgesEarned: 2, change: 2 },
-    { uid: 'member-ana', displayName: 'Ana P.', rank: 5, scopeXP: scope === 'weekly' ? 390 : 1180, level: 3, streak: 2, badgesEarned: 1, change: null },
-  ].sort((a, b) => a.rank - b.rank);
-  return {
-    scope,
-    resetAt: scope === 'weekly' ? 'Sunday' : null,
-    rows,
-    me: rows.find((row) => row.uid === state.profile.uid),
   };
 }
 
@@ -904,9 +887,6 @@ export async function mockApiFetch(path, options = {}, user) {
   if (pathname === '/api/gamification/preferences') {
     if (method === 'POST') state.gamificationPreferences = { ...state.gamificationPreferences, ...body };
     return clone({ ok: true, preferences: state.gamificationPreferences });
-  }
-  if (pathname === '/api/gamification/leaderboard') {
-    return clone(leaderboardFor(state, url.searchParams.get('scope') || 'weekly'));
   }
   if (pathname === '/api/gamification/timezone') return clone({ ok: true, timeZone: body.timeZone || 'UTC' });
   if (pathname === '/api/gamification/backfill') return clone({ ok: true, xp: mockXp(0, false) });

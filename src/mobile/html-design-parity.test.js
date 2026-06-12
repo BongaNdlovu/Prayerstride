@@ -78,9 +78,11 @@ describe('HTML design parity', () => {
     expect(source.default).not.toMatch(/FootprintsIconSmall/);
   });
 
-  it('LeaderboardScreen uses night tab active state', async () => {
-    const source = await import('./screens/LeaderboardScreen.jsx?raw');
-    expect(source.default).toMatch(/tabButtonActive.*colors\.night/);
+  it('CommunityScreen uses dark shared impact surface', async () => {
+    const source = await import('./screens/CommunityScreen.jsx?raw');
+    expect(source.default).toMatch(/flameCard/);
+    expect(source.default).toMatch(/colors\.night/);
+    expect(source.default).toMatch(/goalTrack/);
   });
 
   it('AchievementsScreen has dark achievement banner', async () => {

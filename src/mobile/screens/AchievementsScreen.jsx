@@ -64,11 +64,11 @@ export default function AchievementsScreen({ user, onBack }) {
 
   return (
     <ScreenScaffold pageContent style={styles.screen}>
-      <AppHeader title="Badges" subtitle="Gentle milestones for consistency and care." onBack={onBack} centered showLogo />
+      <AppHeader title="Encouragements" subtitle="Gentle milestones for consistency and care." onBack={onBack} centered showLogo />
       <AsyncState loading={loading} error={error} onRetry={retry}>
         <View style={styles.achBanner}>
           <BodyText variant="caption" style={styles.achBannerLabel}>Your Progress</BodyText>
-          <Heading level="stat" style={styles.achBannerCount}>{earnedCount}<BodyText variant="caption" style={styles.achBannerTotal}> / {badges.length} Achievements</BodyText></Heading>
+          <Heading level="stat" style={styles.achBannerCount}>{earnedCount}<BodyText variant="caption" style={styles.achBannerTotal}> / {badges.length} Encouragements</BodyText></Heading>
           <View style={styles.achBannerTrack}>
             <View style={[styles.achBannerFill, { width: `${Math.round(overallProgress * 100)}%` }]} />
           </View>
@@ -91,12 +91,12 @@ export default function AchievementsScreen({ user, onBack }) {
           title="Earned"
           subtitle="Milestones already added to your walk."
           badges={earnedBadges}
-          emptyLabel="No earned badges yet."
+          emptyLabel="No encouragements earned yet."
           onSelectBadge={setSelectedBadge}
         />
         <BadgeSection
           title="In Progress"
-          subtitle="Badges currently moving forward."
+          subtitle="Encouragements currently moving forward."
           badges={inProgressBadges}
           emptyLabel="Start a prayer session to begin making progress."
           onSelectBadge={setSelectedBadge}
@@ -105,19 +105,19 @@ export default function AchievementsScreen({ user, onBack }) {
           title="Locked"
           subtitle="Future milestones to grow toward."
           badges={lockedBadges}
-          emptyLabel="No locked badges."
+          emptyLabel="No locked encouragements."
           onSelectBadge={setSelectedBadge}
         />
       </AsyncState>
 
       {selectedBadge ? (
         <View style={styles.detailOverlay}>
-          <Pressable style={styles.detailBackdrop} onPress={() => setSelectedBadge(null)} accessibilityLabel="Close achievement details" />
+          <Pressable style={styles.detailBackdrop} onPress={() => setSelectedBadge(null)} accessibilityLabel="Close encouragement details" />
           <View style={styles.detailSheet}>
             <View style={styles.detailHandle} />
             <View style={styles.detailHeader}>
-              <Text style={styles.detailTitle}>Achievement</Text>
-              <Pressable onPress={() => setSelectedBadge(null)} style={styles.detailClose} accessibilityLabel="Close achievement details">
+              <Text style={styles.detailTitle}>Encouragement</Text>
+              <Pressable onPress={() => setSelectedBadge(null)} style={styles.detailClose} accessibilityLabel="Close encouragement details">
                 <X size={18} color={colors.ink} />
               </Pressable>
             </View>

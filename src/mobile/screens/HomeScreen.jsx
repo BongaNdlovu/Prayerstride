@@ -18,7 +18,6 @@ import {
   X,
 } from 'lucide-react-native';
 import { alpha, colors, fonts, radii, shadow, spacing } from '../theme';
-import { XP_PER_LEVEL } from '../gamification';
 import { auth } from '../firebase';
 import { bookmarkPrayer } from '../api';
 import { addPrayer, deletePrayer, markAnswered, usePrayers } from '../usePrayerData';
@@ -77,10 +76,6 @@ function prayerMatchesQuery(prayer, query) {
 function dailyVerse() {
   const day = Math.floor(Date.now() / 86400000);
   return DAILY_VERSES[day % DAILY_VERSES.length];
-}
-
-function formatXP(value) {
-  return Math.max(0, Number(value) || 0).toLocaleString();
 }
 
 function ProgressDots({ count, activeIndex, onSelect }) {
@@ -189,11 +184,11 @@ function PrayerFocusCard({ prayer, saved, prayed, canUpdate, onPray, onAmen, onS
   );
 }
 
-function XPProgressPanel({ summary, onAchievements }) {
+function JourneyProgressPanel({ summary, onEncouragements }) {
   const levelInfo = summary.levelInfo;
   const progressPct = Math.round(Math.min(Math.max(levelInfo.progress || 0, 0), 1) * 100);
-  const xpIntoLevel = Number(levelInfo.xpIntoLevel || 0);
   const journeyTitle = cleanOptionalProfileText(summary.journey?.title) || 'Prayer Strider';
+  const activeDaysThisWeek = Array.isArray(summary.activeDayIndexes) ? summary.activeDayIndexes.length : 0;
 
   return (
     <View style={styles.progressStack}>
@@ -202,25 +197,28 @@ function XPProgressPanel({ summary, onAchievements }) {
           <View style={styles.levelBadge}>
             <Sparkles size={10} color={colors.ink} />
             <BodyText variant="caption" style={styles.levelBadgeText}>
-              Level {levelInfo.level} - {journeyTitle}
+              {journeyTitle}
             </BodyText>
           </View>
           <BodyText variant="caption" style={styles.xpLabel}>
-            {formatXP(xpIntoLevel)} / {formatXP(XP_PER_LEVEL)} XP
+            Your prayer journey
           </BodyText>
         </View>
         <View style={styles.xpTrack}>
           <View style={[styles.xpFill, { width: `${progressPct}%` }]} />
         </View>
+        <BodyText variant="caption" style={styles.journeyHint}>
+          You showed up in prayer {activeDaysThisWeek} {activeDaysThisWeek === 1 ? 'day' : 'days'} this week.
+        </BodyText>
         <Pressable
-          onPress={onAchievements}
+          onPress={onEncouragements}
           style={styles.achievementsLink}
           accessibilityRole="button"
-          accessibilityLabel="Open achievements"
+          accessibilityLabel="Open encouragements"
         >
           <Sparkles size={13} color={colors.gold} />
           <BodyText variant="caption" style={styles.achievementsLinkText}>
-            Achievements
+            Encouragements
           </BodyText>
         </Pressable>
       </View>
@@ -467,7 +465,7 @@ export default function HomeScreen({ user, onOpenPrayer, go, onTabBarHiddenChang
       <DailyVerseCard />
 
       <AsyncState loading={listLoading} error={listError} onRetry={retry}>
-        <XPProgressPanel summary={gamified} onAchievements={() => go('achievements')} />
+        <JourneyProgressPanel summary={gamified} onEncouragements={() => go('achievements')} />
         {currentPrayer ? (
           <View style={styles.feedViewport}>
             <PrayerFocusCard
@@ -710,6 +708,7 @@ const styles = StyleSheet.create({
   },
   xpMetaRow: { marginTop: spacing.sm, flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md },
   todayXp: { color: colors.gold, fontFamily: fonts.sansSemiBold },
+  journeyHint: { marginTop: spacing.xs, color: colors.ink3 },
   achievementsLink: {
     alignSelf: 'flex-start',
     flexDirection: 'row',

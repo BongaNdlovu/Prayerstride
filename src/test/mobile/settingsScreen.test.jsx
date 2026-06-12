@@ -61,24 +61,14 @@ describe('SettingsScreen render behavior', () => {
     expect(go).toHaveBeenCalledWith('helpCenter');
   });
 
-  it('preference toggle calls updateGamificationPreferences', async () => {
+  it('dark mode toggle updates preferences', async () => {
     renderSettings();
     const toggles = screen.getAllByRole('checkbox');
     fireEvent.click(toggles[0]);
 
     await waitFor(() => {
-      expect(getHarnessMocks().mockUpdateGamificationPreferences).toHaveBeenCalledWith('u1', { leaderboardVisible: false });
-      expect(getHarnessMocks().mockSetPreferences).toHaveBeenCalled();
-    });
-  });
-
-  it('dark mode toggle updates preferences', async () => {
-    renderSettings();
-    const toggles = screen.getAllByRole('checkbox');
-    fireEvent.click(toggles[1]);
-
-    await waitFor(() => {
       expect(getHarnessMocks().mockUpdateGamificationPreferences).toHaveBeenCalledWith('u1', { darkModeEnabled: true });
+      expect(getHarnessMocks().mockSetPreferences).toHaveBeenCalled();
     });
   });
 

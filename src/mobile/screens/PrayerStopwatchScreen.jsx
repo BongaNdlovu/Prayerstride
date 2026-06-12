@@ -11,7 +11,6 @@ import Animated, {
 } from 'react-native-reanimated';
 import { ArrowLeft, CheckCircle, Pause, Play, RotateCcw, Timer } from 'lucide-react-native';
 import { colors, fonts, radii, sharedStyles, spacing, typography } from '../theme';
-import { XP_AWARDS } from '../gamification';
 import { prayForRequest } from '../api';
 import { addPrayer } from '../usePrayerData';
 import { addPrayerSession } from '../usePrayerSessions';
@@ -331,7 +330,7 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, pr
 
         {readyToLog && !running && seconds > 0 ? (
           <View style={styles.logWrap}>
-            <BodyText variant="caption" style={styles.xpHint}>Saving this session can earn +{XP_AWARDS.prayerSession} XP.</BodyText>
+            <BodyText variant="caption" style={styles.xpHint}>Saving this session records your prayer rhythm.</BodyText>
             <PrimaryButton label="Log Prayer" onPress={logPrayer} busy={busy} disabled={busy} style={styles.logBtn} />
           </View>
         ) : null}

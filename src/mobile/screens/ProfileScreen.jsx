@@ -11,12 +11,10 @@ import {
   Megaphone,
   Settings,
   Sparkles,
-  Trophy,
   User,
   Users,
 } from 'lucide-react-native';
 import { alpha, colors, fonts, radii, spacing } from '../theme';
-import { XP_PER_LEVEL } from '../gamification';
 import { useUserProfile } from '../useUsers';
 import { useGamification } from '../useGamification';
 import {
@@ -39,15 +37,15 @@ const PROFILE_ROUTES = {
   reminderSettings: 'reminderSettings',
   notifications: 'notifications',
   settings: 'settings',
-  leaderboard: 'leaderboard',
+  community: 'community',
   achievements: 'achievements',
 };
 
 const QUICK_LINKS = [
   { label: 'Stride', route: PROFILE_ROUTES.stride, icon: BarChart3 },
-  { label: 'Ranks', route: PROFILE_ROUTES.leaderboard, icon: Users },
+  { label: 'Prayer Chain', route: PROFILE_ROUTES.community, icon: Users },
   { label: 'Prayer Times', route: PROFILE_ROUTES.reminderSettings, icon: Clock },
-  { label: 'Achievements', route: PROFILE_ROUTES.achievements, icon: Sparkles },
+  { label: 'Encouragements', route: PROFILE_ROUTES.achievements, icon: Sparkles },
 ];
 
 const MORE_LINKS = [
@@ -77,7 +75,7 @@ export default function ProfileScreen({ user, signOut, go }) {
   }, [avatarUri]);
   const journeyTitle = cleanOptionalProfileText(gamified.journey?.title) || 'Prayer Strider';
   const statsUnavailable = Boolean(gamificationError);
-  const earnedBadges = gamified.badges.filter((badge) => badge.state === 'earned').length;
+  const earnedEncouragements = gamified.badges.filter((badge) => badge.state === 'earned').length;
   const impact = gamified.impact || {};
   const isAdmin = profile?.role === 'admin' && profile?.suspended !== true;
   const retry = () => {
@@ -109,9 +107,9 @@ export default function ProfileScreen({ user, signOut, go }) {
         </View>
         <Heading level="h3" style={styles.name}>{displayName}</Heading>
         {handle ? <BodyText variant="small" style={styles.handle}>@{handle}</BodyText> : null}
-        <View style={styles.rankPill}>
+        <View style={styles.journeyPill}>
           <Footprints size={11} color={colors.goldLight} />
-          <BodyText variant="caption" style={styles.rankPillText}>{journeyTitle}</BodyText>
+          <BodyText variant="caption" style={styles.journeyPillText}>{journeyTitle}</BodyText>
         </View>
         {bio ? <BodyText variant="body" style={styles.bio}>{bio}</BodyText> : (
           email ? <BodyText variant="caption" style={styles.bio}>{email}</BodyText> : null
@@ -134,21 +132,21 @@ export default function ProfileScreen({ user, signOut, go }) {
 
       <View style={styles.levelCard}>
         <View style={styles.levelCardRow}>
-          <View style={styles.levelRank}>
+          <View style={styles.journeyStep}>
             <Award size={22} color={colors.goldLight} />
             <View>
-              <BodyText variant="caption" style={styles.levelRankLabel}>Current Rank</BodyText>
-              <Heading level="h4" style={styles.levelRankName}>{journeyTitle}</Heading>
+              <BodyText variant="caption" style={styles.journeyStepLabel}>Prayer Journey</BodyText>
+              <Heading level="h4" style={styles.journeyStepName}>{journeyTitle}</Heading>
             </View>
           </View>
           <View style={styles.levelXpCol}>
-            <Heading level="stat" style={styles.levelXpTotal}>{gamified.totalXP.toLocaleString()}</Heading>
-            <BodyText variant="caption" style={styles.levelXpLabel}>Total XP</BodyText>
+            <Heading level="stat" style={styles.levelXpTotal}>{Array.isArray(gamified.activeDayIndexes) ? gamified.activeDayIndexes.length : 0}</Heading>
+            <BodyText variant="caption" style={styles.levelXpLabel}>Days this week</BodyText>
           </View>
         </View>
         <View style={styles.levelBarLabel}>
-          <BodyText variant="caption">Level {gamified.levelInfo.level}</BodyText>
-          <BodyText variant="caption">{gamified.levelInfo.xpIntoLevel} / {XP_PER_LEVEL} XP to Level {gamified.levelInfo.level + 1}</BodyText>
+          <BodyText variant="caption">Your quiet growth</BodyText>
+          <BodyText variant="caption">Keep walking with God</BodyText>
         </View>
         <View style={styles.levelBar}>
           <View style={[styles.levelBarFill, { width: `${Math.round(gamified.levelInfo.progress * 100)}%` }]} />
@@ -156,11 +154,11 @@ export default function ProfileScreen({ user, signOut, go }) {
       </View>
 
       <View style={styles.statsGrid}>
-        <StatCard icon={Flame} value={String(gamified.streak)} label="Day Streak" sublabel="Keep going" accent={colors.redSoft} style={styles.statCard} />
+        <StatCard icon={Flame} value={String(gamified.streak)} label="Private Streak" sublabel="Keep walking" accent={colors.redSoft} style={styles.statCard} />
         <StatCard icon={BarChart3} value={String(impact.prayerSessions || 0)} label="Sessions" accent={colors.teal} style={styles.statCard} />
         <StatCard icon={Users} value={String(impact.peoplePrayedFor || 0)} label="Prayers Carried" accent={colors.community} style={styles.statCard} />
         <StatCard icon={Heart} value={String(impact.answeredPrayers || 0)} label="Answered Prayers" accent={colors.violet} style={styles.statCard} />
-        <StatCard icon={Trophy} value={String(earnedBadges)} label="Badges" accent={colors.gold} style={styles.statCard} />
+        <StatCard icon={Sparkles} value={String(earnedEncouragements)} label="Encouragements" accent={colors.gold} style={styles.statCard} />
       </View>
 
       <Heading level="h4" style={styles.sectionTitle}>Quick Links</Heading>
@@ -242,7 +240,7 @@ const styles = StyleSheet.create({
   avatarText: { fontFamily: fonts.sansExtraBold, fontSize: 32, color: colors.gold },
   name: { textAlign: 'center' },
   handle: { marginTop: spacing.xs, color: colors.ink3, textAlign: 'center' },
-  rankPill: {
+  journeyPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
@@ -253,7 +251,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
     marginBottom: spacing.xs,
   },
-  rankPillText: { color: colors.goldLight, fontFamily: fonts.sansSemiBold, fontSize: 10.5 },
+  journeyPillText: { color: colors.goldLight, fontFamily: fonts.sansSemiBold, fontSize: 10.5 },
   bio: { marginTop: spacing.md, textAlign: 'center', maxWidth: 280 },
   statsErrorRow: { marginBottom: spacing.md, alignItems: 'center', gap: spacing.sm },
   statsError: { color: colors.redSoft, textAlign: 'center' },
@@ -266,9 +264,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   levelCardRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md },
-  levelRank: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  levelRankLabel: { color: 'rgba(255,255,255,0.50)', fontFamily: fonts.sansExtraBold, letterSpacing: 1, textTransform: 'uppercase' },
-  levelRankName: { color: colors.goldLight },
+  journeyStep: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  journeyStepLabel: { color: 'rgba(255,255,255,0.50)', fontFamily: fonts.sansExtraBold, letterSpacing: 1, textTransform: 'uppercase' },
+  journeyStepName: { color: colors.goldLight },
   levelXpCol: { alignItems: 'flex-end' },
   levelXpTotal: { color: colors.white, fontSize: 24 },
   levelXpLabel: { color: 'rgba(255,255,255,0.40)' },

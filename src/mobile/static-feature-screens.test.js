@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 const staticScreens = [
   'AnnouncementsScreen',
-  'LeaderboardScreen',
+  'CommunityScreen',
   'RemindersScreen',
   'AchievementsScreen',
 ];
@@ -34,8 +34,8 @@ describe('static feature screens', () => {
     const screens = [
       'AchievementsScreen',
       'AnnouncementsScreen',
+      'CommunityScreen',
       'HomeScreen',
-      'LeaderboardScreen',
       'RemindersScreen',
     ];
     for (const name of screens) {
@@ -62,10 +62,11 @@ describe('static feature screens', () => {
     const navigation = await import('./navigation.js?raw');
     expect(app.default).toMatch(/AppFeedbackProvider/);
     expect(app.default).toMatch(/MAIN_TAB_ROUTES/);
-    expect(navigation.default).toMatch(/MAIN_TAB_ROUTES = \['home', 'leaderboard', 'stride', 'profile'\]/);
+    expect(navigation.default).toMatch(/MAIN_TAB_ROUTES = \['home', 'community', 'stride', 'profile'\]/);
     expect(app.default).not.toMatch(/case 'discover'/);
     expect(app.default).not.toMatch(/case 'praise'/);
     expect(app.default).not.toMatch(/case 'dailyChallenge'/);
+    expect(app.default).not.toMatch(/case 'leaderboard'/);
   });
 
   it('AppFeedbackProvider exports without browser APIs', async () => {

@@ -29,7 +29,6 @@ import {
   awardTestimonyXp,
   backfillGamificationXp,
   buildGamificationSummary,
-  buildLeaderboard,
   createPrayerSessionRecord,
   deleteUserGamificationSummary,
   deleteUserXpEvents,
@@ -394,19 +393,6 @@ async function handleApi(request, env, url, requestId) {
     return json({ ok: true, preferences });
   }
 
-  match = url.pathname.match(/^\/api\/gamification\/leaderboard$/);
-  if (match && request.method === 'GET') {
-    await checkNotSuspended(env, user.uid);
-    const result = await buildLeaderboard(
-      gamificationFirestore,
-      env,
-      user.uid,
-      url.searchParams.get('scope'),
-      url.searchParams.get('limit'),
-    );
-    return json(result);
-  }
-
   match = url.pathname.match(/^\/api\/prayer-sessions$/);
   if (match && request.method === 'POST') {
     await checkNotSuspended(env, user.uid);
@@ -587,7 +573,7 @@ function knownApiPath(pathname) {
     /^\/api\/notification-settings$/,
     /^\/api\/account(?:\/bootstrap-owner|\/complete-registration|\/resend-guardian-approval)?$/,
     /^\/api\/devices\/register$/,
-    /^\/api\/gamification\/(?:summary|timezone|backfill|preferences|leaderboard)$/,
+    /^\/api\/gamification\/(?:summary|timezone|backfill|preferences)$/,
     /^\/api\/prayer-sessions$/,
     /^\/api\/prayers(?:\/[^/]+(?:\/update|\/mark-answered|\/pray)?)?$/,
     /^\/api\/testimonies(?:\/[^/]+(?:\/update|\/react)?)?$/,

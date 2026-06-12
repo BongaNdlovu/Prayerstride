@@ -10,6 +10,7 @@ const retryHooks = [
 
 const retryScreens = [
   'AchievementsScreen',
+  'CommunityScreen',
   'HomeScreen',
   'MyStatsScreen',
   'NotificationSettingsScreen',

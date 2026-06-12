@@ -82,14 +82,8 @@ export default function SettingsScreen({ user, go, deleteAccount, onBack }) {
       </GlassCard>
       <GlassCard style={styles.preferencesCard}>
         <ToggleRow
-          label="Show on Leaderboard"
-          subtext="Appear in public prayer rankings only when enabled."
-          value={preferences.leaderboardVisible === true}
-          onToggle={(value) => savePreference('leaderboardVisible', value)}
-        />
-        <ToggleRow
           label="Dark Mode"
-          subtext="Use the darker prayer surfaces from the gamified experience."
+          subtext="Use the darker prayer surfaces for quieter focus."
           value={preferences.darkModeEnabled === true}
           onToggle={(value) => savePreference('darkModeEnabled', value)}
         />
@@ -100,14 +94,14 @@ export default function SettingsScreen({ user, go, deleteAccount, onBack }) {
           onToggle={(value) => savePreference('soundHapticsEnabled', value)}
         />
         <ToggleRow
-          label="XP Notifications"
-          subtext="Show XP gain feedback when actions earn progress."
+          label="Milestone Cues"
+          subtext="Show gentle feedback when your prayer rhythm grows."
           value={preferences.xpNotificationsEnabled !== false}
           onToggle={(value) => savePreference('xpNotificationsEnabled', value)}
         />
         <ToggleRow
           label="Streak Reminders"
-          subtext="Keep reminders active to protect your prayer streak."
+          subtext="Keep reminders active to steady your prayer rhythm."
           value={preferences.streakRemindersEnabled !== false}
           onToggle={(value) => savePreference('streakRemindersEnabled', value)}
           style={styles.preferenceLast}
