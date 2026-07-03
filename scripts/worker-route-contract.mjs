@@ -55,6 +55,7 @@ const contracts = [
   ['GET', '/api/gamification/summary', 'gamification/summary'],
   ['POST', '/api/gamification/timezone', 'gamification/timezone'],
   ['POST', '/api/gamification/backfill', 'gamification/backfill'],
+  ['GET', '/api/gamification/leaderboard', 'gamification/leaderboard'],
   ['GET', '/api/gamification/preferences', 'gamification/preferences'],
   ['POST', '/api/gamification/preferences', 'gamification/preferences'],
   ['POST', '/api/prayer-sessions', 'prayer-sessions'],
@@ -140,8 +141,8 @@ for (const contract of adminContracts) {
 }
 
 const removedDenylist = {
-  mobile: ['/api/encouragements', '/api/encouragers/weekly', 'followUser', 'unfollowUser', '/api/following/', '/api/gamification/leaderboard'],
-  worker: ['/api/encouragements', '/api/encouragers/weekly', '/api/following/', '/api/gamification/leaderboard', 'async function followUser', 'async function unfollowUser'],
+  mobile: ['/api/encouragements', '/api/encouragers/weekly', 'followUser', 'unfollowUser', '/api/following/'],
+  worker: ['/api/encouragements', '/api/encouragers/weekly', '/api/following/', 'async function followUser', 'async function unfollowUser'],
 };
 
 for (const fragment of removedDenylist.mobile) {

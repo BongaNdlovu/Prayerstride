@@ -27,7 +27,7 @@ import AuthScreen from '../src/mobile/screens/AuthScreen';
 import EditProfileScreen from '../src/mobile/screens/EditProfileScreen';
 import HelpCenterScreen from '../src/mobile/screens/HelpCenterScreen';
 import HomeScreen from '../src/mobile/screens/HomeScreen';
-import CommunityScreen from '../src/mobile/screens/CommunityScreen';
+import LeaderboardScreen from '../src/mobile/screens/LeaderboardScreen';
 import MyStatsScreen from '../src/mobile/screens/MyStatsScreen';
 import NotificationSettingsScreen from '../src/mobile/screens/NotificationSettingsScreen';
 import NotificationsScreen from '../src/mobile/screens/NotificationsScreen';
@@ -182,7 +182,7 @@ function renderScreen({ screen, params, user, suspended, suspendedReason, signIn
 
   switch (screen) {
     case 'home': return <HomeScreen user={user} onOpenPrayer={(p) => goFn('detail', { prayer: p })} go={goFn} onTabBarHiddenChange={setTabBarHidden} />;
-    case 'community': return <CommunityScreen user={user} onBack={() => backFn('home')} />;
+    case 'leaderboard': return <LeaderboardScreen user={user} onBack={() => backFn('home')} />;
     case 'stride': return <MyStatsScreen user={user} go={goFn} onBack={() => backFn('profile')} />;
     case 'profile': return <ProfileScreen user={user} signOut={signOut} go={goFn} />;
     case 'detail': return params.prayer

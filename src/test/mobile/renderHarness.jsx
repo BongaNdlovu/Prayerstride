@@ -40,6 +40,7 @@ const harnessMocks = vi.hoisted(() => ({
   mockDeletePrayer: vi.fn(() => Promise.resolve()),
   mockMarkAnswered: vi.fn(() => Promise.resolve()),
   mockUpdateGamificationPreferences: vi.fn(() => Promise.resolve({
+    leaderboardVisible: true,
     darkModeEnabled: false,
     soundHapticsEnabled: true,
     xpNotificationsEnabled: true,
@@ -365,6 +366,12 @@ vi.mock('@react-native-async-storage/async-storage', () => ({
 
 vi.mock('../../../src/mobile/api', () => ({
   bookmarkPrayer: (...args) => harnessMocks.mockBookmarkPrayer(...args),
+  getGamificationLeaderboard: vi.fn(() => Promise.resolve({
+    scope: 'weekly',
+    resetAt: 'Sunday',
+    rows: [],
+    me: null,
+  })),
   getPrayerBookmark: (...args) => harnessMocks.mockGetPrayerBookmark(...args),
   prayForRequest: (...args) => harnessMocks.mockPrayForRequest(...args),
   unbookmarkPrayer: (...args) => harnessMocks.mockUnbookmarkPrayer(...args),
@@ -390,6 +397,7 @@ vi.mock('../../../src/mobile/logger', () => ({ warn: vi.fn() }));
 vi.mock('../../../src/mobile/useGamificationPreferences', () => ({
   useGamificationPreferences: () => ({
     preferences: {
+      leaderboardVisible: true,
       darkModeEnabled: false,
       soundHapticsEnabled: true,
       xpNotificationsEnabled: true,
@@ -435,7 +443,7 @@ vi.mock('../../../src/mobile/useGamification', () => ({
 }));
 
 vi.mock('../../../src/mobile/useNotifications', () => ({
-  useNotifications: () => ({ notifications: [], loading: false, error: null, retry: vi.fn() }),
+  useNotifications: () => ({ notifications: [], unread: [], read: [], loading: false, error: null, retry: vi.fn() }),
 }));
 
 vi.mock('../../../src/mobile/useNotificationSettings', () => ({
@@ -504,6 +512,7 @@ export function resetRenderHarnessMocks() {
   harnessMocks.mockGetPrayerBookmark.mockImplementation(() => Promise.resolve({ bookmarked: false }));
   harnessMocks.mockPrayForRequest.mockImplementation(() => Promise.resolve({ duplicate: false, prayerLimit: 'daily' }));
   harnessMocks.mockUpdateGamificationPreferences.mockImplementation(() => Promise.resolve({
+    leaderboardVisible: true,
     darkModeEnabled: false,
     soundHapticsEnabled: true,
     xpNotificationsEnabled: true,

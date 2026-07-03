@@ -7,8 +7,8 @@ describe('HelpCenterScreen content', () => {
     [
       'Feed and Prayer Requests',
       'Praying With The Timer',
-      'Prayer Chain',
-      'Stride and Encouragements',
+      'Ranks',
+      'Stride and Achievements',
       'Profile and Prayer Times',
       'Notifications and Settings',
       'Privacy and Safety',

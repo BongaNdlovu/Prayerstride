@@ -22,6 +22,9 @@ describe('gamified feed source contract', () => {
     expect(source.default).not.toMatch(/addTestimony/);
     expect(source.default).toMatch(/markAnswered/);
     expect(source.default).toMatch(/useAppFeedback/);
+    expect(source.default).toMatch(/useNotifications/);
+    expect(source.default).toMatch(/const hasUnreadNotifications = unread\.length > 0/);
+    expect(source.default).toMatch(/hasUnreadNotifications \? <View style=\{styles\.notifDot\} \/> : null/);
     expect(source.default).toMatch(/go\('timer'/);
     expect(source.default).toMatch(/PRAYER_DETAILS_LIMIT/);
     expect(source.default).toMatch(/PRAYER_CATEGORIES/);

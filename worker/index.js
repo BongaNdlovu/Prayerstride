@@ -29,6 +29,7 @@ import {
   awardTestimonyXp,
   backfillGamificationXp,
   buildGamificationSummary,
+  buildLeaderboard,
   createPrayerSessionRecord,
   deleteUserGamificationSummary,
   deleteUserXpEvents,
@@ -364,6 +365,19 @@ async function handleApi(request, env, url, requestId) {
     await checkNotSuspended(env, user.uid);
     const summary = await buildGamificationSummary(gamificationFirestore, env, user.uid, url.searchParams.get('timeZone'));
     return json(summary);
+  }
+
+  match = url.pathname.match(/^\/api\/gamification\/leaderboard$/);
+  if (match && request.method === 'GET') {
+    await checkNotSuspended(env, user.uid);
+    const leaderboard = await buildLeaderboard(
+      gamificationFirestore,
+      env,
+      user.uid,
+      url.searchParams.get('scope'),
+      url.searchParams.get('limit'),
+    );
+    return json(leaderboard);
   }
 
   match = url.pathname.match(/^\/api\/gamification\/timezone$/);

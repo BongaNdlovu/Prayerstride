@@ -11,10 +11,12 @@ import {
   Megaphone,
   Settings,
   Sparkles,
+  Trophy,
   User,
   Users,
 } from 'lucide-react-native';
 import { alpha, colors, fonts, radii, spacing } from '../theme';
+import { XP_PER_LEVEL } from '../gamification';
 import { useUserProfile } from '../useUsers';
 import { useGamification } from '../useGamification';
 import {
@@ -37,15 +39,15 @@ const PROFILE_ROUTES = {
   reminderSettings: 'reminderSettings',
   notifications: 'notifications',
   settings: 'settings',
-  community: 'community',
+  leaderboard: 'leaderboard',
   achievements: 'achievements',
 };
 
 const QUICK_LINKS = [
   { label: 'Stride', route: PROFILE_ROUTES.stride, icon: BarChart3 },
-  { label: 'Prayer Chain', route: PROFILE_ROUTES.community, icon: Users },
+  { label: 'Ranks', route: PROFILE_ROUTES.leaderboard, icon: Users },
   { label: 'Prayer Times', route: PROFILE_ROUTES.reminderSettings, icon: Clock },
-  { label: 'Encouragements', route: PROFILE_ROUTES.achievements, icon: Sparkles },
+  { label: 'Achievements', route: PROFILE_ROUTES.achievements, icon: Sparkles },
 ];
 
 const MORE_LINKS = [
@@ -75,7 +77,7 @@ export default function ProfileScreen({ user, signOut, go }) {
   }, [avatarUri]);
   const journeyTitle = cleanOptionalProfileText(gamified.journey?.title) || 'Prayer Strider';
   const statsUnavailable = Boolean(gamificationError);
-  const earnedEncouragements = gamified.badges.filter((badge) => badge.state === 'earned').length;
+  const earnedBadges = gamified.badges.filter((badge) => badge.state === 'earned').length;
   const impact = gamified.impact || {};
   const isAdmin = profile?.role === 'admin' && profile?.suspended !== true;
   const retry = () => {
@@ -135,18 +137,18 @@ export default function ProfileScreen({ user, signOut, go }) {
           <View style={styles.journeyStep}>
             <Award size={22} color={colors.goldLight} />
             <View>
-              <BodyText variant="caption" style={styles.journeyStepLabel}>Prayer Journey</BodyText>
+              <BodyText variant="caption" style={styles.journeyStepLabel}>Current Rank</BodyText>
               <Heading level="h4" style={styles.journeyStepName}>{journeyTitle}</Heading>
             </View>
           </View>
           <View style={styles.levelXpCol}>
-            <Heading level="stat" style={styles.levelXpTotal}>{Array.isArray(gamified.activeDayIndexes) ? gamified.activeDayIndexes.length : 0}</Heading>
-            <BodyText variant="caption" style={styles.levelXpLabel}>Days this week</BodyText>
+            <Heading level="stat" style={styles.levelXpTotal}>{Number(gamified.totalXP || 0).toLocaleString()}</Heading>
+            <BodyText variant="caption" style={styles.levelXpLabel}>Total XP</BodyText>
           </View>
         </View>
         <View style={styles.levelBarLabel}>
-          <BodyText variant="caption">Your quiet growth</BodyText>
-          <BodyText variant="caption">Keep walking with God</BodyText>
+          <BodyText variant="caption">Level {gamified.levelInfo.level}</BodyText>
+          <BodyText variant="caption">{gamified.levelInfo.xpIntoLevel} / {XP_PER_LEVEL} XP to Level {gamified.levelInfo.level + 1}</BodyText>
         </View>
         <View style={styles.levelBar}>
           <View style={[styles.levelBarFill, { width: `${Math.round(gamified.levelInfo.progress * 100)}%` }]} />
@@ -154,11 +156,11 @@ export default function ProfileScreen({ user, signOut, go }) {
       </View>
 
       <View style={styles.statsGrid}>
-        <StatCard icon={Flame} value={String(gamified.streak)} label="Private Streak" sublabel="Keep walking" accent={colors.redSoft} style={styles.statCard} />
+        <StatCard icon={Flame} value={String(gamified.streak)} label="Day Streak" sublabel="Keep going" accent={colors.redSoft} style={styles.statCard} />
         <StatCard icon={BarChart3} value={String(impact.prayerSessions || 0)} label="Sessions" accent={colors.teal} style={styles.statCard} />
         <StatCard icon={Users} value={String(impact.peoplePrayedFor || 0)} label="Prayers Carried" accent={colors.community} style={styles.statCard} />
         <StatCard icon={Heart} value={String(impact.answeredPrayers || 0)} label="Answered Prayers" accent={colors.violet} style={styles.statCard} />
-        <StatCard icon={Sparkles} value={String(earnedEncouragements)} label="Encouragements" accent={colors.gold} style={styles.statCard} />
+        <StatCard icon={Trophy} value={String(earnedBadges)} label="Badges" accent={colors.gold} style={styles.statCard} />
       </View>
 
       <Heading level="h4" style={styles.sectionTitle}>Quick Links</Heading>

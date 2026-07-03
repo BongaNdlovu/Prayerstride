@@ -28,10 +28,9 @@ describe('data contracts', () => {
     expect(source.default).toMatch(/export function getGamificationSummary/);
     expect(source.default).toMatch(/export function getGamificationPreferences/);
     expect(source.default).toMatch(/export function updateGamificationPreferences/);
+    expect(source.default).toMatch(/export function getGamificationLeaderboard/);
     expect(source.default).toMatch(/export function createPrayerSession/);
     expect(source.default).toMatch(/export function backfillGamification/);
-    expect(source.default).not.toMatch(/getGamificationLeaderboard/);
-    expect(source.default).not.toMatch(/gamification\/leaderboard/);
     expect(source.default).not.toMatch(/createEncouragement/);
     expect(source.default).not.toMatch(/getWeeklyEncouragers/);
     expect(source.default).not.toMatch(/followUser/);
@@ -93,11 +92,14 @@ describe('data contracts', () => {
     expect(source.default).toMatch(/export async function updateNotificationSettings/);
   });
 
-  it('gamification preferences stay private and do not expose leaderboard hooks', async () => {
+  it('gamification preferences and leaderboard hooks export expected functions', async () => {
     const preferences = await import('./useGamificationPreferences.js?raw');
+    const leaderboard = await import('./useLeaderboard.js?raw');
     expect(preferences.default).toMatch(/export function useGamificationPreferences/);
     expect(preferences.default).toMatch(/export async function updateGamificationPreferences/);
-    expect(preferences.default).not.toMatch(/leaderboardVisible/);
+    expect(preferences.default).toMatch(/leaderboardVisible/);
+    expect(leaderboard.default).toMatch(/export function useLeaderboard/);
+    expect(leaderboard.default).toMatch(/getGamificationLeaderboard/);
   });
 
   it('useCalendarEvents exports real calendar contract helpers', async () => {

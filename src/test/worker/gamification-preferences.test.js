@@ -85,8 +85,9 @@ describe('gamification preferences', () => {
       uid: 'user-1',
       timeZone: 'UTC',
       prayersCreated: 1,
-      prayersCarried: 20,
-      prayerMinutes: 120,
+      prayersCarried: 100,
+      prayerSessions: 1,
+      prayerMinutes: 600,
       bookmarksCreated: 10,
       nightSessions: 5,
       longSessions: 4,
@@ -99,10 +100,14 @@ describe('gamification preferences', () => {
       .map((badge) => badge.id);
 
     expect(earnedIds).toContain('first-prayer');
+    expect(earnedIds).toContain('first-session');
     expect(earnedIds).toContain('compassion-helper');
+    expect(earnedIds).toContain('community-carrier');
     expect(earnedIds).toContain('faithful-minutes');
+    expect(earnedIds).toContain('deep-well');
     expect(earnedIds).toContain('keeper-of-requests');
     expect(earnedIds).toContain('night-watch');
     expect(earnedIds).toContain('steadfast-hour');
+    expect(earnedIds).not.toContain('testimony-voice');
   });
 });

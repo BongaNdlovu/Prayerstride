@@ -25,8 +25,11 @@ const PREFERENCES_COLLECTION = 'gamificationPreferences';
 const SUMMARY_WRITE_ATTEMPTS = 3;
 const SUMMARY_RETRY_MS = 25;
 const MAX_ACTIVE_DAY_KEYS = 60;
+const LEADERBOARD_DEFAULT_LIMIT = 25;
+const LEADERBOARD_MAX_LIMIT = 100;
 
 export const DEFAULT_GAMIFICATION_PREFERENCES = {
+  leaderboardVisible: false,
   darkModeEnabled: false,
   soundHapticsEnabled: true,
   xpNotificationsEnabled: true,
@@ -121,6 +124,7 @@ function emptyStoredSummary(uid, timeZone, dayKey, nowIso) {
     answeredPrayers: 0,
     testimonies: 0,
     bookmarksCreated: 0,
+    leaderboardVisible: false,
     activeDayKeys: [],
     streak7Awarded: false,
     updatedAt: nowIso,
@@ -159,6 +163,7 @@ function normalizeStoredSummary(stored, uid, timeZone, now = new Date()) {
   base.answeredPrayers = safeNumber(base.answeredPrayers);
   base.testimonies = safeNumber(base.testimonies);
   base.bookmarksCreated = safeNumber(base.bookmarksCreated);
+  base.leaderboardVisible = base.leaderboardVisible === true;
   base.activeDayKeys = uniqueStrings(base.activeDayKeys)
     .sort()
     .slice(-MAX_ACTIVE_DAY_KEYS);
@@ -217,6 +222,9 @@ function publicSummaryFromStored(stored, uid, requestedTimeZone, today = new Dat
       peoplePrayedFor: normalized.prayersCarried,
       answeredPrayers: normalized.answeredPrayers,
     },
+    preferences: {
+      leaderboardVisible: normalized.leaderboardVisible,
+    },
     timeZone: normalized.timeZone,
   };
 }
@@ -238,6 +246,7 @@ function addActiveDay(summary, dayKey) {
 export function normalizeGamificationPreferences(preferences) {
   const source = preferences || {};
   return {
+    leaderboardVisible: source.leaderboardVisible === true,
     darkModeEnabled: source.darkModeEnabled === true,
     soundHapticsEnabled: source.soundHapticsEnabled !== false,
     xpNotificationsEnabled: source.xpNotificationsEnabled !== false,
@@ -268,6 +277,18 @@ export async function updateGamificationPreferences(fs, env, uid, patch = {}) {
         ...next,
         updatedAt: now,
       }),
+    },
+  }]);
+
+  const summaryDoc = await fs.getDocument(env, fs.docName(env, SUMMARY_COLLECTION, uid));
+  const stored = summaryDoc.exists ? fs.fromFirestoreFields(summaryDoc.fields || {}) : {};
+  const summary = normalizeStoredSummary(stored, uid, stored.timeZone, new Date());
+  summary.leaderboardVisible = next.leaderboardVisible;
+  summary.updatedAt = now;
+  await fs.firestoreCommit(env, [{
+    update: {
+      name: fs.docName(env, SUMMARY_COLLECTION, uid),
+      fields: fs.toFirestoreFields(summary),
     },
   }]);
 
@@ -564,6 +585,90 @@ export async function awardProfileUpdateXp(fs, env, { uid, timeZone, now = new D
   } catch (error) {
     return { awarded: false, duplicate: false, bonuses: [], error: error.message };
   }
+}
+
+export async function buildLeaderboard(fs, env, uid, scope = 'weekly', limit = LEADERBOARD_DEFAULT_LIMIT) {
+  const effectiveScope = ['weekly', 'monthly', 'all'].includes(scope) ? scope : 'weekly';
+  const safeLimit = Math.min(Math.max(Number(limit) || LEADERBOARD_DEFAULT_LIMIT, 1), LEADERBOARD_MAX_LIMIT);
+  const summaries = await fs.runCollectionQuery(env, SUMMARY_COLLECTION, [{
+    fieldFilter: {
+      field: { fieldPath: 'leaderboardVisible' },
+      op: 'EQUAL',
+      value: { booleanValue: true },
+    },
+  }]);
+
+  const scoreField = effectiveScope === 'weekly' ? 'weekXP' : effectiveScope === 'monthly' ? 'monthXP' : 'totalXP';
+  const rows = summaries.map((doc) => {
+    const data = fs.fromFirestoreFields(doc.fields || {});
+    const normalized = normalizeStoredSummary(data, data.uid || doc.name.split('/').pop(), data.timeZone, new Date());
+    const streak = calculateStreakFromDayKeys(normalized.activeDayKeys, normalized.dayKey);
+    const levelInfo = xpLevelProgress(normalized.totalXP);
+    const badges = computeBadges({
+      prayers: normalized.prayersCreated,
+      streak,
+      sessions: normalized.prayerSessions,
+      earlySessions: normalized.earlySessions,
+      answeredPrayers: normalized.answeredPrayers,
+      testimonies: normalized.testimonies,
+      peoplePrayedFor: normalized.prayersCarried,
+      bookmarks: normalized.bookmarksCreated,
+      minutes: normalized.prayerMinutes,
+      nightSessions: normalized.nightSessions,
+      longSessions: normalized.longSessions,
+    });
+    return {
+      uid: normalized.uid,
+      scopeXP: safeNumber(normalized[scoreField]),
+      totalXP: normalized.totalXP,
+      streak,
+      level: levelInfo.level,
+      badgesEarned: badges.filter((badge) => badge.state === 'earned').length,
+      change: 'steady',
+    };
+  }).sort((a, b) => (
+    b.scopeXP - a.scopeXP
+      || b.totalXP - a.totalXP
+      || b.streak - a.streak
+      || a.uid.localeCompare(b.uid)
+  ));
+
+  const ranked = rows.map((row, index) => ({ ...row, rank: index + 1 }));
+  const limited = ranked.slice(0, safeLimit);
+  const profiles = [];
+  for (const row of limited) {
+    const profile = await fs.getUserProfile(env, row.uid);
+    profiles.push([row.uid, profile]);
+  }
+  const profileMap = new Map(profiles);
+  const meEntry = ranked.find((row) => row.uid === uid) || null;
+  const meProfile = uid ? await fs.getUserProfile(env, uid) : null;
+  const preferences = uid ? await getGamificationPreferences(fs, env, uid) : DEFAULT_GAMIFICATION_PREFERENCES;
+
+  const publicRows = limited.map((row) => {
+    const profile = profileMap.get(row.uid);
+    return {
+      ...row,
+      displayName: profile?.displayName || 'PrayerStride User',
+      handle: profile?.handle || null,
+      photoURL: profile?.photoURL || null,
+    };
+  });
+
+  return {
+    scope: effectiveScope,
+    resetAt: effectiveScope === 'weekly' ? 'Sunday 23:59' : effectiveScope === 'monthly' ? 'Month end 23:59' : null,
+    rows: publicRows,
+    me: meProfile ? {
+      rank: meEntry?.rank || null,
+      visible: preferences.leaderboardVisible === true,
+      scopeXP: meEntry?.scopeXP || 0,
+      totalXP: meEntry?.totalXP || 0,
+      level: meEntry?.level || xpLevelProgress(0).level,
+      streak: meEntry?.streak || 0,
+      badgesEarned: meEntry?.badgesEarned || 0,
+    } : null,
+  };
 }
 
 export async function backfillGamificationXp(fs, env, uid, requestedTimeZone) {

@@ -5,6 +5,7 @@ import {
 } from './api';
 
 const DEFAULT_PREFERENCES = {
+  leaderboardVisible: false,
   darkModeEnabled: false,
   soundHapticsEnabled: true,
   xpNotificationsEnabled: true,

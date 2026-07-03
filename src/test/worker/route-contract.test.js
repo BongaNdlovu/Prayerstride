@@ -58,6 +58,7 @@ const CONTRACTS = [
   { method: 'GET', path: '/api/gamification/summary' },
   { method: 'POST', path: '/api/gamification/timezone' },
   { method: 'POST', path: '/api/gamification/backfill' },
+  { method: 'GET', path: '/api/gamification/leaderboard' },
   { method: 'GET', path: '/api/gamification/preferences' },
   { method: 'POST', path: '/api/gamification/preferences' },
 ];
@@ -66,7 +67,6 @@ const REMOVED_ENDPOINTS = [
   '/api/encouragements',
   '/api/encouragers/weekly',
   '/api/following/',
-  '/api/gamification/leaderboard',
 ];
 
 function normalizePath(path) {

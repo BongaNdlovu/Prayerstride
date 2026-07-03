@@ -9,7 +9,7 @@ import BodyText from '../components/BodyText';
 const TOPICS = [
   {
     title: 'Start Here',
-    body: 'PrayerStride helps you pray faithfully for real people without turning prayer into a competition.',
+    body: 'PrayerStride helps you pray faithfully for real people and track progress as you build a steady rhythm.',
     items: [
       'Use Feed to read current prayer requests and move through them at your own pace.',
       'Use the prayer timer when you want to pray with focus and log a private session.',
@@ -31,25 +31,25 @@ const TOPICS = [
     items: [
       'Choose a preset time or start a free prayer session from a request.',
       'When the session ends, log it so your weekly rhythm and private streak update.',
-      'After a focused session, the app can show that you prayed for that request without ranking you against anyone.',
+      'After a focused session, the app can show that you prayed for that request and update your progress.',
     ],
   },
   {
-    title: 'Prayer Chain',
-    body: 'Prayer Chain shows shared ministry impact without naming, ranking, or comparing people.',
+    title: 'Ranks',
+    body: 'Ranks shows weekly and all-time prayer progress for people who choose to appear publicly.',
     items: [
-      'Community impact summarizes how many prayers were logged together.',
-      'Cooperative goals help your church family pray for people as one body.',
-      'The Shared Prayer Wall gives you a simple place to continue praying for open requests.',
+      'Use Weekly to see current momentum and All-Time to see long-term consistency.',
+      'Turn on Show on Leaderboard in Settings when you want your progress to appear.',
+      'You can stay private at any time by turning leaderboard visibility off.',
     ],
   },
   {
-    title: 'Stride and Encouragements',
-    body: 'Your growth tools are personal, gentle, and focused on showing up with God.',
+    title: 'Stride and Achievements',
+    body: 'Your growth tools track XP, streaks, badges, and steady prayer habits.',
     items: [
-      'Stride shows your weekly prayer rhythm, total sessions, prayer time, and private streak.',
-      'Encouragements celebrate patterns like consistency, reminders, and companionship.',
-      'Journey stages such as Seed, Root, Branch, and Fruit reflect growth rather than status.',
+      'Stride shows your weekly prayer rhythm, total sessions, prayer time, and streak.',
+      'Achievements celebrate patterns like consistency, reminders, and companionship.',
+      'Journey stages such as Seed, Root, Branch, and Fruit reflect your current rank.',
     ],
   },
   {
@@ -65,8 +65,8 @@ const TOPICS = [
     title: 'Notifications and Settings',
     body: 'Settings lets you choose how PrayerStride supports you throughout the week.',
     items: [
-      'Notification Settings controls prayer activity, testimony reactions, announcements, and device alerts.',
-      'Dark Mode, Sound and Haptics, Milestone Cues, and Streak Reminders can be adjusted any time.',
+      'Notification Settings controls prayer activity, announcements, and device alerts.',
+      'Dark Mode, Sound and Haptics, XP Notifications, Streak Reminders, and leaderboard visibility can be adjusted any time.',
       'If you need to leave the app, Delete Account is available from Settings.',
     ],
   },

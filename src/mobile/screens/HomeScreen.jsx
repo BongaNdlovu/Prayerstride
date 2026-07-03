@@ -14,15 +14,16 @@ import {
   SendHorizontal,
   Sparkles,
   Timer,
-  Footprints,
   X,
 } from 'lucide-react-native';
 import { alpha, colors, fonts, radii, shadow, spacing } from '../theme';
+import { XP_PER_LEVEL } from '../gamification';
 import { auth } from '../firebase';
 import { bookmarkPrayer } from '../api';
 import { addPrayer, deletePrayer, markAnswered, usePrayers } from '../usePrayerData';
 import { filterBlockedItems, useBlocks } from '../useBlocks';
 import { useGamification } from '../useGamification';
+import { useNotifications } from '../useNotifications';
 import { useUserProfile } from '../useUsers';
 import { useAppFeedback } from '../AppFeedbackProvider';
 import { getErrorMessage } from '../errors';
@@ -35,6 +36,7 @@ import GlassCard from '../components/GlassCard';
 import PrimaryButton from '../components/PrimaryButton';
 import AsyncState from '../components/AsyncState';
 import SegmentedControl from '../components/SegmentedControl';
+import LogoMark from '../components/LogoMark';
 
 const PRAYER_CATEGORIES = ['Healing', 'Family', 'Strength', 'Provision', 'Guidance', 'Gratitude'];
 
@@ -76,6 +78,10 @@ function prayerMatchesQuery(prayer, query) {
 function dailyVerse() {
   const day = Math.floor(Date.now() / 86400000);
   return DAILY_VERSES[day % DAILY_VERSES.length];
+}
+
+function formatXP(value) {
+  return Math.max(0, Number(value) || 0).toLocaleString();
 }
 
 function ProgressDots({ count, activeIndex, onSelect }) {
@@ -184,11 +190,11 @@ function PrayerFocusCard({ prayer, saved, prayed, canUpdate, onPray, onAmen, onS
   );
 }
 
-function JourneyProgressPanel({ summary, onEncouragements }) {
+function JourneyProgressPanel({ summary, onAchievements }) {
   const levelInfo = summary.levelInfo;
   const progressPct = Math.round(Math.min(Math.max(levelInfo.progress || 0, 0), 1) * 100);
+  const xpIntoLevel = Number(levelInfo.xpIntoLevel || 0);
   const journeyTitle = cleanOptionalProfileText(summary.journey?.title) || 'Prayer Strider';
-  const activeDaysThisWeek = Array.isArray(summary.activeDayIndexes) ? summary.activeDayIndexes.length : 0;
 
   return (
     <View style={styles.progressStack}>
@@ -197,28 +203,25 @@ function JourneyProgressPanel({ summary, onEncouragements }) {
           <View style={styles.levelBadge}>
             <Sparkles size={10} color={colors.ink} />
             <BodyText variant="caption" style={styles.levelBadgeText}>
-              {journeyTitle}
+              Level {levelInfo.level} - {journeyTitle}
             </BodyText>
           </View>
           <BodyText variant="caption" style={styles.xpLabel}>
-            Your prayer journey
+            {formatXP(xpIntoLevel)} / {formatXP(XP_PER_LEVEL)} XP
           </BodyText>
         </View>
         <View style={styles.xpTrack}>
           <View style={[styles.xpFill, { width: `${progressPct}%` }]} />
         </View>
-        <BodyText variant="caption" style={styles.journeyHint}>
-          You showed up in prayer {activeDaysThisWeek} {activeDaysThisWeek === 1 ? 'day' : 'days'} this week.
-        </BodyText>
         <Pressable
-          onPress={onEncouragements}
+          onPress={onAchievements}
           style={styles.achievementsLink}
           accessibilityRole="button"
-          accessibilityLabel="Open encouragements"
+          accessibilityLabel="Open achievements"
         >
           <Sparkles size={13} color={colors.gold} />
           <BodyText variant="caption" style={styles.achievementsLinkText}>
-            Encouragements
+            Achievements
           </BodyText>
         </Pressable>
       </View>
@@ -251,6 +254,8 @@ export default function HomeScreen({ user, onOpenPrayer, go, onTabBarHiddenChang
     summary: gamified,
     retry: retryStats,
   } = useGamification(uid, Boolean(uid));
+  const { unread } = useNotifications(uid, Boolean(uid));
+  const hasUnreadNotifications = unread.length > 0;
 
   const [currentFeedIndex, setCurrentFeedIndex] = useState(0);
   const [savedPrayerIds, setSavedPrayerIds] = useState(() => new Set());
@@ -430,7 +435,7 @@ export default function HomeScreen({ user, onOpenPrayer, go, onTabBarHiddenChang
       <View style={styles.topBar}>
         <View style={styles.brand}>
           <View style={styles.brandMark}>
-            <Footprints size={16} color={colors.white} />
+            <LogoMark size={34} />
           </View>
           <Heading level="h3" style={styles.brandName}>PrayerStride</Heading>
         </View>
@@ -443,7 +448,7 @@ export default function HomeScreen({ user, onOpenPrayer, go, onTabBarHiddenChang
           </Pressable>
           <Pressable onPress={() => go('notifications')} style={styles.headerIconBtn} accessibilityRole="button" accessibilityLabel="Notifications">
             <Bell size={20} color={colors.ink} />
-            <View style={styles.notifDot} />
+            {hasUnreadNotifications ? <View style={styles.notifDot} /> : null}
           </Pressable>
           <Pressable onPress={() => go('profile')} style={styles.avatarRing} accessibilityRole="button" accessibilityLabel="Profile">
             <View style={styles.headerAvatar}>
@@ -465,7 +470,7 @@ export default function HomeScreen({ user, onOpenPrayer, go, onTabBarHiddenChang
       <DailyVerseCard />
 
       <AsyncState loading={listLoading} error={listError} onRetry={retry}>
-        <JourneyProgressPanel summary={gamified} onEncouragements={() => go('achievements')} />
+        <JourneyProgressPanel summary={gamified} onAchievements={() => go('achievements')} />
         {currentPrayer ? (
           <View style={styles.feedViewport}>
             <PrayerFocusCard
@@ -626,11 +631,8 @@ const styles = StyleSheet.create({
   brandMark: {
     width: 34,
     height: 34,
-    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.gold,
-    ...shadow.gold,
   },
   brandName: {
     fontSize: 20,

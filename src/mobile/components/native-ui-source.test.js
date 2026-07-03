@@ -83,7 +83,7 @@ describe('native UI kit', () => {
     expect(header.default).toMatch(/<LogoMark size=\{32\}/);
   });
 
-  it('configures footprint logo assets for bundled, native, and web surfaces', async () => {
+  it('configures restored logo assets for bundled, native, and web surfaces', async () => {
     const source = await import('../../../app.json?raw');
     expect(source.default).toMatch(/"assets\/icon\.png"/);
     expect(source.default).toMatch(/"assets\/adaptive-icon\.png"/);

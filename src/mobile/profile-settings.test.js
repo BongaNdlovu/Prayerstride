@@ -4,7 +4,7 @@ describe('profile settings', () => {
   it('ProfileScreen includes routes to required major sections', async () => {
     const source = await import('./screens/ProfileScreen.jsx?raw');
     expect(source.default).toMatch(/stride/);
-    expect(source.default).toMatch(/community/);
+    expect(source.default).toMatch(/leaderboard/);
     expect(source.default).toMatch(/achievements/);
     expect(source.default).toMatch(/reminderSettings/);
     expect(source.default).toMatch(/settings/);
@@ -59,18 +59,18 @@ describe('profile settings', () => {
     expect(app.default).toMatch(/isMainTab && !tabBarHidden/);
   });
 
-  it('CommunityScreen keeps the shared prayer wall anonymous', async () => {
-    const source = await import('./screens/CommunityScreen.jsx?raw');
-    expect(source.default).toMatch(/Shared Prayer Wall/);
-    expect(source.default).not.toMatch(/authorName/);
-    expect(source.default).not.toMatch(/photoURL/);
-    expect(source.default).not.toMatch(/displayName/);
+  it('LeaderboardScreen renders profile photos from leaderboard rows', async () => {
+    const source = await import('./screens/LeaderboardScreen.jsx?raw');
+    expect(source.default).toMatch(/LeaderboardAvatar/);
+    expect(source.default).toMatch(/cleanOptionalPhotoURL\(row\?\.photoURL\)/);
+    expect(source.default).toMatch(/onError=\{\(\) => setImageLoadFailed\(true\)\}/);
   });
 
-  it('mock data does not expose leaderboard rows', async () => {
+  it('mock leaderboard rows include the current user profile photo', async () => {
     const source = await import('./mockData.js?raw');
-    expect(source.default).not.toMatch(/gamification\/leaderboard/);
-    expect(source.default).not.toMatch(/leaderboardFor/);
+    expect(source.default).toMatch(/gamification\/leaderboard/);
+    expect(source.default).toMatch(/leaderboardFor/);
+    expect(source.default).toMatch(/photoURL: state\.profile\.photoURL \|\| null/);
     expect(source.default).toMatch(/state\.users = state\.users\.map/);
   });
 

@@ -16,14 +16,12 @@ import { getErrorMessage } from '../errors';
 export default function NotificationSettingsScreen({ user, onBack }) {
   const { settings, loading, error, retry } = useNotificationSettings(user?.uid, true);
   const [prayerActivity, setPrayerActivity] = useState(true);
-  const [testimonyReactions, setTestimonyReactions] = useState(true);
   const [announcements, setAnnouncements] = useState(true);
   const [pushEnabled, setPushEnabled] = useState(true);
 
   useEffect(() => {
     if (settings) {
       setPrayerActivity(settings.prayerActivity !== false);
-      setTestimonyReactions(settings.testimonyReactions !== false);
       setAnnouncements(settings.announcements !== false);
       setPushEnabled(settings.pushEnabled !== false);
     }
@@ -58,12 +56,6 @@ export default function NotificationSettingsScreen({ user, onBack }) {
           subtext="When someone prays for your request."
           value={prayerActivity}
           onToggle={(v) => { setPrayerActivity(v); save('prayerActivity', v, setPrayerActivity); }}
-        />
-        <ToggleRow
-          label="Testimony Reactions"
-          subtext="When someone responds to a testimony you shared."
-          value={testimonyReactions}
-          onToggle={(v) => { setTestimonyReactions(v); save('testimonyReactions', v, setTestimonyReactions); }}
         />
         <ToggleRow
           label="Announcements"

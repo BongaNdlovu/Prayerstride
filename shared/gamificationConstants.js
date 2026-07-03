@@ -39,6 +39,20 @@ export const BADGE_DEFS = [
     metric: 'streak',
   },
   {
+    id: 'first-session',
+    name: 'First Quiet Step',
+    description: 'Complete your first timed prayer session.',
+    total: 1,
+    metric: 'sessions',
+  },
+  {
+    id: 'three-day-rhythm',
+    name: 'Gentle Rhythm',
+    description: 'Pray on three consecutive days.',
+    total: 3,
+    metric: 'streak',
+  },
+  {
     id: 'faithful-heart',
     name: 'Faithful Reminder',
     description: 'Log one hundred prayer sessions.',
@@ -81,6 +95,13 @@ export const BADGE_DEFS = [
     metric: 'minutes',
   },
   {
+    id: 'deep-well',
+    name: 'Deep Well',
+    description: 'Spend six hundred minutes in prayer.',
+    total: 600,
+    metric: 'minutes',
+  },
+  {
     id: 'night-watch',
     name: 'Evening Companion',
     description: 'Complete five prayer sessions after 10 PM.',
@@ -102,11 +123,18 @@ export const BADGE_DEFS = [
     metric: 'bookmarks',
   },
   {
-    id: 'testimony-voice',
-    name: 'Testimony Sharer',
-    description: 'Share three testimonies.',
-    total: 3,
-    metric: 'testimonies',
+    id: 'monthlong-rhythm',
+    name: 'Steady Month',
+    description: 'Pray on thirty consecutive days.',
+    total: 30,
+    metric: 'streak',
+  },
+  {
+    id: 'community-carrier',
+    name: 'Community Carrier',
+    description: 'Pray for one hundred different requests.',
+    total: 100,
+    metric: 'peoplePrayedFor',
   },
 ];
 

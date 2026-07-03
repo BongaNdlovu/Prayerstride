@@ -64,10 +64,21 @@ describe('SettingsScreen render behavior', () => {
   it('dark mode toggle updates preferences', async () => {
     renderSettings();
     const toggles = screen.getAllByRole('checkbox');
-    fireEvent.click(toggles[0]);
+    fireEvent.click(toggles[1]);
 
     await waitFor(() => {
       expect(getHarnessMocks().mockUpdateGamificationPreferences).toHaveBeenCalledWith('u1', { darkModeEnabled: true });
+      expect(getHarnessMocks().mockSetPreferences).toHaveBeenCalled();
+    });
+  });
+
+  it('leaderboard visibility toggle updates preferences', async () => {
+    renderSettings();
+    const toggles = screen.getAllByRole('checkbox');
+    fireEvent.click(toggles[0]);
+
+    await waitFor(() => {
+      expect(getHarnessMocks().mockUpdateGamificationPreferences).toHaveBeenCalledWith('u1', { leaderboardVisible: false });
       expect(getHarnessMocks().mockSetPreferences).toHaveBeenCalled();
     });
   });

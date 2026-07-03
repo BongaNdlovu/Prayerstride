@@ -92,15 +92,39 @@ describe('gamification', () => {
       sessions: 12,
       earlySessions: 2,
       answeredPrayers: 0,
-      testimonies: 0,
     });
 
     expect(badges.find((badge) => badge.id === 'first-prayer')?.state).toBe('earned');
+    expect(badges.find((badge) => badge.id === 'first-session')?.state).toBe('earned');
+    expect(badges.find((badge) => badge.id === 'three-day-rhythm')?.state).toBe('earned');
     expect(badges.find((badge) => badge.id === 'streak-7')?.state).toBe('in-progress');
     expect(badges.find((badge) => badge.id === 'faithful-heart')?.state).toBe('in-progress');
     expect(badges.find((badge) => badge.id === 'answered-prayer')?.state).toBe('locked');
     expect(badges.find((badge) => badge.id === 'compassion-helper')?.state).toBe('locked');
     expect(BADGE_DEFS.length).toBeGreaterThan(6);
+  });
+
+  it('keeps encouragements prayer-focused without testimony badges', () => {
+    const badges = computeBadges({
+      prayers: 1,
+      streak: 30,
+      sessions: 1,
+      peoplePrayedFor: 100,
+      minutes: 600,
+    });
+    const ids = badges.map((badge) => badge.id);
+
+    expect(ids).not.toContain('testimony-voice');
+    expect(ids).toEqual(expect.arrayContaining([
+      'first-session',
+      'three-day-rhythm',
+      'deep-well',
+      'monthlong-rhythm',
+      'community-carrier',
+    ]));
+    expect(badges.find((badge) => badge.id === 'deep-well')?.state).toBe('earned');
+    expect(badges.find((badge) => badge.id === 'monthlong-rhythm')?.state).toBe('earned');
+    expect(badges.find((badge) => badge.id === 'community-carrier')?.state).toBe('earned');
   });
 
   it('formats badge progress for the mobile badge tile path', () => {

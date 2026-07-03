@@ -1,11 +1,11 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Flame, Footprints, Home, User } from 'lucide-react-native';
+import { Footprints, Home, Trophy, User } from 'lucide-react-native';
 import { alpha, colors, fonts, onDark, shadow, spacing } from '../theme';
 import { useAppTheme } from '../AppThemeProvider';
 
 const tabs = [
   { key: 'home', label: 'Feed', icon: Home },
-  { key: 'community', label: 'Chain', icon: Flame },
+  { key: 'leaderboard', label: 'Ranks', icon: Trophy },
   { key: 'stride', label: 'Stride', icon: Footprints },
   { key: 'profile', label: 'Profile', icon: User },
 ];
