@@ -42,6 +42,8 @@ export async function resolveUserTimeZone(fs, env, uid, requestedTimeZone) {
   if (!requestedTimeZone) return profileTz;
 
   const requested = resolveTimeZone(requestedTimeZone);
+  // resolveTimeZone falls back to UTC for unrecognized input; never persist that fallback.
+  if (requested !== requestedTimeZone) return profileTz;
   if (requested === profileTz || !profile) return requested;
 
   await fs.firestoreCommit(env, [{
@@ -280,17 +282,24 @@ export async function updateGamificationPreferences(fs, env, uid, patch = {}) {
     },
   }]);
 
-  const summaryDoc = await fs.getDocument(env, fs.docName(env, SUMMARY_COLLECTION, uid));
-  const stored = summaryDoc.exists ? fs.fromFirestoreFields(summaryDoc.fields || {}) : {};
-  const summary = normalizeStoredSummary(stored, uid, stored.timeZone, new Date());
-  summary.leaderboardVisible = next.leaderboardVisible;
-  summary.updatedAt = now;
-  await fs.firestoreCommit(env, [{
-    update: {
-      name: fs.docName(env, SUMMARY_COLLECTION, uid),
-      fields: fs.toFirestoreFields(summary),
-    },
-  }]);
+  for (let attempt = 1; attempt <= SUMMARY_WRITE_ATTEMPTS; attempt += 1) {
+    const summaryDoc = await fs.getDocument(env, fs.docName(env, SUMMARY_COLLECTION, uid));
+    const stored = summaryDoc.exists ? fs.fromFirestoreFields(summaryDoc.fields || {}) : {};
+    const summary = normalizeStoredSummary(stored, uid, stored.timeZone, new Date());
+    summary.leaderboardVisible = next.leaderboardVisible;
+    summary.updatedAt = now;
+    const result = await fs.firestoreCommit(env, [{
+      update: {
+        name: fs.docName(env, SUMMARY_COLLECTION, uid),
+        fields: fs.toFirestoreFields(summary),
+      },
+    }], {
+      precondition: summaryDoc.exists ? { updateTime: summaryDoc.updateTime } : { exists: false },
+      allowAlreadyExists: true,
+    });
+    if (!result.preconditionFailed && !result.alreadyExists) break;
+    await wait(attempt * SUMMARY_RETRY_MS);
+  }
 
   return next;
 }

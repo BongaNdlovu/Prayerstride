@@ -192,6 +192,10 @@ async function listPrayersFromFirestore(env, firestoreApi, options) {
     items = Array.from(byId.values());
   }
 
+  if (options.scope !== 'all') {
+    items = items.filter((item) => item.privacy !== 'private' || item.authorUid === options.userUid);
+  }
+
   if (options.urgentOnly) {
     items = items.filter((item) => item.urgent);
   }

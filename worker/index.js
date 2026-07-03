@@ -625,6 +625,14 @@ async function completeRegistration(env, user, body) {
     return json({ error: 'Enter a valid date of birth (YYYY-MM-DD).' }, 400);
   }
 
+  const userDoc = await getDocument(env, docName(env, 'users', user.uid));
+  if (!userDoc.exists) return json({ error: 'User profile not found.' }, 404);
+
+  const data = fromFirestoreFields(userDoc.fields);
+  if (data.dateOfBirth && data.communityAccess) {
+    return json({ ok: true, alreadyCompleted: true, communityAccess: data.communityAccess });
+  }
+
   const age = calculateAge(dateOfBirth);
   const ageBand = ageBandFromAge(age);
   if (ageBand !== 'adult') {
@@ -636,14 +644,6 @@ async function completeRegistration(env, user, body) {
   const churchName = isSeventhDayAdventist ? String(body.churchName || '').trim() : '';
   if (isSeventhDayAdventist && (churchName.length === 0 || churchName.length > 120)) {
     return json({ error: 'Enter the church you attend.' }, 400);
-  }
-
-  const userDoc = await getDocument(env, docName(env, 'users', user.uid));
-  if (!userDoc.exists) return json({ error: 'User profile not found.' }, 404);
-
-  const data = fromFirestoreFields(userDoc.fields);
-  if (data.dateOfBirth && data.communityAccess) {
-    return json({ ok: true, alreadyCompleted: true, communityAccess: data.communityAccess });
   }
 
   const communityAccess = communityAccessForAgeBand(ageBand);
@@ -1996,7 +1996,7 @@ async function deleteUserData(env, uid, options = {}) {
           status: 'failed',
           updatedAt: new Date().toISOString(),
           lastError: error.message,
-          attempts: (fromFirestoreFields(existing.fields || {}).attempts || priorAttempts) + 1,
+          attempts: priorAttempts + 1,
         }),
       },
     }]);
@@ -2648,8 +2648,8 @@ async function enforceCooldown(env, uid, action, seconds) {
       name,
       fields: toFirestoreFields({ uid, action, updatedAt: now.toISOString() }),
     },
-  }], { precondition });
-  if (result.preconditionFailed) {
+  }], { precondition, allowAlreadyExists: true });
+  if (result.preconditionFailed || result.alreadyExists) {
     throw Object.assign(new Error('Please wait a moment before trying again.'), {
       status: 429,
       publicMessage: 'Please wait a moment before trying again.',
@@ -2686,8 +2686,11 @@ async function enforceGlobalRateLimit(env, request, requestId) {
           updatedAt: new Date(now).toISOString(),
         }),
       },
-    }], { precondition: current.exists ? { updateTime: current.updateTime } : { exists: false } });
-    if (!result.preconditionFailed) return;
+    }], {
+      precondition: current.exists ? { updateTime: current.updateTime } : { exists: false },
+      allowAlreadyExists: true,
+    });
+    if (!result.preconditionFailed && !result.alreadyExists) return;
     await waitForRateLimitRetry(attempt);
   }
 
@@ -2720,8 +2723,11 @@ async function enforceUserRateLimit(env, uid, requestId) {
         name: rateDoc,
         fields: toFirestoreFields({ uidHash: userKey, window: minuteWindow, count, updatedAt: new Date(now).toISOString() }),
       },
-    }], { precondition: current.exists ? { updateTime: current.updateTime } : { exists: false } });
-    if (!result.preconditionFailed) return;
+    }], {
+      precondition: current.exists ? { updateTime: current.updateTime } : { exists: false },
+      allowAlreadyExists: true,
+    });
+    if (!result.preconditionFailed && !result.alreadyExists) return;
     await waitForRateLimitRetry(attempt);
   }
 
@@ -2763,7 +2769,7 @@ async function getGoogleAccessToken(env) {
   const result = await response.json();
   if (!response.ok) throw new Error(result.error_description || 'Google auth failed');
   cachedAccessToken = result.access_token;
-  cachedAccessTokenExpiry = now + 3600;
+  cachedAccessTokenExpiry = now + (Number(result.expires_in) || 3600);
   return result.access_token;
 }
 

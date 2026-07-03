@@ -260,6 +260,59 @@ describe('prayers read helpers', () => {
     expect(firestoreApi.runCollectionQuery.mock.calls[1][2][0].fieldFilter.field.fieldPath).toBe('authorUid');
   });
 
+  it('excludes other users private prayers from the Firestore feed path', async () => {
+    const firestoreApi = makeFirestoreApi([
+      [
+        {
+          name: 'projects/demo/databases/(default)/documents/prayers/p1',
+          fields: {
+            title: 'Secret struggle',
+            body: 'Please keep this between me and God',
+            authorUid: 'u2',
+            authorName: 'Mia',
+            privacy: 'private',
+            createdAt: '2026-06-08T10:00:00.000Z',
+          },
+        },
+        {
+          name: 'projects/demo/databases/(default)/documents/prayers/p2',
+          fields: {
+            title: 'Community request',
+            body: 'Pray with me',
+            authorUid: 'u3',
+            authorName: 'Noah',
+            privacy: 'community',
+            createdAt: '2026-06-07T10:00:00.000Z',
+          },
+        },
+      ],
+      [
+        {
+          name: 'projects/demo/databases/(default)/documents/prayers/p3',
+          fields: {
+            title: 'My private prayer',
+            body: 'Need peace',
+            authorUid: 'u1',
+            authorName: 'Alex',
+            privacy: 'private',
+            createdAt: '2026-06-06T10:00:00.000Z',
+          },
+        },
+      ],
+    ]);
+
+    const result = await getPrayersFeed(
+      {},
+      { uid: 'u1' },
+      new URL('https://worker.test/api/prayers?scope=feed&limit=10'),
+      firestoreApi,
+      vi.fn(),
+    );
+
+    expect(result.status).toBe(200);
+    expect(result.body.items.map((item) => item.id)).toEqual(['p2', 'p3']);
+  });
+
   it('requires admin access for all-scope feeds', async () => {
     const requireAdmin = vi.fn(async () => {});
     const firestoreApi = makeFirestoreApi([[]]);

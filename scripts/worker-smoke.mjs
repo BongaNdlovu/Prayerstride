@@ -97,7 +97,7 @@ assert(worker.includes("publicMessage: 'Rate limit exceeded'"), 'Rate-limit writ
 assert(worker.includes('const RATE_LIMIT_COMMIT_ATTEMPTS = 3'), 'Rate-limit counters should retry transient write conflicts.');
 assert(globalRateLimitSource.includes('for (let attempt = 1; attempt <= RATE_LIMIT_COMMIT_ATTEMPTS'), 'Global rate limiting should retry precondition conflicts.');
 assert(userRateLimitSource.includes('for (let attempt = 1; attempt <= RATE_LIMIT_COMMIT_ATTEMPTS'), 'User rate limiting should retry precondition conflicts.');
-assert(globalRateLimitSource.includes('if (!result.preconditionFailed) return') && userRateLimitSource.includes('if (!result.preconditionFailed) return'), 'Rate limiting should only fail after retry attempts are exhausted.');
+assert(globalRateLimitSource.includes('if (!result.preconditionFailed && !result.alreadyExists) return') && userRateLimitSource.includes('if (!result.preconditionFailed && !result.alreadyExists) return'), 'Rate limiting should only fail after retry attempts are exhausted.');
 assert(globalRateLimitSource.includes('await waitForRateLimitRetry(attempt)') && userRateLimitSource.includes('await waitForRateLimitRetry(attempt)'), 'Rate-limit retry attempts should yield before rereading counters.');
 assert(globalRateLimitSource.includes("publicMessage: 'Please retry shortly.'") && userRateLimitSource.includes("publicMessage: 'Please retry shortly.'"), 'Exhausted rate-limit conflicts should not be mislabeled as quota exhaustion.');
 assert(worker.includes('ipHash: ipKey') && !worker.includes('{ requestId, clientIp'), 'Rate limiting should store and log hashed IP identifiers instead of raw client IPs.');

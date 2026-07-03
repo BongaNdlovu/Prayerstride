@@ -50,6 +50,7 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, pr
   const [privateTitle, setPrivateTitle] = useState('');
   const [presetSeconds, setPresetSeconds] = useState(0);
   const intervalRef = useRef(null);
+  const secondsRef = useRef(0);
   const loggingRef = useRef(false);
   const latestMilestoneRef = useRef(0);
   const pulse = useSharedValue(1);
@@ -89,9 +90,15 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, pr
   }, [drift, shimmer]);
 
   useEffect(() => {
+    secondsRef.current = seconds;
+  }, [seconds]);
+
+  useEffect(() => {
     if (running) {
+      // Track wall-clock time so backgrounded intervals don't undercount.
+      const startedAt = Date.now() - secondsRef.current * 1000;
       intervalRef.current = setInterval(() => {
-        setSeconds((prev) => prev + 1);
+        setSeconds(Math.floor((Date.now() - startedAt) / 1000));
       }, 1000);
     } else {
       clearInterval(intervalRef.current);
