@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, StyleSheet, TextInput, View } from 'react-native';
 import { alpha, colors, fonts, sharedStyles, spacing } from '../theme';
 import { useReports, resolveReport, dismissReport } from '../useReports';
 import { useUsers } from '../useUsers';
@@ -67,16 +67,18 @@ export default function AdminDashboardScreen({ user, go, onBack }) {
     );
   }
 
+  const refreshControl = <RefreshControl refreshing={dataLoading} onRefresh={refreshAdminData} />;
+
   return (
     <ScreenScaffold scroll={false} style={styles.shell}>
       <AppHeader title="Admin Console" subtitle="Manage reports, members, and content." onBack={onBack} />
       <PillTabs tabs={TABS} active={tab} onChange={setTab} style={styles.tabs} />
       <AsyncState loading={dataLoading} error={dataError}>
         {tab === 'Overview' && <OverviewStats users={users} prayers={prayers} reports={reports} />}
-        {tab === 'Reports' && <ReportsList reports={reports} go={go} onResolve={(id) => refreshAfter(() => resolveReport(id))} onDismiss={(id) => refreshAfter(() => dismissReport(id))} />}
-        {tab === 'Members' && <MembersList users={users} currentUid={user?.uid} onSuspend={(uid, reason) => refreshAfter(() => adminSuspendUser(uid, reason))} onUnsuspend={(uid) => refreshAfter(() => adminUnsuspendUser(uid))} onDelete={(uid) => refreshAfter(() => adminDeleteAccount(uid))} />}
-        {tab === 'Content' && <ContentList prayers={prayers} onDelete={(id, type) => refreshAfter(() => adminDeleteContent(id, type))} />}
-        {tab === 'Announcements' && <AnnouncementsAdminList announcements={announcements} onChanged={refreshAdminData} />}
+        {tab === 'Reports' && <ReportsList reports={reports} go={go} onResolve={(id) => refreshAfter(() => resolveReport(id))} onDismiss={(id) => refreshAfter(() => dismissReport(id))} refreshControl={refreshControl} />}
+        {tab === 'Members' && <MembersList users={users} currentUid={user?.uid} onSuspend={(uid, reason) => refreshAfter(() => adminSuspendUser(uid, reason))} onUnsuspend={(uid) => refreshAfter(() => adminUnsuspendUser(uid))} onDelete={(uid) => refreshAfter(() => adminDeleteAccount(uid))} refreshControl={refreshControl} />}
+        {tab === 'Content' && <ContentList prayers={prayers} onDelete={(id, type) => refreshAfter(() => adminDeleteContent(id, type))} refreshControl={refreshControl} />}
+        {tab === 'Announcements' && <AnnouncementsAdminList announcements={announcements} onChanged={refreshAdminData} refreshControl={refreshControl} />}
         {tab === 'Analytics' && <AnalyticsPanel user={user} />}
       </AsyncState>
     </ScreenScaffold>
@@ -239,12 +241,13 @@ function OverviewStats({ users, prayers, reports }) {
   );
 }
 
-function ReportsList({ reports, go, onResolve, onDismiss }) {
+function ReportsList({ reports, go, onResolve, onDismiss, refreshControl }) {
   return (
     <FlatList
       data={reports}
       keyExtractor={(item) => item.id}
       contentContainerStyle={styles.list}
+      refreshControl={refreshControl}
       ListEmptyComponent={<EmptyState label="No reports." />}
       renderItem={({ item }) => (
         <Pressable onPress={() => go('reportDetails', { report: item })}>
@@ -265,7 +268,7 @@ function ReportsList({ reports, go, onResolve, onDismiss }) {
   );
 }
 
-function MembersList({ users, currentUid, onSuspend, onUnsuspend, onDelete }) {
+function MembersList({ users, currentUid, onSuspend, onUnsuspend, onDelete, refreshControl }) {
   const [search, setSearch] = useState('');
   const filtered = users.filter((u) => `${u.displayName || ''} ${u.email || ''}`.toLowerCase().includes(search.toLowerCase()));
 
@@ -276,6 +279,7 @@ function MembersList({ users, currentUid, onSuspend, onUnsuspend, onDelete }) {
         data={filtered}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
+        refreshControl={refreshControl}
         ListEmptyComponent={<EmptyState label="No members found." />}
         renderItem={({ item }) => (
           <GlassCard style={styles.card}>
@@ -315,7 +319,7 @@ function MembersList({ users, currentUid, onSuspend, onUnsuspend, onDelete }) {
   );
 }
 
-function AnnouncementsAdminList({ announcements, onChanged }) {
+function AnnouncementsAdminList({ announcements, onChanged, refreshControl }) {
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [category, setCategory] = useState('events');
@@ -387,6 +391,7 @@ function AnnouncementsAdminList({ announcements, onChanged }) {
         data={announcements}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
+        refreshControl={refreshControl}
         ListEmptyComponent={<EmptyState label="No announcements yet." />}
         renderItem={({ item }) => (
           <GlassCard style={styles.card}>
@@ -417,7 +422,7 @@ function AnnouncementsAdminList({ announcements, onChanged }) {
   );
 }
 
-function ContentList({ prayers, onDelete }) {
+function ContentList({ prayers, onDelete, refreshControl }) {
   const allContent = [
     ...prayers.map((p) => ({ ...p, contentType: 'prayer' })),
   ];
@@ -427,6 +432,7 @@ function ContentList({ prayers, onDelete }) {
       data={allContent}
       keyExtractor={(item) => `${item.contentType}-${item.id}`}
       contentContainerStyle={styles.list}
+      refreshControl={refreshControl}
       ListEmptyComponent={<EmptyState label="No content." />}
       renderItem={({ item }) => (
         <GlassCard style={styles.card}>

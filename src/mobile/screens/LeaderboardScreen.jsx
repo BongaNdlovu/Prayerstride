@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Image, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { Lock, Trophy } from 'lucide-react-native';
 import { alpha, colors, fonts, radii, spacing } from '../theme';
 import { useLeaderboard } from '../useLeaderboard';
@@ -138,7 +138,10 @@ export default function LeaderboardScreen({ user, onBack }) {
   };
 
   return (
-    <ScreenScaffold pageContent>
+    <ScreenScaffold
+      pageContent
+      refreshControl={<RefreshControl refreshing={loading || prefsLoading} onRefresh={retryAll} />}
+    >
       <AppHeader title="Ranks" subtitle="Prayer rhythm, consistency, and care." onBack={onBack} />
       <AsyncState loading={loading || prefsLoading} error={error || prefsError} onRetry={retryAll}>
         <View style={styles.tabsRow}>

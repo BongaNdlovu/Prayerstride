@@ -18,6 +18,7 @@ export default function ScreenScaffold({
   variant = 'light',
   style,
   contentStyle,
+  refreshControl,
 }) {
   const { darkMode } = useAppTheme();
   const isSpotlight = variant === 'spotlight';
@@ -78,6 +79,7 @@ export default function ScreenScaffold({
         showsVerticalScrollIndicator={false}
         horizontal={false}
         keyboardShouldPersistTaps="handled"
+        refreshControl={refreshControl}
       >
         {inner}
       </ScrollView>

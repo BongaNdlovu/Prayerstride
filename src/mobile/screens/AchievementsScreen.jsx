@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { Award, CheckCircle, Lock, Star, Target, X } from 'lucide-react-native';
 import { alpha, colors, fonts, radii, spacing } from '../theme';
 import { useGamification } from '../useGamification';
@@ -63,7 +63,11 @@ export default function AchievementsScreen({ user, onBack }) {
   const overallProgress = badges.length ? earnedCount / badges.length : 0;
 
   return (
-    <ScreenScaffold pageContent style={styles.screen}>
+    <ScreenScaffold
+      pageContent
+      style={styles.screen}
+      refreshControl={<RefreshControl refreshing={loading} onRefresh={retry} />}
+    >
       <AppHeader title="Achievements" subtitle="Badges for consistency and care." onBack={onBack} centered showLogo />
       <AsyncState loading={loading} error={error} onRetry={retry}>
         <View style={styles.achBanner}>

@@ -76,7 +76,7 @@ export default function BottomTabs({ active, onChange }) {
                   <Icon size={19} color={selected ? (darkMode ? colors.goldLight : colors.ink) : (darkMode ? onDark.textMuted : colors.ink3)} />
                 </View>
               )}
-              <Text style={[styles.tabLabel, darkMode && styles.tabLabelDark, selected && styles.tabLabelActive, selected && darkMode && styles.tabLabelActiveDark]}>{label}</Text>
+              <Text style={[styles.tabLabel, darkMode && styles.tabLabelDark, selected && styles.tabLabelActive, selected && darkMode && styles.tabLabelActiveDark]} maxFontSizeMultiplier={1.5}>{label}</Text>
             </Pressable>
           );
         })}

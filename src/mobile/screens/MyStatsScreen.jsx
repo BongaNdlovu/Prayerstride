@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { Clock, Flame, Footprints, Heart, Timer, Users } from 'lucide-react-native';
 import { colors, radii, spacing } from '../theme';
 import { usePrayers } from '../usePrayerData';
@@ -39,7 +39,10 @@ export default function MyStatsScreen({ user, onBack, go }) {
   const streakProgress = Math.min(streak / WEEKLY_STREAK_GOAL, 1);
 
   return (
-    <ScreenScaffold pageContent>
+    <ScreenScaffold
+      pageContent
+      refreshControl={<RefreshControl refreshing={loading} onRefresh={retry} />}
+    >
       <AppHeader title="Prayer stride" subtitle="Your weekly rhythm at a glance." onBack={onBack} centered showLogo />
       <AsyncState loading={loading} error={error} onRetry={retry}>
         <View style={styles.summaryPanel}>

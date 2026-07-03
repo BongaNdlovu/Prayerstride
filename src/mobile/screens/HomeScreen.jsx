@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, BackHandler, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, BackHandler, Image, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Bell,
@@ -85,7 +85,8 @@ function formatXP(value) {
 }
 
 function ProgressDots({ count, activeIndex, onSelect }) {
-  if (!count) return null;
+  // Past a dozen prayers the dots overflow the row; the "X of Y" counter takes over.
+  if (!count || count > 12) return null;
   return (
     <View style={styles.progressDots}>
       {Array.from({ length: count }, (_, index) => (
@@ -247,7 +248,14 @@ export default function HomeScreen({ user, onOpenPrayer, go, onTabBarHiddenChang
   const feedback = useAppFeedback();
   const currentUser = auth.currentUser || user;
   const uid = currentUser?.uid;
-  const { prayers, loading: prayersLoading, error: prayersError, retry: retryPrayers } = usePrayers(true);
+  const {
+    prayers,
+    loading: prayersLoading,
+    error: prayersError,
+    retry: retryPrayers,
+    loadMore: loadMorePrayers,
+    hasMore: hasMorePrayers,
+  } = usePrayers(true);
   const { blockedUids, loading: blocksLoading, error: blocksError, refresh: retryBlocks } = useBlocks(true);
   const { profile } = useUserProfile(uid, Boolean(uid));
   const {
@@ -328,10 +336,20 @@ export default function HomeScreen({ user, onOpenPrayer, go, onTabBarHiddenChang
     if (!visiblePrayers.length) return;
     const clamped = clampIndex(nextIndex, visiblePrayers.length);
     if (clamped === currentFeedIndex && nextIndex !== clamped) {
-      feedback.showToast({ message: nextIndex < 0 ? 'This is the first prayer' : "You've reached the end" });
+      feedback.showToast({
+        message: nextIndex < 0
+          ? 'This is the first prayer'
+          : hasMorePrayers ? 'Loading more prayers...' : "You've reached the end",
+      });
     }
     setCurrentFeedIndex(clamped);
   };
+
+  useEffect(() => {
+    if (visiblePrayers.length && currentFeedIndex >= visiblePrayers.length - 3) {
+      loadMorePrayers();
+    }
+  }, [currentFeedIndex, visiblePrayers.length, loadMorePrayers]);
 
   useEffect(() => {
     if (currentFeedIndex >= visiblePrayers.length && visiblePrayers.length > 0) {
@@ -431,7 +449,10 @@ export default function HomeScreen({ user, onOpenPrayer, go, onTabBarHiddenChang
   };
 
   return (
-    <ScreenScaffold pageContent>
+    <ScreenScaffold
+      pageContent
+      refreshControl={<RefreshControl refreshing={listLoading} onRefresh={retry} />}
+    >
       <View style={styles.topBar}>
         <View style={styles.brand}>
           <View style={styles.brandMark}>
@@ -536,7 +557,12 @@ export default function HomeScreen({ user, onOpenPrayer, go, onTabBarHiddenChang
       {searchOpen ? (
         <View style={styles.searchOverlay}>
           <View style={styles.searchHeader}>
-            <Pressable onPress={() => { setSearchOpen(false); setSearchQuery(''); }} style={styles.searchCloseBtn}>
+            <Pressable
+              onPress={() => { setSearchOpen(false); setSearchQuery(''); }}
+              style={styles.searchCloseBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Close search"
+            >
               <X size={20} color={colors.ink} />
             </Pressable>
             <TextInput
@@ -557,6 +583,8 @@ export default function HomeScreen({ user, onOpenPrayer, go, onTabBarHiddenChang
                 setSearchQuery('');
               }}
               style={styles.searchResult}
+              accessibilityRole="button"
+              accessibilityLabel={`Open prayer: ${prayer.title}`}
             >
               <Text style={styles.searchResultTitle}>{prayer.title}</Text>
               <BodyText variant="caption" numberOfLines={1}>{prayer.body}</BodyText>
@@ -572,7 +600,12 @@ export default function HomeScreen({ user, onOpenPrayer, go, onTabBarHiddenChang
           <View style={styles.composeSheet}>
             <View style={styles.composeHeader}>
               <Heading level="h4">Share a Prayer</Heading>
-              <Pressable onPress={() => setComposeOpen(false)} style={styles.searchCloseBtn}>
+              <Pressable
+                onPress={() => setComposeOpen(false)}
+                style={styles.searchCloseBtn}
+                accessibilityRole="button"
+                accessibilityLabel="Close prayer composer"
+              >
                 <X size={20} color={colors.ink} />
               </Pressable>
             </View>

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Alert, FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { alpha, colors, radii, spacing } from '../theme';
 import { useNotifications, markAllNotificationsRead, markNotificationRead } from '../useNotifications';
 import { formatFirestoreDate } from '../sessionStats';
@@ -48,6 +48,8 @@ export default function NotificationsScreen({ user, onBack }) {
     <Pressable
       onPress={() => markRead(item.id)}
       style={({ pressed }) => [styles.itemWrap, pressed && styles.pressed]}
+      accessibilityRole="button"
+      accessibilityLabel={`${item.read ? 'Notification' : 'Unread notification'}: ${item.message || item.type}`}
     >
       <View style={[styles.notifCard, !item.read && styles.notifUnread]}>
         <View style={styles.notifRow}>
@@ -74,6 +76,7 @@ export default function NotificationsScreen({ user, onBack }) {
             data={[...unread, ...read]}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.list}
+            refreshControl={<RefreshControl refreshing={loading} onRefresh={retry} />}
             ListHeaderComponent={
               unread.length > 0 ? (
                 <View style={styles.listHeader}>

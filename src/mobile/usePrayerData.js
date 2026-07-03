@@ -20,6 +20,8 @@ export function usePrayers(enabled, options = {}) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(Boolean(enabled));
   const [error, setError] = useState(null);
+  const [nextCursor, setNextCursor] = useState(null);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [retryVersion, setRetryVersion] = useState(0);
   const retry = useCallback(() => setRetryVersion((version) => version + 1), []);
   const scope = resolveScope(options);
@@ -31,6 +33,7 @@ export function usePrayers(enabled, options = {}) {
       setItems([]);
       setLoading(false);
       setError(null);
+      setNextCursor(null);
       return undefined;
     }
 
@@ -49,11 +52,13 @@ export function usePrayers(enabled, options = {}) {
         });
         if (cancelled) return;
         setItems(result.items || []);
+        setNextCursor(result.nextCursor || null);
         setError(null);
       } catch (err) {
         if (cancelled) return;
         setError(err);
         setItems([]);
+        setNextCursor(null);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -64,7 +69,32 @@ export function usePrayers(enabled, options = {}) {
     };
   }, [enabled, scope, pageSize, status, options.category, options.urgent, retryVersion]);
 
-  return { prayers: items, loading, error, retry };
+  const loadMore = useCallback(async () => {
+    if (!enabled || !nextCursor || loading || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const result = await getPrayers({
+        scope,
+        status,
+        category: options.category,
+        urgent: options.urgent,
+        limit: pageSize,
+        cursor: nextCursor,
+      });
+      setItems((prev) => {
+        const byId = new Map(prev.map((item) => [item.id, item]));
+        for (const item of result.items || []) byId.set(item.id, item);
+        return Array.from(byId.values());
+      });
+      setNextCursor(result.nextCursor || null);
+    } catch {
+      // Keep the loaded pages; a pull-to-refresh or the next attempt retries.
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [enabled, nextCursor, loading, loadingMore, scope, pageSize, status, options.category, options.urgent]);
+
+  return { prayers: items, loading, error, retry, loadMore, hasMore: Boolean(nextCursor), loadingMore };
 }
 
 export function useTestimonies(enabled) {

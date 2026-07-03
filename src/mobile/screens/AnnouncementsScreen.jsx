@@ -1,4 +1,4 @@
-import { FlatList, StyleSheet } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet } from 'react-native';
 import { spacing } from '../theme';
 import { useAnnouncements } from '../useAnnouncements';
 import ScreenScaffold from '../components/ScreenScaffold';
@@ -25,6 +25,7 @@ export default function AnnouncementsScreen({ onBack }) {
           data={announcements}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
+          refreshControl={<RefreshControl refreshing={loading} onRefresh={retry} />}
           renderItem={({ item }) => (
             <GlassCard style={styles.card}>
               <Heading level="eyebrow">{item.categoryLabel}</Heading>

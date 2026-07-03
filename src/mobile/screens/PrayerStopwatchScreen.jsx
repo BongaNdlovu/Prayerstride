@@ -314,7 +314,7 @@ export default function PrayerStopwatchScreen({ prayerId, title: prayerTitle, pr
             trackColor="rgba(255,255,255,0.07)"
           >
             <View style={styles.timerCenter}>
-              <Text style={styles.timer}>{formatTime(seconds)}</Text>
+              <Text style={styles.timer} maxFontSizeMultiplier={1.2}>{formatTime(seconds)}</Text>
               <BodyText variant="caption" style={styles.timerLabel}>{timerStatus}</BodyText>
             </View>
           </ProgressRing>

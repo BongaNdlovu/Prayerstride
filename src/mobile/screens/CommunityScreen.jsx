@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { CheckCircle, Flame, Heart, Sparkles, Target, Users } from 'lucide-react-native';
 import { alpha, colors, fonts, radii, spacing } from '../theme';
 import { usePrayers } from '../usePrayerData';
@@ -30,7 +30,12 @@ function formatPrayerCount(value) {
 
 function SharedPrayerItem({ prayer, onPress }) {
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.wallItem, pressed && styles.pressed]}>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.wallItem, pressed && styles.pressed]}
+      accessibilityRole="button"
+      accessibilityLabel={`Open prayer: ${prayer.category || prayer.title || 'Prayer request'}`}
+    >
       <View style={styles.wallIcon}>
         <Heart size={15} color={colors.teal} />
       </View>
@@ -69,8 +74,13 @@ export default function CommunityScreen({ user, onBack, go }) {
     retrySummary();
   };
 
+  const refreshing = prayersLoading || summaryLoading;
+
   return (
-    <ScreenScaffold pageContent>
+    <ScreenScaffold
+      pageContent
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={retry} />}
+    >
       <AppHeader title="Prayer Chain" subtitle="Shared prayer without comparison." onBack={onBack} centered showLogo />
       <AsyncState loading={prayersLoading || summaryLoading} error={prayersError || summaryError} onRetry={retry}>
         <View style={styles.flameCard}>

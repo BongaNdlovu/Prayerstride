@@ -81,6 +81,8 @@ export default function SettingsScreen({ user, go, deleteAccount, onBack }) {
             key={item.route}
             onPress={() => go(item.route)}
             style={[styles.menuItem, index === ITEMS.length - 1 && styles.menuItemLast]}
+            accessibilityRole="button"
+            accessibilityLabel={item.label}
           >
             <BodyText variant="label">{item.label}</BodyText>
             <ChevronRight size={18} color={colors.ink3} />
@@ -132,7 +134,11 @@ export default function SettingsScreen({ user, go, deleteAccount, onBack }) {
             placeholderTextColor={colors.ink3}
           />
           <PrimaryButton label={busy ? 'Deleting...' : 'Delete my account'} onPress={submitDelete} busy={busy} style={styles.deleteConfirm} />
-          <Pressable onPress={() => setConfirmingDelete(false)}>
+          <Pressable
+            onPress={() => setConfirmingDelete(false)}
+            accessibilityRole="button"
+            accessibilityLabel="Cancel account deletion"
+          >
             <BodyText variant="small" style={styles.cancelDelete}>Cancel</BodyText>
           </Pressable>
         </GlassCard>
